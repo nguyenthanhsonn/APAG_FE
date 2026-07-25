@@ -87,12 +87,16 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorPayload>) => {
     const originalRequest = error.config as AuthRetryConfig | undefined;
+    const requestUrl = originalRequest?.url || '';
+    const isLoginRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/login');
+    const isAuthRequest = isLoginRequest || requestUrl.includes('/auth/refresh-token');
 
     if (
       error.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
-      !originalRequest.skipAuthRefresh
+      !originalRequest.skipAuthRefresh &&
+      !isAuthRequest
     ) {
       originalRequest._retry = true;
       const refreshToken = getStoredToken('refreshToken');
@@ -136,16 +140,21 @@ axiosInstance.interceptors.response.use(
     const apiError = new Error(rawMessage) as ApiError;
     apiError.errors = error.response?.data?.errors;
     apiError.statusCode = error.response?.status;
+    (apiError as any).url = requestUrl;
+    (apiError as any).isLogin = isLoginRequest;
 
     // Gắn sẵn userMessage (friendly) — các component dùng toast nên ưu tiên field này
-    // getUserFriendlyError sẽ đọc apiError.userMessage nếu đã có, nên set trước khi truyền
     apiError.userMessage = getUserFriendlyError(
       {
         message: rawMessage,
         statusCode: error.response?.status,
         errors: error.response?.data?.errors,
+        url: requestUrl,
+        isLogin: isLoginRequest,
       },
-      'Có lỗi xảy ra, vui lòng thử lại sau.'
+      isLoginRequest
+        ? 'Đăng nhập không thành công. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu.'
+        : 'Có lỗi xảy ra, vui lòng thử lại sau.'
     );
 
     throw apiError;

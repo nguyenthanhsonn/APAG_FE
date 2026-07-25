@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Minus, Lock, AlertCircle, Upload, X, ChevronDown } from 'lucide-react';
-import type { CouncilDeductionStepperProps as DeductionStepperProps, CouncilCriteriaReviewTableProps } from '@/types/admin';
+import type { CouncilDeductionStepperProps as DeductionStepperProps } from '@/types/admin';
+import { useCouncilReviewStore, computeCouncilScores } from '@/store/councilReviewStore';
 
 const DEDUCTION_WEIGHTS = [10, 3, 5, 5, 5, 5, 5, 10, 20];
 const DeductionStepper = ({ isSv, index, value, onChange, disabled, weight, noViolationScore, allDeductions, currentUserRole, isReadOnly }: DeductionStepperProps) => {
@@ -60,7 +61,10 @@ const NoteArea = ({ value, onChange, disabled }: { value:string; onChange:(v:str
   <textarea value={value} onChange={e=>onChange(e.target.value)} disabled={disabled} rows={2} placeholder={disabled ? '' : 'Nhận xét / minh chứng...'} className="w-full text-[11px] border border-gray-300 rounded px-1.5 py-1 resize-none outline-none focus:ring-1 focus:ring-blue-400 bg-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed leading-snug"/>
 );
 
-const MiniUpload = ({ fileKey, uploadedFiles, handleFileUpload, removeFile, disabled, required }: { fileKey:string; uploadedFiles:Record<string,string[]>; handleFileUpload:(k:string,e:React.ChangeEvent<HTMLInputElement>)=>void; removeFile:(k:string,i:number)=>void; disabled:boolean; required?:boolean }) => {
+const MiniUpload = ({ fileKey, disabled, required }: { fileKey:string; disabled:boolean; required?:boolean }) => {
+  const uploadedFiles = useCouncilReviewStore(s => s.uploadedFiles);
+  const handleFileUpload = useCouncilReviewStore(s => s.handleFileUploadAction);
+  const removeFile = useCouncilReviewStore(s => s.removeFileAction);
   const files = uploadedFiles[fileKey] || [];
   return (
     <div className="mt-1.5 space-y-1">
@@ -91,31 +95,131 @@ const SectionHeaderRow = ({ tt, title, maxScore }: { tt:string; title:string; ma
   </tr>
 );
 
-
-
 const LockedScore = () => <span className="text-[10px] text-red-500 italic font-semibold">(Hủy điểm)</span>;
 
-export const CouncilCriteriaReviewTable = (props: CouncilCriteriaReviewTableProps) => {
-  const { currentUserRole, setIsClassEdited, isReadOnly, svScores, classScores,
-    svStudyAttitude, setSvStudyAttitude, svNckh, setSvNckh, svOlympic, setSvOlympic, svCreative, setSvCreative, svAcademicRank, setSvAcademicRank,
-    classStudyAttitude, setClassStudyAttitude, classNckh, setClassNckh, classOlympic, setClassOlympic, classCreative, setClassCreative, classAcademicRank, setClassAcademicRank,
-    isSvViolationSec1, setIsSvViolationSec1, isClassViolationSec1, setIsClassViolationSec1,
-    svNoViolationScore, setSvNoViolationScore, svDeductions, handleDeductionChange,
-    classNoViolationScore, setClassNoViolationScore, classDeductions, deductionLabels,
-    isSvViolationSec2, setIsSvViolationSec2, isClassViolationSec2, setIsClassViolationSec2,
-    svActivity1, setSvActivity1, svActivity2, setSvActivity2, svActivity3, setSvActivity3, svActivity4, setSvActivity4, svRewardPoints, setSvRewardPoints,
-    classActivity1, setClassActivity1, classActivity2, setClassActivity2, classActivity3, setClassActivity3, classActivity4, setClassActivity4, classRewardPoints, setClassRewardPoints,
-    isSvViolationSec3, setIsSvViolationSec3, isClassViolationSec3, setIsClassViolationSec3,
-    svPolicy, setSvPolicy, svSolidarity, setSvSolidarity, svLocality, setSvLocality,
-    classPolicy, setClassPolicy, classSolidarity, setClassSolidarity, classLocality, setClassLocality,
-    isSvViolationSec4, setIsSvViolationSec4, isClassViolationSec4, setIsClassViolationSec4,
-    svRoleType, setSvRoleType, svCadrePosition, setSvCadrePosition, svCadrePerformance, setSvCadrePerformance,
-    svManagementLevel, setSvManagementLevel, svClassParticipation, setSvClassParticipation, svSpecialAchievement, setSvSpecialAchievement,
-    classRoleType, setClassRoleType, classCadrePosition, setClassCadrePosition, classCadrePerformance, setClassCadrePerformance,
-    classManagementLevel, setClassManagementLevel, classClassParticipation, setClassClassParticipation, classSpecialAchievement, setClassSpecialAchievement,
-    isSvViolationSec5, setIsSvViolationSec5, isClassViolationSec5, setIsClassViolationSec5,
-    uploadedFiles, handleFileUpload, removeFile
-  } = props;
+export const CouncilCriteriaReviewTable = () => {
+  // ── Read all state from council review store via fine-grained selectors ───
+  const currentUserRole = useCouncilReviewStore(s => s.currentUserRole);
+  const isReadOnly = useCouncilReviewStore(s => s.isReadOnly);
+  const svScores = useCouncilReviewStore(s => computeCouncilScores(s, true));
+  const classScores = useCouncilReviewStore(s => computeCouncilScores(s, false));
+
+  // Sec 1
+  const svStudyAttitude = useCouncilReviewStore(s => s.svStudyAttitude);
+  const svNckh = useCouncilReviewStore(s => s.svNckh);
+  const svOlympic = useCouncilReviewStore(s => s.svOlympic);
+  const svCreative = useCouncilReviewStore(s => s.svCreative);
+  const svAcademicRank = useCouncilReviewStore(s => s.svAcademicRank);
+  const classStudyAttitude = useCouncilReviewStore(s => s.classStudyAttitude);
+  const classNckh = useCouncilReviewStore(s => s.classNckh);
+  const classOlympic = useCouncilReviewStore(s => s.classOlympic);
+  const classCreative = useCouncilReviewStore(s => s.classCreative);
+  const classAcademicRank = useCouncilReviewStore(s => s.classAcademicRank);
+  const isSvViolationSec1 = useCouncilReviewStore(s => s.isSvViolationSec1);
+  const isClassViolationSec1 = useCouncilReviewStore(s => s.isClassViolationSec1);
+  // Sec 2
+  const svNoViolationScore = useCouncilReviewStore(s => s.svNoViolationScore);
+  const svDeductions = useCouncilReviewStore(s => s.svDeductions);
+  const classNoViolationScore = useCouncilReviewStore(s => s.classNoViolationScore);
+  const classDeductions = useCouncilReviewStore(s => s.classDeductions);
+  const deductionLabels = useCouncilReviewStore(s => s.deductionLabels);
+  const isSvViolationSec2 = useCouncilReviewStore(s => s.isSvViolationSec2);
+  const isClassViolationSec2 = useCouncilReviewStore(s => s.isClassViolationSec2);
+  // Sec 3
+  const svActivity1 = useCouncilReviewStore(s => s.svActivity1);
+  const svActivity2 = useCouncilReviewStore(s => s.svActivity2);
+  const svActivity3 = useCouncilReviewStore(s => s.svActivity3);
+  const svActivity4 = useCouncilReviewStore(s => s.svActivity4);
+  const svRewardPoints = useCouncilReviewStore(s => s.svRewardPoints);
+  const classActivity1 = useCouncilReviewStore(s => s.classActivity1);
+  const classActivity2 = useCouncilReviewStore(s => s.classActivity2);
+  const classActivity3 = useCouncilReviewStore(s => s.classActivity3);
+  const classActivity4 = useCouncilReviewStore(s => s.classActivity4);
+  const classRewardPoints = useCouncilReviewStore(s => s.classRewardPoints);
+  const isSvViolationSec3 = useCouncilReviewStore(s => s.isSvViolationSec3);
+  const isClassViolationSec3 = useCouncilReviewStore(s => s.isClassViolationSec3);
+  // Sec 4
+  const svPolicy = useCouncilReviewStore(s => s.svPolicy);
+  const svSolidarity = useCouncilReviewStore(s => s.svSolidarity);
+  const svLocality = useCouncilReviewStore(s => s.svLocality);
+  const classPolicy = useCouncilReviewStore(s => s.classPolicy);
+  const classSolidarity = useCouncilReviewStore(s => s.classSolidarity);
+  const classLocality = useCouncilReviewStore(s => s.classLocality);
+  const isSvViolationSec4 = useCouncilReviewStore(s => s.isSvViolationSec4);
+  const isClassViolationSec4 = useCouncilReviewStore(s => s.isClassViolationSec4);
+  // Sec 5
+  const svRoleType = useCouncilReviewStore(s => s.svRoleType);
+  const svCadrePosition = useCouncilReviewStore(s => s.svCadrePosition);
+  const svCadrePerformance = useCouncilReviewStore(s => s.svCadrePerformance);
+  const svManagementLevel = useCouncilReviewStore(s => s.svManagementLevel);
+  const svClassParticipation = useCouncilReviewStore(s => s.svClassParticipation);
+  const svSpecialAchievement = useCouncilReviewStore(s => s.svSpecialAchievement);
+  const classRoleType = useCouncilReviewStore(s => s.classRoleType);
+  const classCadrePosition = useCouncilReviewStore(s => s.classCadrePosition);
+  const classCadrePerformance = useCouncilReviewStore(s => s.classCadrePerformance);
+  const classManagementLevel = useCouncilReviewStore(s => s.classManagementLevel);
+  const classClassParticipation = useCouncilReviewStore(s => s.classClassParticipation);
+  const classSpecialAchievement = useCouncilReviewStore(s => s.classSpecialAchievement);
+  const isSvViolationSec5 = useCouncilReviewStore(s => s.isSvViolationSec5);
+  const isClassViolationSec5 = useCouncilReviewStore(s => s.isClassViolationSec5);
+
+  // Actions
+  const setField = useCouncilReviewStore(s => s.setField);
+  const handleDeductionChange = useCouncilReviewStore(s => s.handleDeductionChange);
+  const setIsClassEdited = useCouncilReviewStore(s => s.setIsClassEdited);
+
+  // Convenience setters derived from setField
+  const setSvStudyAttitude = (v: string) => setField('svStudyAttitude', v);
+  const setSvNckh = (v: boolean) => setField('svNckh', v);
+  const setSvOlympic = (v: boolean) => setField('svOlympic', v);
+  const setSvCreative = (v: boolean) => setField('svCreative', v);
+  const setSvAcademicRank = (v: string) => setField('svAcademicRank', v);
+  const setClassStudyAttitude = (v: string) => setField('classStudyAttitude', v);
+  const setClassNckh = (v: boolean) => setField('classNckh', v);
+  const setClassOlympic = (v: boolean) => setField('classOlympic', v);
+  const setClassCreative = (v: boolean) => setField('classCreative', v);
+  const setClassAcademicRank = (v: string) => setField('classAcademicRank', v);
+  const setIsSvViolationSec1 = (v: boolean) => setField('isSvViolationSec1', v);
+  const setIsClassViolationSec1 = (v: boolean) => setField('isClassViolationSec1', v);
+  const setSvNoViolationScore = (v: number) => setField('svNoViolationScore', v);
+  const setClassNoViolationScore = (v: number) => setField('classNoViolationScore', v);
+  const setIsSvViolationSec2 = (v: boolean) => setField('isSvViolationSec2', v);
+  const setIsClassViolationSec2 = (v: boolean) => setField('isClassViolationSec2', v);
+  const setSvActivity1 = (v: string) => setField('svActivity1', v);
+  const setSvActivity2 = (v: string) => setField('svActivity2', v);
+  const setSvActivity3 = (v: string) => setField('svActivity3', v);
+  const setSvActivity4 = (v: string) => setField('svActivity4', v);
+  const setSvRewardPoints = (v: number) => setField('svRewardPoints', v);
+  const setClassActivity1 = (v: string) => setField('classActivity1', v);
+  const setClassActivity2 = (v: string) => setField('classActivity2', v);
+  const setClassActivity3 = (v: string) => setField('classActivity3', v);
+  const setClassActivity4 = (v: string) => setField('classActivity4', v);
+  const setClassRewardPoints = (v: number) => setField('classRewardPoints', v);
+  const setIsSvViolationSec3 = (v: boolean) => setField('isSvViolationSec3', v);
+  const setIsClassViolationSec3 = (v: boolean) => setField('isClassViolationSec3', v);
+  const setSvPolicy = (v: string) => setField('svPolicy', v);
+  const setSvSolidarity = (v: string) => setField('svSolidarity', v);
+  const setSvLocality = (v: string) => setField('svLocality', v);
+  const setClassPolicy = (v: string) => setField('classPolicy', v);
+  const setClassSolidarity = (v: string) => setField('classSolidarity', v);
+  const setClassLocality = (v: string) => setField('classLocality', v);
+  const setIsSvViolationSec4 = (v: boolean) => setField('isSvViolationSec4', v);
+  const setIsClassViolationSec4 = (v: boolean) => setField('isClassViolationSec4', v);
+  const setSvRoleType = (v: 'cadre' | 'student') => setField('svRoleType', v);
+  const setSvCadrePosition = (v: 'a1' | 'a2') => setField('svCadrePosition', v);
+  const setSvCadrePerformance = (v: string) => setField('svCadrePerformance', v);
+  const setSvManagementLevel = (v: string) => setField('svManagementLevel', v);
+  const setSvClassParticipation = (v: number) => setField('svClassParticipation', v);
+  const setSvSpecialAchievement = (v: string) => setField('svSpecialAchievement', v);
+  const setClassRoleType = (v: 'cadre' | 'student') => setField('classRoleType', v);
+  const setClassCadrePosition = (v: 'a1' | 'a2') => setField('classCadrePosition', v);
+  const setClassCadrePerformance = (v: string) => setField('classCadrePerformance', v);
+  const setClassManagementLevel = (v: string) => setField('classManagementLevel', v);
+  const setClassClassParticipation = (v: number) => setField('classClassParticipation', v);
+  const setClassSpecialAchievement = (v: string) => setField('classSpecialAchievement', v);
+  const setIsSvViolationSec5 = (v: boolean) => setField('isSvViolationSec5', v);
+  const setIsClassViolationSec5 = (v: boolean) => setField('isClassViolationSec5', v);
+
 
   const [notes, setNotes] = useState<Record<string,string>>({});
   const setNote = (key: string, v: string) => setNotes(prev => ({...prev,[key]:v}));
@@ -249,19 +353,19 @@ export const CouncilCriteriaReviewTable = (props: CouncilCriteriaReviewTableProp
                 {svNckh && (
                   <div className="mt-2 border-t pt-1.5 border-gray-100">
                     <span className="text-[10px] font-bold text-gray-600 block">Minh chứng NCKH:</span>
-                    <MiniUpload fileKey="sv_nckh" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required/>
+                    <MiniUpload fileKey="sv_nckh" disabled={!isSvEditable} required/>
                   </div>
                 )}
                 {svOlympic && (
                   <div className="mt-2 border-t pt-1.5 border-gray-100">
                     <span className="text-[10px] font-bold text-gray-600 block">Minh chứng Olympic:</span>
-                    <MiniUpload fileKey="sv_olympic" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required/>
+                    <MiniUpload fileKey="sv_olympic" disabled={!isSvEditable} required/>
                   </div>
                 )}
                 {svCreative && (
                   <div className="mt-2 border-t pt-1.5 border-gray-100">
                     <span className="text-[10px] font-bold text-gray-600 block">Minh chứng Hoạt động học thuật:</span>
-                    <MiniUpload fileKey="sv_creative" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required/>
+                    <MiniUpload fileKey="sv_creative" disabled={!isSvEditable} required/>
                   </div>
                 )}
               </td>
@@ -360,7 +464,7 @@ export const CouncilCriteriaReviewTable = (props: CouncilCriteriaReviewTableProp
                 {svRewardPoints > 0 && (
                   <div className="mt-2 border-t pt-1.5 border-gray-100">
                     <span className="text-[10px] font-bold text-gray-600 block">Minh chứng Khen thưởng:</span>
-                    <MiniUpload fileKey="sv_reward" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable||isSvViolationSec3} required={svRewardPoints>0}/>
+                    <MiniUpload fileKey="sv_reward" disabled={!isSvEditable||isSvViolationSec3} required={svRewardPoints>0}/>
                   </div>
                 )}
               </td>
@@ -384,13 +488,13 @@ export const CouncilCriteriaReviewTable = (props: CouncilCriteriaReviewTableProp
                   {row.key==='iv1'&&svPolicy==='GOOD_WITH_REWARD'&& (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-[10px] font-bold text-gray-600 block">Minh chứng tuyên truyền xuất sắc:</span>
-                      <MiniUpload fileKey="sv_policy" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required/>
+                      <MiniUpload fileKey="sv_policy" disabled={!isSvEditable} required/>
                     </div>
                   )}
                   {row.key==='iv2'&&svSolidarity==='excellent_achievements'&& (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-[10px] font-bold text-gray-600 block">Minh chứng thành tích đặc biệt:</span>
-                      <MiniUpload fileKey="sv_solidarity" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required/>
+                      <MiniUpload fileKey="sv_solidarity" disabled={!isSvEditable} required/>
                     </div>
                   )}
                 </td>
@@ -455,7 +559,7 @@ export const CouncilCriteriaReviewTable = (props: CouncilCriteriaReviewTableProp
                   {svCadrePerformance==='excellent'&&svRoleType==='cadre'&& (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-[10px] font-bold text-gray-600 block">Minh chứng hoàn thành xuất sắc:</span>
-                      <MiniUpload fileKey="sv_cadre_perf" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required/>
+                      <MiniUpload fileKey="sv_cadre_perf" disabled={!isSvEditable} required/>
                     </div>
                   )}
                 </td>
@@ -498,7 +602,7 @@ export const CouncilCriteriaReviewTable = (props: CouncilCriteriaReviewTableProp
                   {(svSpecialAchievement==='national_intl'||svSpecialAchievement==='provincial')&&svRoleType==='student'&& (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-[10px] font-bold text-gray-600 block">Minh chứng thành tích cấp Tỉnh/QG:</span>
-                      <MiniUpload fileKey="sv_special_ach" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required/>
+                      <MiniUpload fileKey="sv_special_ach" disabled={!isSvEditable} required/>
                     </div>
                   )}
                 </td>

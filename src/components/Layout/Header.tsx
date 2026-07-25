@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
 import { ChangePasswordModal } from '../auth/changePassword';
 import { API_Student } from '../../api/API_Student';
-import { API_URL } from '../../api/api';
 import type { HeaderProps } from '@/types/common';
 import { hasAccessToken } from '@/utils/authToken';
+
+import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuthStore();
@@ -42,23 +43,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const getSocketBaseUrl = () => {
-    const configured = process.env.NEXT_PUBLIC_SOCKET_URL;
-    if (configured) return configured.replace(/\/$/, '');
-
-    if (API_URL.startsWith('http')) {
-      return API_URL.replace(/\/api\/v\d+\/?$/, '').replace(/\/$/, '');
-    }
-
-    if (typeof window === 'undefined') return '';
-
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `${window.location.protocol}//${window.location.hostname}:5050`;
-    }
-
-    return window.location.origin;
-  };
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user || user.role !== 'student') return;
@@ -99,6 +83,15 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     }
   }, [user]);
 
+  const refreshNotifications = useCallback(() => {
+    fetchUnreadCount();
+    if (bellOpenRef.current) {
+      fetchNotifications();
+    }
+  }, [fetchNotifications, fetchUnreadCount]);
+
+  useNotificationSocket(user?.role === 'student' ? refreshNotifications : undefined);
+
   useEffect(() => {
     fetchUnreadCount();
     if (bellOpen) {
@@ -107,42 +100,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, [bellOpen, fetchNotifications, fetchUnreadCount]);
-
-  useEffect(() => {
-    if (!user?.id || user.role !== 'student' || !hasAccessToken()) return;
-
-    let socket: import('socket.io-client').Socket | null = null;
-    let disposed = false;
-
-    const refreshNotifications = () => {
-      fetchUnreadCount();
-      if (bellOpenRef.current) {
-        fetchNotifications();
-      }
-    };
-
-    import('socket.io-client').then(({ io }) => {
-      if (disposed) return;
-
-      socket = io(`${getSocketBaseUrl()}/notifications`, {
-        withCredentials: true,
-      });
-
-      socket.on('connect', () => {
-        socket?.emit('notifications:join', { userId: user.id });
-      });
-      socket.on('notifications:refresh', refreshNotifications);
-      socket.on('notifications:new', refreshNotifications);
-      socket.on('notifications:error', (err) => {
-        console.error('Notification socket error:', err);
-      });
-    });
-
-    return () => {
-      disposed = true;
-      socket?.disconnect();
-    };
-  }, [fetchNotifications, fetchUnreadCount, user?.id, user?.role]);
 
   const handleNotificationClick = async (notification: any) => {
     try {

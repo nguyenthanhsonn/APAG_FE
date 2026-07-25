@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { X, ClipboardList, ArrowRight, Clock } from 'lucide-react';
+import { X, ClipboardList, ArrowRight } from 'lucide-react';
 
 export interface NewEvaluationPopupInfo {
-  semesterName: string;
+  title?: string;
+  content?: string;
+  semesterName?: string;
   deadline?: string;
   notificationId?: string;
 }
@@ -30,7 +32,9 @@ export function NewEvaluationPopup({ evaluationInfo, onClose, onViewDetail }: Ne
   // Ngăn scroll body khi popup mở
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   if (!evaluationInfo) return null;
@@ -39,14 +43,8 @@ export function NewEvaluationPopup({ evaluationInfo, onClose, onViewDetail }: Ne
     if (e.target === overlayRef.current) onClose();
   };
 
-  // Format deadline nếu có
-  const formattedDeadline = evaluationInfo.deadline
-    ? new Date(evaluationInfo.deadline).toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    : null;
+  const titleText = evaluationInfo.title || 'Mở đánh giá rèn luyện';
+  const contentText = evaluationInfo.content || 'Bạn có một phiếu tự đánh giá kết quả rèn luyện cần hoàn thành.';
 
   return (
     <div
@@ -73,7 +71,7 @@ export function NewEvaluationPopup({ evaluationInfo, onClose, onViewDetail }: Ne
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="absolute top-3 right-3 p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             aria-label="Đóng popup"
           >
             <X size={16} />
@@ -89,10 +87,10 @@ export function NewEvaluationPopup({ evaluationInfo, onClose, onViewDetail }: Ne
             id="new-eval-popup-title"
             className="relative z-10 text-xl font-bold leading-tight"
           >
-            📋 Có phiếu đánh giá mới!
+            📋 {titleText}
           </h2>
-          <p className="relative z-10 mt-1 text-sm text-white/75">
-            Bạn có một phiếu tự đánh giá kết quả rèn luyện cần hoàn thành.
+          <p className="relative z-10 mt-1 text-sm text-white/75 leading-relaxed">
+            {contentText}
           </p>
         </div>
 
@@ -104,38 +102,29 @@ export function NewEvaluationPopup({ evaluationInfo, onClose, onViewDetail }: Ne
             </div>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-0.5">
-                Học kỳ / Đợt đánh giá
+                Thông báo đánh giá
               </p>
               <p className="text-sm font-bold text-gray-900 truncate">
-                {evaluationInfo.semesterName}
+                {titleText}
               </p>
             </div>
           </div>
-
-          {formattedDeadline && (
-            <div className="mt-3 flex items-center gap-2 text-[12px] text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
-              <Clock size={13} className="shrink-0" />
-              <span>
-                Hạn nộp phiếu: <strong>{formattedDeadline}</strong>
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Actions */}
         <div className="px-4 pt-4 pb-5 flex flex-col sm:flex-row gap-2.5">
           <button
             onClick={onViewDetail}
-            className="flex-1 inline-flex items-center justify-center gap-2 bg-[#3D4A6B] hover:bg-[#2A3550] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm"
+            className="flex-1 inline-flex items-center justify-center gap-2 bg-[#3D4A6B] hover:bg-[#2A3550] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm cursor-pointer"
           >
             Xem ngay
             <ArrowRight size={15} />
           </button>
           <button
             onClick={onClose}
-            className="flex-1 inline-flex items-center justify-center text-sm font-semibold px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 inline-flex items-center justify-center text-sm font-semibold px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
           >
-            Để sau
+            Đã hiểu
           </button>
         </div>
 

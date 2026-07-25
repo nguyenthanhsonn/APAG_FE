@@ -4,7 +4,7 @@
  * Nguyên tắc:
  * - Lỗi kỹ thuật (network, 5xx, stack trace...) chỉ log ra console — KHÔNG bao giờ hiển thị cho người dùng.
  * - Lỗi nghiệp vụ từ BE (4xx kèm message tiếng Việt, rõ ràng) được hiển thị nếu an toàn.
- * - Tất cả nơi show toast lỗi PHẢI đi qua getUserFriendlyError().
+ * - Tất cả nơi show toast/alert lỗi PHẢI đi qua getUserFriendlyError().
  */
 
 // ─── Các pattern kỹ thuật cần che đi ──────────────────────────────────────────
@@ -25,6 +25,12 @@ const TECHNICAL_PATTERNS = [
   /econnreset/i,
   /etimedout/i,
   /socket hang up/i,
+  // Generic English status text
+  /^unauthorized$/i,
+  /^bad request$/i,
+  /^forbidden$/i,
+  /^not found$/i,
+  /^conflict$/i,
   // URL / IP patterns
   /https?:\/\//i,
   /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/,
@@ -54,15 +60,11 @@ function isSafeUserMessage(message: string): boolean {
 
 /**
  * Log lỗi kỹ thuật để dev debug — không bao giờ dùng để hiển thị cho user.
- * Trong production có thể thay thế bằng Sentry / LogRocket.
  */
 export function logError(context: string, error: unknown): void {
   if (process.env.NODE_ENV === 'development') {
     console.error(`[${context}]`, error);
   } else {
-    // Production: chỉ log thông tin tối thiểu, không log chi tiết kỹ thuật ra console
-    // TODO: Integrate with Sentry / LogRocket here
-    // Sentry.captureException(error, { tags: { context } });
     const summary =
       error instanceof Error
         ? `${error.name}: ${error.message.slice(0, 100)}`
@@ -93,6 +95,8 @@ export function getUserFriendlyError(
   let rawMessage = '';
   let statusCode: number | undefined;
   let validationErrors: unknown[] = [];
+  let url = '';
+  let isLogin = false;
 
   if (error instanceof Error) {
     rawMessage = error.message || '';
@@ -100,9 +104,24 @@ export function getUserFriendlyError(
     if ('errors' in error && Array.isArray((error as any).errors)) {
       validationErrors = (error as any).errors;
     }
-    // Dual-message: dùng userMessage (friendly) nếu interceptor đã gắn sẵn
-    if ('userMessage' in error && typeof (error as any).userMessage === 'string') {
-      return (error as any).userMessage || fallback;
+    if ('url' in error && typeof (error as any).url === 'string') {
+      url = (error as any).url;
+    }
+    if ('isLogin' in error && typeof (error as any).isLogin === 'boolean') {
+      isLogin = Boolean((error as any).isLogin);
+    }
+    if (
+      'userMessage' in error &&
+      typeof (error as any).userMessage === 'string' &&
+      (error as any).userMessage
+    ) {
+      const userMsg = (error as any).userMessage;
+      // Tránh lấy lại userMessage cũ bị gán nhầm "hết hạn" cho API đăng nhập
+      if ((isLogin || url.includes('/auth/login')) && userMsg.includes('hết hạn')) {
+        // Bỏ qua userMessage cũ bị sai, để phía dưới đánh giá lại đúng cho API login
+      } else {
+        return userMsg;
+      }
     }
   } else if (typeof error === 'object' && error !== null) {
     rawMessage = (error as any).message || '';
@@ -110,11 +129,23 @@ export function getUserFriendlyError(
     if (Array.isArray((error as any).errors)) {
       validationErrors = (error as any).errors;
     }
+    if (typeof (error as any).url === 'string') url = (error as any).url;
+    if (typeof (error as any).isLogin === 'boolean') isLogin = Boolean((error as any).isLogin);
     if (typeof (error as any).userMessage === 'string' && (error as any).userMessage) {
-      return (error as any).userMessage;
+      const userMsg = (error as any).userMessage;
+      if ((isLogin || url.includes('/auth/login')) && userMsg.includes('hết hạn')) {
+        // Bỏ qua
+      } else {
+        return userMsg;
+      }
     }
   } else if (typeof error === 'string') {
     rawMessage = error;
+  }
+
+  // Tự động nhận diện API đăng nhập dựa trên URL hoặc nội dung
+  if (url && (url.includes('/auth/login') || url.includes('/login'))) {
+    isLogin = true;
   }
 
   const normalized = rawMessage.toLowerCase();
@@ -127,11 +158,10 @@ export function getUserFriendlyError(
     normalized.includes('econnrefused') ||
     normalized.includes('econnreset') ||
     normalized.includes('socket hang up') ||
-    // Không có response nào cả (statusCode undefined + rawMessage kiểu kỹ thuật)
     (!statusCode && isTechnicalMessage(normalized));
 
   if (isNetworkError) {
-    return 'Có lỗi xảy ra, vui lòng thử lại sau.';
+    return 'Không thể kết nối tới máy chủ, vui lòng thử lại.';
   }
 
   // ── Bước 2: Timeout ──────────────────────────────────────────────────────
@@ -150,8 +180,7 @@ export function getUserFriendlyError(
     return 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau ít phút.';
   }
 
-  // ── Bước 4: 4xx — ưu tiên validation message từ BE ──────────────────────
-  // Thử lấy validation message cụ thể từ mảng errors
+  // ── Bước 4: Validation errors từ BE ─────────────────────────────────────
   if (validationErrors.length > 0) {
     const firstErr = validationErrors[0];
     if (firstErr && typeof firstErr === 'object') {
@@ -166,23 +195,33 @@ export function getUserFriendlyError(
     }
   }
 
-  // ── Bước 5: Xử lý theo status code 4xx ──────────────────────────────────
-  if (statusCode === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-  if (statusCode === 403) return 'Bạn không có quyền thực hiện thao tác này.';
-  if (statusCode === 404) return 'Không tìm thấy dữ liệu yêu cầu.';
-
-  // ── Bước 6: 400/409/422 — hiển thị message từ BE nếu an toàn ─────────────
-  if (statusCode && statusCode >= 400 && statusCode < 500) {
-    if (rawMessage && isSafeUserMessage(rawMessage)) {
-      return rawMessage;
-    }
-    // Fallback chung cho 4xx
-    return fallback;
-  }
-
-  // ── Bước 7: Không có statusCode — kiểm tra rawMessage ───────────────────
+  // ── Bước 5: Ưu tiên message tiếng Việt an toàn từ BE ──────────────────────
+  // Ví dụ: BE trả về { statusCode: 401, message: "Tên đăng nhập hoặc mật khẩu không đúng" }
   if (rawMessage && isSafeUserMessage(rawMessage)) {
     return rawMessage;
+  }
+
+  // ── Bước 6: Phân loại theo HTTP status code khi BE KHÔNG trả message rõ ràng ─
+  if (statusCode === 401) {
+    if (isLogin) {
+      return 'Tên đăng nhập hoặc mật khẩu không đúng.';
+    }
+    return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  }
+
+  if (statusCode === 403) {
+    return 'Bạn không có quyền thực hiện thao tác này.';
+  }
+
+  if (statusCode === 404) {
+    return 'Không tìm thấy dữ liệu yêu cầu.';
+  }
+
+  if (statusCode && statusCode >= 400 && statusCode < 500) {
+    if (isLogin) {
+      return 'Đăng nhập không thành công. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu.';
+    }
+    return fallback;
   }
 
   return fallback;

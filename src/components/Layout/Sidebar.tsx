@@ -128,7 +128,7 @@ export const Sidebar = ({ open, onClose }: SidebarProps) => {
                     className={`shrink-0 transition-transform duration-150 ${isActive ? 'text-white' : 'text-[#D0E2FF]/70 group-hover:text-white'
                       }`}
                   />
-                  <span className="truncate">{item.label}</span>
+                  <span className="whitespace-normal break-words leading-tight flex-1">{item.label}</span>
                 </Link>
               );
             })}

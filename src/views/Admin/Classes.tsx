@@ -278,23 +278,26 @@ export const AdminClasses = () => {
           filterLabel="Khoa"
           variant="inline"
         >
-          <div className="relative shrink-0">
-            <select
-              value={majorFilter}
-              onChange={(e) => handleMajorChange(e.target.value)}
-              className="appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-10 py-2.5 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm cursor-pointer min-w-[160px] disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!facultyFilter}
-            >
-              <option value="">Ngành: Tất cả</option>
-              {majors
-                .filter((m) => m.isActive && (!facultyFilter || m.facultyId === facultyFilter))
-                .map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500">Ngành:</span>
+            <div className="relative shrink-0">
+              <select
+                value={majorFilter}
+                onChange={(e) => handleMajorChange(e.target.value)}
+                className="appearance-none rounded-lg border border-gray-300 bg-white pl-3 pr-8 py-1.5 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 hover:border-gray-400 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!facultyFilter}
+              >
+                <option value="">Tất cả</option>
+                {majors
+                  .filter((m) => m.isActive && (!facultyFilter || m.facultyId === facultyFilter))
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={15} />
+            </div>
           </div>
         </SearchFilterBar>
       </div>

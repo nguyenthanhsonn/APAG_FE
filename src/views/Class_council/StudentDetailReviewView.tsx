@@ -1,15 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, FileText, Loader2, Paperclip, Send } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_Admin } from '@/api/API_Admin';
-import CouncilCriteriaReviewTable from '@/components/class_council/CouncilCriteriaReviewTable';
+import { CouncilCriteriaReviewTable } from '@/components/class_council/CouncilCriteriaReviewTable';
 import EvidenceReviewModal, { type ReviewEvidence } from '@/components/class_council/EvidenceReviewModal';
 import EvaluationStatusStepper from '@/components/common/EvaluationStatusStepper';
 import { useToast } from '@/components/common/ToastProvider';
 import { getUserFriendlyError } from '@/utils/errorHelper';
 import type { ReviewStudent } from '@/types/admin';
+import {
+  createCouncilReviewStore,
+  CouncilReviewStoreContext,
+} from '@/store/councilReviewStore';
+import type { CouncilReviewStore } from '@/store/councilReviewStore';
 
 const getParam = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value ?? '');
 
@@ -128,25 +133,32 @@ export function StudentDetailReviewView() {
   const evaluationId = getParam(params.studentId);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
+
+  // ── Zustand store (factory pattern — isolated per student mount) ──────────
+  const storeRef = useRef<CouncilReviewStore | null>(null);
+  if (!storeRef.current) storeRef.current = createCouncilReviewStore();
+  const store = storeRef.current;
+
   const [hasEvaluation, setHasEvaluation] = useState(false);
   const [student, setStudent] = useState<ReviewStudent | null>(null);
   const [workflow, setWorkflow] = useState<any>(null);
-  const [, setIsClassEdited] = useState(false);
   const [evidences, setEvidences] = useState<ReviewEvidence[]>([]);
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
   const [isSubmittedLate, setIsSubmittedLate] = useState(false);
 
-  const [isSvViolationSec1, setIsSvViolationSec1] = useState(false);
-  const [isClassViolationSec1, setIsClassViolationSec1] = useState(false);
-  const [isSvViolationSec2, setIsSvViolationSec2] = useState(false);
-  const [isClassViolationSec2, setIsClassViolationSec2] = useState(false);
-  const [isSvViolationSec3, setIsSvViolationSec3] = useState(false);
-  const [isClassViolationSec3, setIsClassViolationSec3] = useState(false);
-  const [isSvViolationSec4, setIsSvViolationSec4] = useState(false);
-  const [isClassViolationSec4, setIsClassViolationSec4] = useState(false);
-  const [isSvViolationSec5, setIsSvViolationSec5] = useState(false);
-  const [isClassViolationSec5, setIsClassViolationSec5] = useState(false);
+  // Violation section states — values only needed for submit payload;
+  // setters not called directly (violations come from council form via store)
+  const [isSvViolationSec1] = useState(false);
+  const [isClassViolationSec1] = useState(false);
+  const [isSvViolationSec2] = useState(false);
+  const [isClassViolationSec2] = useState(false);
+  const [isSvViolationSec3] = useState(false);
+  const [isClassViolationSec3] = useState(false);
+  const [isSvViolationSec4] = useState(false);
+  const [isClassViolationSec4] = useState(false);
+  const [isSvViolationSec5] = useState(false);
+  const [isClassViolationSec5] = useState(false);
 
   const [svStudyAttitude, setSvStudyAttitude] = useState('none');
   const [svNckh, setSvNckh] = useState(false);
@@ -196,17 +208,7 @@ export function StudentDetailReviewView() {
   const [classSpecialAchievement, setClassSpecialAchievement] = useState('none');
 
   const deductionWeights = useMemo(() => [10, 3, 5, 5, 5, 5, 5, 10, 20], []);
-  const deductionLabels = useMemo(() => [
-    'Không tham gia nghiêm túc tuần sinh hoạt công dân / bài thu hoạch không đạt (TBCHT < 5) (Trừ 10đ)',
-    'Nghỉ không lý do các chuyên đề tuần sinh hoạt công dân-SV (Trừ 3đ/buổi)',
-    'Không tham gia sinh hoạt lớp, họp, hội nghị, giao ban, tập huấn... (Trừ 5đ/buổi)',
-    'Không đeo thẻ SV / không mặc đồng phục GDTC / hút thuốc / xả rác (Trừ 5đ/lần)',
-    'Vi phạm quy định giảng đường, thư viện, nơi cư trú (Trừ 5đ/lần)',
-    'Chậm đóng học phí / lệ phí / BHYT / nộp hồ sơ (Trừ 5đ/lần)',
-    'Bị khiển trách, nhắc nhở trong phòng thi (Trừ 5đ/lần)',
-    'Vi phạm quy chế thi ở mức cảnh cáo / trừ điểm thi (Trừ 10đ/lần)',
-    'Vi phạm quy chế thi bị đình chỉ thi (Trừ 20đ/lần)',
-  ], []);
+  // deductionLabels moved to councilReviewStore (DEDUCTION_LABELS constant)
 
   const scoreMaps = useMemo(() => ({
     studyAttitude: { very_good: 6, good: 5, fair: 4, average: 2, poor: 1, none: 0 } as Record<string, number>,
@@ -344,6 +346,40 @@ export function StudentDetailReviewView() {
         );
 
         setHasEvaluation(true);
+
+        // Push all loaded values into the Zustand store at once so
+        // CouncilCriteriaReviewTable can read from store without props
+        const svStudyAtStr = reverseMapStudyAttitude(study.regularScoreLevel);
+        const svAcademicRankStr = reverseMapAcademicRank(study.academicRank);
+        const roleType: 'cadre' | 'student' = isClassOfficer ? 'cadre' : 'student';
+        store.getState().batchSet({
+          currentUserRole: 'class',
+          svStudyAttitude: svStudyAtStr,
+          classStudyAttitude: svStudyAtStr,
+          svAcademicRank: svAcademicRankStr,
+          classAcademicRank: svAcademicRankStr,
+          svNckh: hasAcademicEvent, classNckh: hasAcademicEvent,
+          svOlympic: hasPublication, classOlympic: hasPublication,
+          svCreative: hasAward, classCreative: hasAward,
+          svNoViolationScore: baseScore, classNoViolationScore: baseScore,
+          svDeductions: [...deductionCounts], classDeductions: [...deductionCounts],
+          svActivity1: activity.politicalActivityLevel || 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
+          classActivity1: activity.politicalActivityLevel || 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
+          svActivity2: reverseMapActivity2(activity.cultureSportLevel), classActivity2: reverseMapActivity2(activity.cultureSportLevel),
+          svActivity3: reverseMapActivity3(activity.clubActivityLevel), classActivity3: reverseMapActivity3(activity.clubActivityLevel),
+          svActivity4: reverseMapActivity4(activity.socialPreventionLevel), classActivity4: reverseMapActivity4(activity.socialPreventionLevel),
+          svRewardPoints: Number(activity.rewardScore) || 0, classRewardPoints: Number(activity.rewardScore) || 0,
+          svPolicy: community.lawComplianceLevel || 'VIOLATED', classPolicy: community.lawComplianceLevel || 'VIOLATED',
+          svSolidarity: reverseMapSolidarity(community.volunteerActivityLevel), classSolidarity: reverseMapSolidarity(community.volunteerActivityLevel),
+          svLocality: community.communityRelationshipLevel || 'TWO_WARNINGS', classLocality: community.communityRelationshipLevel || 'TWO_WARNINGS',
+          svRoleType: roleType, classRoleType: roleType,
+          svCadrePosition: position, classCadrePosition: position,
+          svCadrePerformance: reverseMapCadrePerformance(role.taskCompletionLevel), classCadrePerformance: reverseMapCadrePerformance(role.taskCompletionLevel),
+          svManagementLevel: reverseMapManagementLevel(role.managementSkillLevel), classManagementLevel: reverseMapManagementLevel(role.managementSkillLevel),
+          svClassParticipation: Number(role.normalStudentActivityScore) || 0, classClassParticipation: Number(role.normalStudentActivityScore) || 0,
+          svSpecialAchievement: reverseMapSpecialAchievement(role.specialAchievementLevel), classSpecialAchievement: reverseMapSpecialAchievement(role.specialAchievementLevel),
+        });
+
       } catch (error: any) {
         if (!mounted) return;
         setStudent(null);
@@ -428,35 +464,9 @@ export function StudentDetailReviewView() {
   const svScores = calculateTotalPoints(true);
   const classScores = calculateTotalPoints(false);
 
-  const uploadedFiles = useMemo<Record<string, string[]>>(() => {
-    if (evidences.length === 0) {
-      return {} as Record<string, string[]>;
-    }
-
-    return {
-      sv_nckh: evidences.map((evidence) => evidence.fileName),
-    };
-  }, [evidences]);
-
-  const handleDeductionChange = (isSv: boolean, index: number, value: number) => {
-    const baseScore = isSv ? svNoViolationScore : classNoViolationScore;
-    const setter = isSv ? setSvDeductions : setClassDeductions;
-    setter((current) => {
-      const weight = deductionWeights[index] || 0;
-      const sumOther = current.reduce((sum, count, idx) => idx === index ? sum : sum + (Number(count) || 0) * deductionWeights[idx], 0);
-      const remainingScore = Math.max(0, baseScore - sumOther);
-      const maxTimes = weight > 0 ? Math.ceil(remainingScore / weight) : 0;
-      return current.map((count, idx) => (idx === index ? Math.min(maxTimes, Math.max(0, value)) : count));
-    });
-  };
-
-  const handleFileUpload = () => {
-    // TODO: nối API upload/duyệt minh chứng khi backend hỗ trợ luồng cố vấn lớp.
-  };
-
-  const removeFile = () => {
-    // TODO: nối API xóa minh chứng khi backend hỗ trợ luồng cố vấn lớp.
-  };
+  // uploadedFiles, handleDeductionChange, handleFileUpload, removeFile are
+  // now handled inside CouncilCriteriaReviewTable via councilReviewStore.
+  // No props needed — the store acts as the communication layer.
 
   const updateEvidence = (evidenceId: string, patch: Partial<ReviewEvidence>) => {
     setEvidences((current) =>
@@ -472,10 +482,15 @@ export function StudentDetailReviewView() {
 
     try {
       setApproving(true);
+      // Read final score from store — CouncilCriteriaReviewTable writes changes there
+      const { computeCouncilScores } = await import('@/store/councilReviewStore');
+      const storeState = store.getState();
+      const classTotal = computeCouncilScores(storeState, false).total;
       await API_Admin.reviewEvaluation(evaluationId, {
         action: 'approve',
-        classScore: Math.round(classScores.total),
+        classScore: Math.round(classTotal),
       });
+
       toast.success('Đã gửi phiếu lên Admin.');
       router.push(`/class_council/${classId}`);
     } catch (error: any) {
@@ -573,120 +588,11 @@ export function StudentDetailReviewView() {
             </label>
           </div>
 
-          <CouncilCriteriaReviewTable
-            currentUserRole="class"
-            setIsClassEdited={setIsClassEdited}
-            isReadOnly={false}
-            svScores={svScores}
-            classScores={classScores}
-            svStudyAttitude={svStudyAttitude}
-            setSvStudyAttitude={setSvStudyAttitude}
-            svNckh={svNckh}
-            setSvNckh={setSvNckh}
-            svOlympic={svOlympic}
-            setSvOlympic={setSvOlympic}
-            svCreative={svCreative}
-            setSvCreative={setSvCreative}
-            svAcademicRank={svAcademicRank}
-            setSvAcademicRank={setSvAcademicRank}
-            classStudyAttitude={classStudyAttitude}
-            setClassStudyAttitude={setClassStudyAttitude}
-            classNckh={classNckh}
-            setClassNckh={setClassNckh}
-            classOlympic={classOlympic}
-            setClassOlympic={setClassOlympic}
-            classCreative={classCreative}
-            setClassCreative={setClassCreative}
-            classAcademicRank={classAcademicRank}
-            setClassAcademicRank={setClassAcademicRank}
-            isSvViolationSec1={isSvViolationSec1}
-            setIsSvViolationSec1={setIsSvViolationSec1}
-            isClassViolationSec1={isClassViolationSec1}
-            setIsClassViolationSec1={setIsClassViolationSec1}
-            svNoViolationScore={svNoViolationScore}
-            setSvNoViolationScore={setSvNoViolationScore}
-            svDeductions={svDeductions}
-            handleDeductionChange={handleDeductionChange}
-            classNoViolationScore={classNoViolationScore}
-            setClassNoViolationScore={setClassNoViolationScore}
-            classDeductions={classDeductions}
-            deductionLabels={deductionLabels}
-            isSvViolationSec2={isSvViolationSec2}
-            setIsSvViolationSec2={setIsSvViolationSec2}
-            isClassViolationSec2={isClassViolationSec2}
-            setIsClassViolationSec2={setIsClassViolationSec2}
-            svActivity1={svActivity1}
-            setSvActivity1={setSvActivity1}
-            svActivity2={svActivity2}
-            setSvActivity2={setSvActivity2}
-            svActivity3={svActivity3}
-            setSvActivity3={setSvActivity3}
-            svActivity4={svActivity4}
-            setSvActivity4={setSvActivity4}
-            svRewardPoints={svRewardPoints}
-            setSvRewardPoints={setSvRewardPoints}
-            classActivity1={classActivity1}
-            setClassActivity1={setClassActivity1}
-            classActivity2={classActivity2}
-            setClassActivity2={setClassActivity2}
-            classActivity3={classActivity3}
-            setClassActivity3={setClassActivity3}
-            classActivity4={classActivity4}
-            setClassActivity4={setClassActivity4}
-            classRewardPoints={classRewardPoints}
-            setClassRewardPoints={setClassRewardPoints}
-            isSvViolationSec3={isSvViolationSec3}
-            setIsSvViolationSec3={setIsSvViolationSec3}
-            isClassViolationSec3={isClassViolationSec3}
-            setIsClassViolationSec3={setIsClassViolationSec3}
-            svPolicy={svPolicy}
-            setSvPolicy={setSvPolicy}
-            svSolidarity={svSolidarity}
-            setSvSolidarity={setSvSolidarity}
-            svLocality={svLocality}
-            setSvLocality={setSvLocality}
-            classPolicy={classPolicy}
-            setClassPolicy={setClassPolicy}
-            classSolidarity={classSolidarity}
-            setClassSolidarity={setClassSolidarity}
-            classLocality={classLocality}
-            setClassLocality={setClassLocality}
-            isSvViolationSec4={isSvViolationSec4}
-            setIsSvViolationSec4={setIsSvViolationSec4}
-            isClassViolationSec4={isClassViolationSec4}
-            setIsClassViolationSec4={setIsClassViolationSec4}
-            svRoleType={svRoleType}
-            setSvRoleType={setSvRoleType}
-            svCadrePosition={svCadrePosition}
-            setSvCadrePosition={setSvCadrePosition}
-            svCadrePerformance={svCadrePerformance}
-            setSvCadrePerformance={setSvCadrePerformance}
-            svManagementLevel={svManagementLevel}
-            setSvManagementLevel={setSvManagementLevel}
-            svClassParticipation={svClassParticipation}
-            setSvClassParticipation={setSvClassParticipation}
-            svSpecialAchievement={svSpecialAchievement}
-            setSvSpecialAchievement={setSvSpecialAchievement}
-            classRoleType={classRoleType}
-            setClassRoleType={setClassRoleType}
-            classCadrePosition={classCadrePosition}
-            setClassCadrePosition={setClassCadrePosition}
-            classCadrePerformance={classCadrePerformance}
-            setClassCadrePerformance={setClassCadrePerformance}
-            classManagementLevel={classManagementLevel}
-            setClassManagementLevel={setClassManagementLevel}
-            classClassParticipation={classClassParticipation}
-            setClassClassParticipation={setClassClassParticipation}
-            classSpecialAchievement={classSpecialAchievement}
-            setClassSpecialAchievement={setClassSpecialAchievement}
-            isSvViolationSec5={isSvViolationSec5}
-            setIsSvViolationSec5={setIsSvViolationSec5}
-            isClassViolationSec5={isClassViolationSec5}
-            setIsClassViolationSec5={setIsClassViolationSec5}
-            uploadedFiles={uploadedFiles}
-            handleFileUpload={handleFileUpload}
-            removeFile={removeFile}
-          />
+          {/* ── CouncilCriteriaReviewTable: all state sourced from Zustand store ── */}
+          <CouncilReviewStoreContext.Provider value={store}>
+            <CouncilCriteriaReviewTable />
+          </CouncilReviewStoreContext.Provider>
+
 
           <div className="mt-6 flex justify-end">
             <button

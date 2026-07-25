@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Send, 
   CheckCircle, 
@@ -19,6 +19,11 @@ import { getUserFriendlyError } from '../../utils/errorHelper';
 // Sub-components
 import { EvaluationTableGrid } from '../../components/student/EvaluationTableGrid';
 import type { UploadedEvidenceFile } from '@/types/student';
+import {
+  createEvaluationFormStore,
+  EvaluationFormStoreContext,
+} from '../../store/evaluationFormStore';
+import type { EvaluationFormStore } from '../../store/evaluationFormStore';
 
 const EDITABLE_EVALUATION_STATUSES = ['DRAFT', 'REJECTED'];
 const DISCIPLINE_VIOLATION_CODES = [
@@ -50,23 +55,20 @@ export const EvaluationFormQD4185 = () => {
   // Simulating user role switcher for testing purposes
   const [currentUserRole] = useState<'student' | 'class'>('student');
 
+  // ── Zustand store (factory pattern — isolated per mount) ──────────────────
+  const storeRef = useRef<EvaluationFormStore | null>(null);
+  if (!storeRef.current) storeRef.current = createEvaluationFormStore();
+  const store = storeRef.current;
+
+
   // (Accordion sections removed — replaced by EvaluationTableGrid)
 
-  // Section violation states (If true, that section score is 0)
+  // Section violation states — sv values; class mirrors are written to store directly
   const [isSvViolationSec1, setIsSvViolationSec1] = useState(false);
-  const [isClassViolationSec1, setIsClassViolationSec1] = useState(false);
-
   const [isSvViolationSec2, setIsSvViolationSec2] = useState(false);
-  const [isClassViolationSec2, setIsClassViolationSec2] = useState(false);
-
   const [isSvViolationSec3, setIsSvViolationSec3] = useState(false);
-  const [isClassViolationSec3, setIsClassViolationSec3] = useState(false);
-
   const [isSvViolationSec4, setIsSvViolationSec4] = useState(false);
-  const [isClassViolationSec4, setIsClassViolationSec4] = useState(false);
-
   const [isSvViolationSec5, setIsSvViolationSec5] = useState(false);
-  const [isClassViolationSec5, setIsClassViolationSec5] = useState(false);
 
   // Header State Values
   const [phoneNumber, setPhoneNumber] = useState((user as any)?.phoneNumber || '0987654321');
@@ -75,11 +77,21 @@ export const EvaluationFormQD4185 = () => {
   const [selectedSemesterId, setSelectedSemesterId] = useState('');
   const [availableSemesters, setAvailableSemesters] = useState<any[]>([]);
 
-	  // File Upload State
+  // File Upload State
 	  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedEvidenceFile[]>>({});
 	  const [uploadingEvidence, setUploadingEvidence] = useState<string | null>(null);
 	  // fileProgress: { [criteriaKey]: { [fileName]: percent 0-100 | 'done' | 'error' } }
 	  const [fileProgress, setFileProgress] = useState<Record<string, Record<string, number | 'done' | 'error'>>>({});
+
+  // ── Sync UI meta into store whenever they change ──────────────────────────
+  useEffect(() => {
+    store.getState().batchSet({ currentUserRole, isReadOnly });
+  }, [currentUserRole, isReadOnly, store]);
+
+  // ── Sync uploadedFiles & fileProgress into store ──────────────────────────
+  useEffect(() => {
+    store.getState().batchSet({ uploadedFiles, fileProgress });
+  }, [uploadedFiles, fileProgress, store]);
 
 		  const mapEvidenceCriteriaCode = (criteriaKey: string) => {
 	    if (criteriaKey.startsWith('sv_nckh') || criteriaKey.startsWith('sv_olympic') || criteriaKey.startsWith('sv_creative')) {
@@ -232,7 +244,7 @@ export const EvaluationFormQD4185 = () => {
     });
   };
 
-  // Score states for SV (Student)
+  // Score states for SV (Student) — all sv values also written to store via batchSet
   const [svStudyAttitude, setSvStudyAttitude] = useState<string>('none');
   const [svNckh, setSvNckh] = useState(false);
   const [svOlympic, setSvOlympic] = useState(false);
@@ -259,64 +271,42 @@ export const EvaluationFormQD4185 = () => {
   const [svClassParticipation, setSvClassParticipation] = useState<number>(0);
   const [svSpecialAchievement, setSvSpecialAchievement] = useState<string>('none');
 
-  // Score states for Class (Monitor/Lớp)
-  const [classStudyAttitude, setClassStudyAttitude] = useState<string>('none');
-  const [classNckh, setClassNckh] = useState(false);
-  const [classOlympic, setClassOlympic] = useState(false);
-  const [classCreative, setClassCreative] = useState(false);
-  const [classAcademicRank, setClassAcademicRank] = useState<string>('none');
+  // Class (Monitor) score states are NOT kept locally — they are written directly to store
+  // by the auto-propagate effect below and managed there by EvaluationTableGrid.
 
-  const [classNoViolationScore, setClassNoViolationScore] = useState<number>(0);
-  const [classDeductions, setClassDeductions] = useState<number[]>([0, 0, 0, 0, 0, 0, 0, 0, 0]);
-
-  const [classActivity1, setClassActivity1] = useState<string>('ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED');
-  const [classActivity2, setClassActivity2] = useState<string>('none');
-  const [classActivity3, setClassActivity3] = useState<string>('none');
-  const [classActivity4, setClassActivity4] = useState<string>('none');
-  const [classRewardPoints, setClassRewardPoints] = useState<number>(0);
-
-  const [classPolicy, setClassPolicy] = useState<string>('VIOLATED');
-  const [classSolidarity, setClassSolidarity] = useState<string>('none');
-  const [classLocality, setClassLocality] = useState<string>('TWO_WARNINGS');
-
-  const [classRoleType, setClassRoleType] = useState<'cadre' | 'student'>('student');
-  const [classCadrePosition, setClassCadrePosition] = useState<'a1' | 'a2'>('a2');
-  const [classCadrePerformance, setClassCadrePerformance] = useState<string>('unsatisfactory');
-  const [classManagementLevel, setClassManagementLevel] = useState<string>('none');
-  const [classClassParticipation, setClassClassParticipation] = useState<number>(0);
-  const [classSpecialAchievement, setClassSpecialAchievement] = useState<string>('none');
-
-  // Auto-propagate student inputs to class inputs if they haven't been edited
+  // Auto-propagate student inputs to class columns in store if class hasn't been edited
   const [isClassEdited, setIsClassEdited] = useState(false);
   useEffect(() => {
     if (!isClassEdited && currentUserRole === 'student') {
-      setClassStudyAttitude(svStudyAttitude);
-      setClassNckh(svNckh);
-      setClassOlympic(svOlympic);
-      setClassCreative(svCreative);
-      setClassAcademicRank(svAcademicRank);
-      setClassNoViolationScore(svNoViolationScore);
-      setClassDeductions([...svDeductions]);
-      setClassActivity1(svActivity1);
-      setClassActivity2(svActivity2);
-      setClassActivity3(svActivity3);
-      setClassActivity4(svActivity4);
-      setClassRewardPoints(svRewardPoints);
-      setClassPolicy(svPolicy);
-      setClassSolidarity(svSolidarity);
-      setClassLocality(svLocality);
-      setClassRoleType(svRoleType);
-      setClassCadrePosition(svCadrePosition);
-      setClassCadrePerformance(svCadrePerformance);
-      setClassManagementLevel(svManagementLevel);
-      setClassClassParticipation(svClassParticipation);
-      setClassSpecialAchievement(svSpecialAchievement);
-      
-      setIsClassViolationSec1(isSvViolationSec1);
-      setIsClassViolationSec2(isSvViolationSec2);
-      setIsClassViolationSec3(isSvViolationSec3);
-      setIsClassViolationSec4(isSvViolationSec4);
-      setIsClassViolationSec5(isSvViolationSec5);
+      // Write class values directly into store (no local class state needed)
+      store.getState().batchSet({
+        classStudyAttitude: svStudyAttitude,
+        classNckh: svNckh,
+        classOlympic: svOlympic,
+        classCreative: svCreative,
+        classAcademicRank: svAcademicRank,
+        classNoViolationScore: svNoViolationScore,
+        classDeductions: [...svDeductions],
+        classActivity1: svActivity1,
+        classActivity2: svActivity2,
+        classActivity3: svActivity3,
+        classActivity4: svActivity4,
+        classRewardPoints: svRewardPoints,
+        classPolicy: svPolicy,
+        classSolidarity: svSolidarity,
+        classLocality: svLocality,
+        classRoleType: svRoleType,
+        classCadrePosition: svCadrePosition,
+        classCadrePerformance: svCadrePerformance,
+        classManagementLevel: svManagementLevel,
+        classClassParticipation: svClassParticipation,
+        classSpecialAchievement: svSpecialAchievement,
+        isClassViolationSec1: isSvViolationSec1,
+        isClassViolationSec2: isSvViolationSec2,
+        isClassViolationSec3: isSvViolationSec3,
+        isClassViolationSec4: isSvViolationSec4,
+        isClassViolationSec5: isSvViolationSec5,
+      });
     }
   }, [
     svStudyAttitude, svNckh, svOlympic, svCreative, svAcademicRank,
@@ -324,8 +314,9 @@ export const EvaluationFormQD4185 = () => {
     svPolicy, svSolidarity, svLocality, svRoleType, svCadrePosition, svCadrePerformance,
     svManagementLevel, svClassParticipation, svSpecialAchievement,
     isSvViolationSec1, isSvViolationSec2, isSvViolationSec3, isSvViolationSec4, isSvViolationSec5,
-    isClassEdited, currentUserRole
+    isClassEdited, currentUserRole, store
   ]);
+
 
   // Validation / Save / Loading states
   const [saved, setSaved] = useState(false);
@@ -648,27 +639,37 @@ export const EvaluationFormQD4185 = () => {
     setSvManagementLevel('none');
     setSvClassParticipation(0);
     setSvSpecialAchievement('none');
-    setClassStudyAttitude('none');
-    setClassNckh(false);
-    setClassOlympic(false);
-    setClassCreative(false);
-    setClassAcademicRank('none');
-    setClassNoViolationScore(0);
-    setClassDeductions([0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    setClassActivity1('ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED');
-    setClassActivity2('none');
-    setClassActivity3('none');
-    setClassActivity4('none');
-    setClassRewardPoints(0);
-    setClassPolicy('VIOLATED');
-    setClassSolidarity('none');
-    setClassLocality('TWO_WARNINGS');
-    setClassRoleType('student');
-    setClassCadrePosition('a2');
-    setClassCadrePerformance('unsatisfactory');
-    setClassManagementLevel('none');
-    setClassClassParticipation(0);
-    setClassSpecialAchievement('none');
+
+    // Reset class columns directly in store (no local class state)
+    store.getState().batchSet({
+      classStudyAttitude: 'none',
+      classNckh: false,
+      classOlympic: false,
+      classCreative: false,
+      classAcademicRank: 'none',
+      classNoViolationScore: 0,
+      classDeductions: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+      classActivity1: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
+      classActivity2: 'none',
+      classActivity3: 'none',
+      classActivity4: 'none',
+      classRewardPoints: 0,
+      classPolicy: 'VIOLATED',
+      classSolidarity: 'none',
+      classLocality: 'TWO_WARNINGS',
+      classRoleType: 'student',
+      classCadrePosition: 'a2',
+      classCadrePerformance: 'unsatisfactory',
+      classManagementLevel: 'none',
+      classClassParticipation: 0,
+      classSpecialAchievement: 'none',
+      isClassViolationSec1: false,
+      isClassViolationSec2: false,
+      isClassViolationSec3: false,
+      isClassViolationSec4: false,
+      isClassViolationSec5: false,
+    });
+
 	    setNote('');
 	    setEvaluationWorkflow(null);
 	    setIsClassEdited(false);
@@ -677,12 +678,8 @@ export const EvaluationFormQD4185 = () => {
     setIsSvViolationSec3(false);
     setIsSvViolationSec4(false);
     setIsSvViolationSec5(false);
-    setIsClassViolationSec1(false);
-    setIsClassViolationSec2(false);
-    setIsClassViolationSec3(false);
-    setIsClassViolationSec4(false);
-    setIsClassViolationSec5(false);
   };
+
 
   // Helper method to load details of a specific evaluation
   const loadEvaluationDetails = async (targetId: string) => {
@@ -756,6 +753,32 @@ export const EvaluationFormQD4185 = () => {
       if (roleData.managementSkillLevel) setSvManagementLevel(reverseMapManagementLevel(roleData.managementSkillLevel));
       if (roleData.normalStudentActivityScore !== undefined) setSvClassParticipation(roleData.normalStudentActivityScore);
       if (roleData.specialAchievementLevel) setSvSpecialAchievement(reverseMapSpecialAchievement(roleData.specialAchievementLevel));
+
+      // Push all loaded values into the Zustand store at once
+      // (state setters above are async; we read latest values directly from the API response)
+      store.getState().batchSet({
+        svStudyAttitude: studyData.regularScoreLevel ? reverseMapStudyAttitude(studyData.regularScoreLevel) : 'none',
+        svNckh: studyData.activities?.some((a: any) => a.code === 'ACADEMIC_EVENT_PARTICIPATION') ?? false,
+        svOlympic: studyData.activities?.some((a: any) => a.code === 'SCIENTIFIC_PUBLICATION_OR_CONTEST') ?? false,
+        svCreative: studyData.activities?.some((a: any) => a.code === 'SCIENTIFIC_AWARD') ?? false,
+        svAcademicRank: studyData.academicRank ? reverseMapAcademicRank(studyData.academicRank) : 'none',
+        svActivity1: actData.politicalActivityLevel ? reverseMapActivity1(actData.politicalActivityLevel) : 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
+        svActivity2: actData.cultureSportLevel ? reverseMapActivity2(actData.cultureSportLevel) : 'none',
+        svActivity3: actData.clubActivityLevel ? reverseMapActivity3(actData.clubActivityLevel) : 'none',
+        svActivity4: actData.socialPreventionLevel ? reverseMapActivity4(actData.socialPreventionLevel) : 'none',
+        svRewardPoints: actData.rewardScore ?? 0,
+        svPolicy: commData.lawComplianceLevel ? reverseMapPolicy(commData.lawComplianceLevel) : 'VIOLATED',
+        svSolidarity: commData.volunteerActivityLevel ? reverseMapSolidarity(commData.volunteerActivityLevel) : 'none',
+        svLocality: commData.communityRelationshipLevel ? reverseMapLocality(commData.communityRelationshipLevel) : 'TWO_WARNINGS',
+        svRoleType: roleData.studentRoleType === 'CLASS_OFFICER' ? 'cadre' : 'student',
+        svCadrePosition: roleData.positionGroup === 'LEADER_GROUP' ? 'a1' : 'a2',
+        svCadrePerformance: roleData.taskCompletionLevel ? reverseMapCadrePerformance(roleData.taskCompletionLevel) : 'unsatisfactory',
+        svManagementLevel: roleData.managementSkillLevel ? reverseMapManagementLevel(roleData.managementSkillLevel) : 'none',
+        svClassParticipation: roleData.normalStudentActivityScore ?? 0,
+        svSpecialAchievement: roleData.specialAchievementLevel ? reverseMapSpecialAchievement(roleData.specialAchievementLevel) : 'none',
+        isReadOnly: !canEditEvaluation(detail),
+        currentUserRole,
+      });
 
     } catch (secErr) {
       console.error('Failed to load score sections:', secErr);
@@ -1057,216 +1080,10 @@ export const EvaluationFormQD4185 = () => {
     setStep(1);
   };
 
-  // Helper score constants
-  const studyAttitudeScores = useMemo<Record<string, number>>(() => ({
-    very_good: 6,
-    good: 5,
-    fair: 4,
-    average: 2,
-    poor: 1,
-    none: 0
-  }), []);
 
-  const academicRankScores = useMemo<Record<string, number>>(() => ({
-    excellent: 8,
-    good: 7,
-    fair: 6,
-    average: 4,
-    weak_no_warn: 2,
-    weak_warn: 1,
-    none: 0
-  }), []);
-
-  const activity1Scores = useMemo<Record<string, number>>(() => ({
-    GOOD_PARTICIPATION: 5,
-    ABSENT_ONCE: 3,
-    ABSENT_TWICE: 2,
-    ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED: 0,
-    active: 5,
-    full: 3,
-    excused: 2,
-    unexcused: 0,
-  }), []);
-
-  const activity2Scores = useMemo<Record<string, number>>(() => ({
-    many: 5,
-    some: 3,
-    active: 2,
-    full: 1,
-    none: 0
-  }), []);
-
-  const activity3Scores = useMemo<Record<string, number>>(() => ({
-    prize_or_org: 5,
-    active: 3,
-    some: 2,
-    full: 1,
-    none: 0
-  }), []);
-
-  const activity4Scores = useMemo<Record<string, number>>(() => ({
-    active: 3,
-    full: 2,
-    some: 1,
-    none: 0
-  }), []);
-
-  const policyScores = useMemo<Record<string, number>>(() => ({
-    GOOD_WITH_REWARD: 10,
-    GOOD: 8,
-    AVERAGE: 5,
-    VIOLATED: 0,
-    excellent_propaganda: 10,
-    good: 8,
-    minor_violation: 5,
-    none: 0,
-  }), []);
-
-  const solidarityScores = useMemo<Record<string, number>>(() => ({
-    excellent_achievements: 10,
-    regular: 8,
-    some: 5,
-    none: 0
-  }), []);
-
-  const localityScores = useMemo<Record<string, number>>(() => ({
-    GOOD: 5,
-    ONE_WARNING: 1,
-    TWO_WARNINGS: 0,
-    good: 5,
-    rewarded: 1,
-    warned: 0,
-  }), []);
-
-  const deductionWeights = useMemo(() => [10, 3, 5, 5, 5, 5, 5, 10, 20], []);
-  
-  const deductionLabels = useMemo(() => [
-    'Không tham gia nghiêm túc tuần sinh hoạt công dân / bài thu hoạch không đạt (TBCHT < 5) (Trừ 10đ)',
-    'Nghỉ không lý do các chuyên đề tuần sinh hoạt công dân-SV (Trừ 3đ/buổi)',
-    'Không tham gia sinh hoạt lớp, họp, hội nghị, giao ban, tập huấn... (Trừ 5đ/buổi)',
-    'Không đeo thẻ SV / không mặc đồng phục GDTC / hút thuốc / xả rác (Trừ 5đ/lần)',
-    'Vi phạm quy định giảng đường, thư viện, nơi cư trú (Trừ 5đ/lần)',
-    'Chậm đóng học phí / lệ phí / BHYT / nộp hồ sơ (Trừ 5đ/lần)',
-    'Bị khiển trách, nhắc nhở trong phòng thi (Trừ 5đ/lần)',
-    'Vi phạm quy chế thi ở mức cảnh cáo / trừ điểm thi (Trừ 10đ/lần)',
-    'Vi phạm quy chế thi bị đình chỉ thi (Trừ 20đ/lần)',
-  ], []);
-
-  const clampScore = (value: number, max: number) => Math.min(max, Math.max(0, Number.isFinite(value) ? value : 0));
-
-  // Scoring function
-  const calculateTotalPoints = (isSv: boolean) => {
-    // -------------------------------------------------------------
-    // SECTION I (max 20)
-    // -------------------------------------------------------------
-    const isViolation = isSv ? isSvViolationSec1 : isClassViolationSec1;
-    let sec1 = 0;
-
-    if (!isViolation) {
-      const attitude = isSv ? svStudyAttitude : classStudyAttitude;
-      const rank = isSv ? svAcademicRank : classAcademicRank;
-      const nckhVal = isSv ? svNckh : classNckh;
-      const olympicVal = isSv ? svOlympic : classOlympic;
-      const creativeVal = isSv ? svCreative : classCreative;
-
-      const s1_att = studyAttitudeScores[attitude] || 0;
-      const s1_act = (nckhVal ? 2 : 0) + (olympicVal ? 2 : 0) + (creativeVal ? 2 : 0);
-      const s1_rank = academicRankScores[rank] || 0;
-      sec1 = clampScore(s1_att + s1_act + s1_rank, 20);
-    }
-
-    // -------------------------------------------------------------
-    // SECTION II (max 25)
-    // -------------------------------------------------------------
-    const isViolationSec2 = isSv ? isSvViolationSec2 : isClassViolationSec2;
-    let sec2 = 0;
-
-    if (!isViolationSec2) {
-      const noViolationBase = isSv ? svNoViolationScore : classNoViolationScore;
-      const currentDeductions = isSv ? svDeductions : classDeductions;
-      const totalDeductionVal = currentDeductions.reduce((sum, count, idx) => sum + count * deductionWeights[idx], 0);
-      sec2 = clampScore(noViolationBase - totalDeductionVal, 25);
-    }
-
-    // -------------------------------------------------------------
-    // SECTION III (max 20)
-    // -------------------------------------------------------------
-    const isViolationSec3 = isSv ? isSvViolationSec3 : isClassViolationSec3;
-    let sec3 = 0;
-
-    if (!isViolationSec3) {
-      const act1 = isSv ? svActivity1 : classActivity1;
-      const act2 = isSv ? svActivity2 : classActivity2;
-      const act3 = isSv ? svActivity3 : classActivity3;
-      const act4 = isSv ? svActivity4 : classActivity4;
-      const reward = isSv ? svRewardPoints : classRewardPoints;
-
-      const s3_act = (activity1Scores[act1] || 0) + (activity2Scores[act2] || 0) + (activity3Scores[act3] || 0) + (activity4Scores[act4] || 0);
-      sec3 = clampScore(s3_act + reward, 20);
-    }
-
-    // -------------------------------------------------------------
-    // SECTION IV (max 25)
-    // -------------------------------------------------------------
-    const isViolationSec4 = isSv ? isSvViolationSec4 : isClassViolationSec4;
-    let sec4 = 0;
-
-    if (!isViolationSec4) {
-      const pol = isSv ? svPolicy : classPolicy;
-      const sol = isSv ? svSolidarity : classSolidarity;
-      const loc = isSv ? svLocality : classLocality;
-      sec4 = clampScore((policyScores[pol] || 0) + (solidarityScores[sol] || 0) + (localityScores[loc] || 0), 25);
-    }
-
-    // -------------------------------------------------------------
-    // SECTION V (max 10)
-    // -------------------------------------------------------------
-    const isViolationSec5 = isSv ? isSvViolationSec5 : isClassViolationSec5;
-    let sec5 = 0;
-
-    if (!isViolationSec5) {
-      const roleType = isSv ? svRoleType : classRoleType;
-
-      if (roleType === 'cadre') {
-        const position = isSv ? svCadrePosition : classCadrePosition;
-        const perf = isSv ? svCadrePerformance : classCadrePerformance;
-        const management = isSv ? svManagementLevel : classManagementLevel;
-
-        let score_pos_perf = 0;
-        if (position === 'a1') {
-          const perfMap: Record<string, number> = { excellent: 7, good: 6, average: 4, unsatisfactory: 0 };
-          score_pos_perf = perfMap[perf] || 0;
-        } else {
-          const perfMap: Record<string, number> = { excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
-          score_pos_perf = perfMap[perf] || 0;
-        }
-
-        let score_mgmt = 0;
-        const mgmtMap: Record<string, number> = { head: 3, deputy: 2, member: 1, none: 0 };
-        score_mgmt = mgmtMap[management] || 0;
-
-        sec5 = clampScore(score_pos_perf + score_mgmt, 10);
-      } else {
-        const part = isSv ? svClassParticipation : classClassParticipation;
-        const ach = isSv ? svSpecialAchievement : classSpecialAchievement;
-
-        const achMap: Record<string, number> = { national_intl: 7, provincial: 5, none: 0 };
-        sec5 = clampScore(part + (achMap[ach] || 0), 10);
-      }
-    }
-
-    return {
-      sec1,
-      sec2,
-      sec3,
-      sec4,
-      sec5,
-      total: clampScore(sec1 + sec2 + sec3 + sec4 + sec5, 100)
-    };
-  };
-
-  const svScores = calculateTotalPoints(true);
-  const classScores = calculateTotalPoints(false);
+  // Note: All score computation (calculateTotalPoints equivalent) is now done
+  // in the Zustand evaluationFormStore via computeEvaluationScores(). 
+  // EvaluationTableGrid reads scores directly from store — no local state needed.
 
   // Validation function for evidence attachments
   const validateForm = (): { message: string; field?: string } | null => {
@@ -1334,32 +1151,36 @@ export const EvaluationFormQD4185 = () => {
         note: note,
       });
 
+      // Always read from store at submit time — EvaluationTableGrid writes
+      // directly to the store, so store holds the latest user-edited values.
+      const s = store.getState();
+
       const compactPayload = (payload: Record<string, unknown>) =>
         Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
       const studyPayload = compactPayload({
-        regularScoreLevel: mapStudyAttitude(svStudyAttitude),
-        academicRank: mapAcademicRank(svAcademicRank),
+        regularScoreLevel: mapStudyAttitude(s.svStudyAttitude),
+        academicRank: mapAcademicRank(s.svAcademicRank),
         activities: [
-          { code: 'ACADEMIC_EVENT_PARTICIPATION', checked: svNckh, score: 2 },
-          { code: 'SCIENTIFIC_PUBLICATION_OR_CONTEST', checked: svOlympic, score: 2 },
-          { code: 'SCIENTIFIC_AWARD', checked: svCreative, score: 2 },
+          { code: 'ACADEMIC_EVENT_PARTICIPATION', checked: s.svNckh, score: 2 },
+          { code: 'SCIENTIFIC_PUBLICATION_OR_CONTEST', checked: s.svOlympic, score: 2 },
+          { code: 'SCIENTIFIC_AWARD', checked: s.svCreative, score: 2 },
         ].filter((activity) => activity.checked),
       });
       const rolePayload =
-        svRoleType === 'cadre'
+        s.svRoleType === 'cadre'
           ? compactPayload({
               studentRoleType: 'CLASS_OFFICER',
-              positionGroup: svCadrePosition === 'a1' ? 'LEADER_GROUP' : 'MEMBER_GROUP',
-              taskCompletionLevel: mapCadrePerformance(svCadrePerformance),
-              managementSkillLevel: mapManagementLevel(svManagementLevel),
-              specialAchievementLevel: mapSpecialAchievement(svSpecialAchievement),
+              positionGroup: s.svCadrePosition === 'a1' ? 'LEADER_GROUP' : 'MEMBER_GROUP',
+              taskCompletionLevel: mapCadrePerformance(s.svCadrePerformance),
+              managementSkillLevel: mapManagementLevel(s.svManagementLevel),
+              specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement),
             })
           : compactPayload({
               studentRoleType: 'NORMAL_STUDENT',
-              normalStudentActivityScore: svClassParticipation,
-              specialAchievementLevel: mapSpecialAchievement(svSpecialAchievement),
+              normalStudentActivityScore: s.svClassParticipation,
+              specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement),
             });
-      const disciplineViolations = svDeductions.map((count, idx) => ({
+      const disciplineViolations = s.svDeductions.map((count, idx) => ({
         code: DISCIPLINE_VIOLATION_CODES[idx],
         count,
         deductScore: DISCIPLINE_DEDUCTION_WEIGHTS[idx],
@@ -1368,22 +1189,22 @@ export const EvaluationFormQD4185 = () => {
       // Save detailed score sections
       const saveRequests: Array<Promise<unknown>> = [
         API_Student.updateActivityScore(currentId!, {
-          politicalActivityLevel: mapActivity1(svActivity1),
-          cultureSportLevel: mapActivity2(svActivity2),
-          clubActivityLevel: mapActivity3(svActivity3),
-          socialPreventionLevel: mapActivity4(svActivity4),
-          rewardScore: svRewardPoints
+          politicalActivityLevel: mapActivity1(s.svActivity1),
+          cultureSportLevel: mapActivity2(s.svActivity2),
+          clubActivityLevel: mapActivity3(s.svActivity3),
+          socialPreventionLevel: mapActivity4(s.svActivity4),
+          rewardScore: s.svRewardPoints
         }),
         API_Student.updateCommunityScore(currentId!, {
-          lawComplianceLevel: mapPolicy(svPolicy),
-          volunteerActivityLevel: mapSolidarity(svSolidarity),
-          communityRelationshipLevel: mapLocality(svLocality)
+          lawComplianceLevel: mapPolicy(s.svPolicy),
+          volunteerActivityLevel: mapSolidarity(s.svSolidarity),
+          communityRelationshipLevel: mapLocality(s.svLocality)
         }),
         API_Student.updateRoleScore(currentId!, rolePayload)
       ];
 
       saveRequests.unshift(API_Student.updateDisciplineScore(currentId!, {
-        baseScore: Math.min(25, Math.max(0, Number(svNoViolationScore) || 0)),
+        baseScore: Math.min(25, Math.max(0, Number(s.svNoViolationScore) || 0)),
         violations: disciplineViolations,
       }));
 
@@ -1394,6 +1215,7 @@ export const EvaluationFormQD4185 = () => {
       ) {
         saveRequests.unshift(API_Student.updateStudyScore(currentId!, studyPayload));
       }
+
 
       await Promise.all(saveRequests);
       await API_Student.submitEvaluation(currentId!);
@@ -1419,21 +1241,23 @@ export const EvaluationFormQD4185 = () => {
     }
   };
 
-  const handleDeductionChange = (isSv: boolean, index: number, value: number) => {
-    if (!isSv) setIsClassEdited(true);
 
-    const currentBase = isSv ? svNoViolationScore : classNoViolationScore;
-    const setDeductions = isSv ? setSvDeductions : setClassDeductions;
-    setDeductions(prev => {
-      const copy = [...prev];
-      const weight = deductionWeights[index] || 0;
-      const sumOther = copy.reduce((sum, count, idx) => idx === index ? sum : sum + (Number(count) || 0) * deductionWeights[idx], 0);
-      const remainingScore = Math.max(0, currentBase - sumOther);
-      const maxTimes = weight > 0 ? Math.ceil(remainingScore / weight) : 0;
-      copy[index] = Math.min(maxTimes, Math.max(0, value));
-      return copy;
+  // ── Inject file callbacks into store ──────────────────────────────────────
+  // The actual upload logic lives here in the page controller (Cloudinary, toast, etc.)
+  // We push stable handler references into the store so EvaluationTableGrid can
+  // call them without needing any prop. Updated whenever the handlers change.
+  useEffect(() => {
+    store.getState().batchSet({
+      handleFileUploadAction: handleFileUpload,
+      removeFileAction: removeFile,
     });
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store]); // store ref is stable; handlers close over stable setters
+
+  // ── Sync fieldErrors into store when validation runs ─────────────────────
+  useEffect(() => {
+    store.getState().batchSet({ fieldErrors });
+  }, [fieldErrors, store]);
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto w-full pb-28">
@@ -1639,76 +1463,11 @@ export const EvaluationFormQD4185 = () => {
 	            </div>
 	          )}
 
-	          <EvaluationTableGrid
-            currentUserRole={currentUserRole}
-            setIsClassEdited={setIsClassEdited}
-            isReadOnly={isReadOnly}
-            fieldErrors={fieldErrors}
-            svScores={svScores}
-            classScores={classScores}
-            // Sec 1
-            svStudyAttitude={svStudyAttitude} setSvStudyAttitude={setSvStudyAttitude}
-            svNckh={svNckh} setSvNckh={setSvNckh}
-            svOlympic={svOlympic} setSvOlympic={setSvOlympic}
-            svCreative={svCreative} setSvCreative={setSvCreative}
-            svAcademicRank={svAcademicRank} setSvAcademicRank={setSvAcademicRank}
-            classStudyAttitude={classStudyAttitude} setClassStudyAttitude={setClassStudyAttitude}
-            classNckh={classNckh} setClassNckh={setClassNckh}
-            classOlympic={classOlympic} setClassOlympic={setClassOlympic}
-            classCreative={classCreative} setClassCreative={setClassCreative}
-            classAcademicRank={classAcademicRank} setClassAcademicRank={setClassAcademicRank}
-            isSvViolationSec1={isSvViolationSec1} setIsSvViolationSec1={setIsSvViolationSec1}
-            isClassViolationSec1={isClassViolationSec1} setIsClassViolationSec1={setIsClassViolationSec1}
-            // Sec 2
-            svNoViolationScore={svNoViolationScore} setSvNoViolationScore={setSvNoViolationScore}
-            svDeductions={svDeductions} handleDeductionChange={handleDeductionChange}
-            classNoViolationScore={classNoViolationScore} setClassNoViolationScore={setClassNoViolationScore}
-            classDeductions={classDeductions} deductionLabels={deductionLabels}
-            isSvViolationSec2={isSvViolationSec2} setIsSvViolationSec2={setIsSvViolationSec2}
-            isClassViolationSec2={isClassViolationSec2} setIsClassViolationSec2={setIsClassViolationSec2}
-            // Sec 3
-            svActivity1={svActivity1} setSvActivity1={setSvActivity1}
-            svActivity2={svActivity2} setSvActivity2={setSvActivity2}
-            svActivity3={svActivity3} setSvActivity3={setSvActivity3}
-            svActivity4={svActivity4} setSvActivity4={setSvActivity4}
-            svRewardPoints={svRewardPoints} setSvRewardPoints={setSvRewardPoints}
-            classActivity1={classActivity1} setClassActivity1={setClassActivity1}
-            classActivity2={classActivity2} setClassActivity2={setClassActivity2}
-            classActivity3={classActivity3} setClassActivity3={setClassActivity3}
-            classActivity4={classActivity4} setClassActivity4={setClassActivity4}
-            classRewardPoints={classRewardPoints} setClassRewardPoints={setClassRewardPoints}
-            isSvViolationSec3={isSvViolationSec3} setIsSvViolationSec3={setIsSvViolationSec3}
-            isClassViolationSec3={isClassViolationSec3} setIsClassViolationSec3={setIsClassViolationSec3}
-            // Sec 4
-            svPolicy={svPolicy} setSvPolicy={setSvPolicy}
-            svSolidarity={svSolidarity} setSvSolidarity={setSvSolidarity}
-            svLocality={svLocality} setSvLocality={setSvLocality}
-            classPolicy={classPolicy} setClassPolicy={setClassPolicy}
-            classSolidarity={classSolidarity} setClassSolidarity={setClassSolidarity}
-            classLocality={classLocality} setClassLocality={setClassLocality}
-            isSvViolationSec4={isSvViolationSec4} setIsSvViolationSec4={setIsSvViolationSec4}
-            isClassViolationSec4={isClassViolationSec4} setIsClassViolationSec4={setIsClassViolationSec4}
-            // Sec 5
-            svRoleType={svRoleType} setSvRoleType={setSvRoleType}
-            svCadrePosition={svCadrePosition} setSvCadrePosition={setSvCadrePosition}
-            svCadrePerformance={svCadrePerformance} setSvCadrePerformance={setSvCadrePerformance}
-            svManagementLevel={svManagementLevel} setSvManagementLevel={setSvManagementLevel}
-            svClassParticipation={svClassParticipation} setSvClassParticipation={setSvClassParticipation}
-            svSpecialAchievement={svSpecialAchievement} setSvSpecialAchievement={setSvSpecialAchievement}
-            classRoleType={classRoleType} setClassRoleType={setClassRoleType}
-            classCadrePosition={classCadrePosition} setClassCadrePosition={setClassCadrePosition}
-            classCadrePerformance={classCadrePerformance} setClassCadrePerformance={setClassCadrePerformance}
-            classManagementLevel={classManagementLevel} setClassManagementLevel={setClassManagementLevel}
-            classClassParticipation={classClassParticipation} setClassClassParticipation={setClassClassParticipation}
-            classSpecialAchievement={classSpecialAchievement} setClassSpecialAchievement={setClassSpecialAchievement}
-            isSvViolationSec5={isSvViolationSec5} setIsSvViolationSec5={setIsSvViolationSec5}
-            isClassViolationSec5={isClassViolationSec5} setIsClassViolationSec5={setIsClassViolationSec5}
-            // File upload
-            uploadedFiles={uploadedFiles}
-            handleFileUpload={handleFileUpload}
-            removeFile={removeFile}
-            fileUploadProgress={fileProgress}
-          />
+          {/* ── EvaluationTableGrid: all state sourced from Zustand store ── */}
+	          <EvaluationFormStoreContext.Provider value={store}>
+	            <EvaluationTableGrid />
+	          </EvaluationFormStoreContext.Provider>
+
 
           {/* Action Buttons */}
           {!isReadOnly && (

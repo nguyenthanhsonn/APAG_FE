@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Minus, Lock, Upload, X, ChevronDown, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import type { GridDeductionStepperProps as DeductionStepperProps, UploadedEvidenceFile, EvaluationTableGridProps } from '@/types/student';
+import type { GridDeductionStepperProps as DeductionStepperProps } from '@/types/student';
+import { useEvaluationFormStore, computeEvaluationScores } from '@/store/evaluationFormStore';
 
 const DEDUCTION_WEIGHTS = [10, 3, 5, 5, 5, 5, 5, 10, 20];
 const DeductionStepper = ({ isSv, index, value, onChange, disabled, weight, noViolationScore, allDeductions, currentUserRole, isReadOnly }: DeductionStepperProps) => {
@@ -62,9 +63,15 @@ const NoteArea = ({ value, onChange, disabled }: { value:string; onChange:(v:str
 
 
 
-const MiniUpload = ({ fileKey, uploadedFiles, handleFileUpload, removeFile, disabled, fileUploadProgress }: { fileKey:string; uploadedFiles:Record<string,UploadedEvidenceFile[]>; handleFileUpload:(k:string,e:React.ChangeEvent<HTMLInputElement>)=>void; removeFile:(k:string,i:number)=>void; disabled:boolean; required?:boolean; fileUploadProgress?: Record<string, Record<string, number | 'done' | 'error'>> }) => {
+const MiniUpload = ({ fileKey, disabled }: { fileKey:string; disabled:boolean; required?:boolean }) => {
+  const uploadedFiles = useEvaluationFormStore(s => s.uploadedFiles);
+  const fileUploadProgress = useEvaluationFormStore(s => s.fileProgress);
+  const handleFileUpload = useEvaluationFormStore(s => s.handleFileUploadAction);
+  const removeFile = useEvaluationFormStore(s => s.removeFileAction);
+
   const files = uploadedFiles[fileKey] || [];
   const keyProgress = fileUploadProgress?.[fileKey] || {};
+
   // Các file đang uploading (chưa có trong uploadedFiles nhưng có trong progress và chưa 'done'/'error')
   const pendingEntries = Object.entries(keyProgress).filter(
     ([name, pct]) => pct !== 'done' && pct !== 'error' && !files.some(f => f.name === name)
@@ -138,27 +145,139 @@ const SectionHeaderRow = ({ tt, title, maxScore }: { tt:string; title:string; ma
 
 const LockedScore = () => <span className="text-[10px] text-red-500 italic font-semibold">(Hủy điểm)</span>;
 
-export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
-  const { currentUserRole, setIsClassEdited, isReadOnly, fieldErrors = {}, svScores, classScores,
-    svStudyAttitude, setSvStudyAttitude, svNckh, setSvNckh, svOlympic, setSvOlympic, svCreative, setSvCreative, svAcademicRank, setSvAcademicRank,
-    classStudyAttitude, setClassStudyAttitude, classNckh, setClassNckh, classOlympic, setClassOlympic, classCreative, setClassCreative, classAcademicRank, setClassAcademicRank,
-    isSvViolationSec1, setIsSvViolationSec1, isClassViolationSec1, setIsClassViolationSec1,
-    svNoViolationScore, setSvNoViolationScore, svDeductions, handleDeductionChange,
-    classNoViolationScore, setClassNoViolationScore, classDeductions, deductionLabels,
-    isSvViolationSec2, setIsSvViolationSec2, isClassViolationSec2, setIsClassViolationSec2,
-    svActivity1, setSvActivity1, svActivity2, setSvActivity2, svActivity3, setSvActivity3, svActivity4, setSvActivity4, svRewardPoints, setSvRewardPoints,
-    classActivity1, setClassActivity1, classActivity2, setClassActivity2, classActivity3, setClassActivity3, classActivity4, setClassActivity4, classRewardPoints, setClassRewardPoints,
-    isSvViolationSec3, setIsSvViolationSec3, isClassViolationSec3, setIsClassViolationSec3,
-    svPolicy, setSvPolicy, svSolidarity, setSvSolidarity, svLocality, setSvLocality,
-    classPolicy, setClassPolicy, classSolidarity, setClassSolidarity, classLocality, setClassLocality,
-    isSvViolationSec4, setIsSvViolationSec4, isClassViolationSec4, setIsClassViolationSec4,
-    svRoleType, setSvRoleType, svCadrePosition, setSvCadrePosition, svCadrePerformance, setSvCadrePerformance,
-    svManagementLevel, setSvManagementLevel, svClassParticipation, setSvClassParticipation, svSpecialAchievement, setSvSpecialAchievement,
-    classRoleType, setClassRoleType, classCadrePosition, setClassCadrePosition, classCadrePerformance, setClassCadrePerformance,
-    classManagementLevel, setClassManagementLevel, classClassParticipation, setClassClassParticipation, classSpecialAchievement, setClassSpecialAchievement,
-    isSvViolationSec5, setIsSvViolationSec5, isClassViolationSec5, setIsClassViolationSec5,
-    uploadedFiles, handleFileUpload, removeFile, fileUploadProgress
-  } = props;
+export const EvaluationTableGrid = () => {
+  // ── Read all state from store via fine-grained selectors ──────────────────
+  const currentUserRole = useEvaluationFormStore(s => s.currentUserRole);
+  const isReadOnly = useEvaluationFormStore(s => s.isReadOnly);
+  const fieldErrors = useEvaluationFormStore(s => s.fieldErrors);
+  const svScores = useEvaluationFormStore(s => computeEvaluationScores(s, true));
+  const classScores = useEvaluationFormStore(s => computeEvaluationScores(s, false));
+
+  // Sec 1
+  const svStudyAttitude = useEvaluationFormStore(s => s.svStudyAttitude);
+  const svNckh = useEvaluationFormStore(s => s.svNckh);
+  const svOlympic = useEvaluationFormStore(s => s.svOlympic);
+  const svCreative = useEvaluationFormStore(s => s.svCreative);
+  const svAcademicRank = useEvaluationFormStore(s => s.svAcademicRank);
+  const classStudyAttitude = useEvaluationFormStore(s => s.classStudyAttitude);
+  const classNckh = useEvaluationFormStore(s => s.classNckh);
+  const classOlympic = useEvaluationFormStore(s => s.classOlympic);
+  const classCreative = useEvaluationFormStore(s => s.classCreative);
+  const classAcademicRank = useEvaluationFormStore(s => s.classAcademicRank);
+  const isSvViolationSec1 = useEvaluationFormStore(s => s.isSvViolationSec1);
+  const isClassViolationSec1 = useEvaluationFormStore(s => s.isClassViolationSec1);
+
+  // Sec 2
+  const svNoViolationScore = useEvaluationFormStore(s => s.svNoViolationScore);
+  const svDeductions = useEvaluationFormStore(s => s.svDeductions);
+  const classNoViolationScore = useEvaluationFormStore(s => s.classNoViolationScore);
+  const classDeductions = useEvaluationFormStore(s => s.classDeductions);
+  const deductionLabels = useEvaluationFormStore(s => s.deductionLabels);
+  const isSvViolationSec2 = useEvaluationFormStore(s => s.isSvViolationSec2);
+  const isClassViolationSec2 = useEvaluationFormStore(s => s.isClassViolationSec2);
+
+  // Sec 3
+  const svActivity1 = useEvaluationFormStore(s => s.svActivity1);
+  const svActivity2 = useEvaluationFormStore(s => s.svActivity2);
+  const svActivity3 = useEvaluationFormStore(s => s.svActivity3);
+  const svActivity4 = useEvaluationFormStore(s => s.svActivity4);
+  const svRewardPoints = useEvaluationFormStore(s => s.svRewardPoints);
+  const classActivity1 = useEvaluationFormStore(s => s.classActivity1);
+  const classActivity2 = useEvaluationFormStore(s => s.classActivity2);
+  const classActivity3 = useEvaluationFormStore(s => s.classActivity3);
+  const classActivity4 = useEvaluationFormStore(s => s.classActivity4);
+  const classRewardPoints = useEvaluationFormStore(s => s.classRewardPoints);
+  const isSvViolationSec3 = useEvaluationFormStore(s => s.isSvViolationSec3);
+  const isClassViolationSec3 = useEvaluationFormStore(s => s.isClassViolationSec3);
+
+  // Sec 4
+  const svPolicy = useEvaluationFormStore(s => s.svPolicy);
+  const svSolidarity = useEvaluationFormStore(s => s.svSolidarity);
+  const svLocality = useEvaluationFormStore(s => s.svLocality);
+  const classPolicy = useEvaluationFormStore(s => s.classPolicy);
+  const classSolidarity = useEvaluationFormStore(s => s.classSolidarity);
+  const classLocality = useEvaluationFormStore(s => s.classLocality);
+  const isSvViolationSec4 = useEvaluationFormStore(s => s.isSvViolationSec4);
+  const isClassViolationSec4 = useEvaluationFormStore(s => s.isClassViolationSec4);
+
+  // Sec 5
+  const svRoleType = useEvaluationFormStore(s => s.svRoleType);
+  const svCadrePosition = useEvaluationFormStore(s => s.svCadrePosition);
+  const svCadrePerformance = useEvaluationFormStore(s => s.svCadrePerformance);
+  const svManagementLevel = useEvaluationFormStore(s => s.svManagementLevel);
+  const svClassParticipation = useEvaluationFormStore(s => s.svClassParticipation);
+  const svSpecialAchievement = useEvaluationFormStore(s => s.svSpecialAchievement);
+  const classRoleType = useEvaluationFormStore(s => s.classRoleType);
+  const classCadrePosition = useEvaluationFormStore(s => s.classCadrePosition);
+  const classCadrePerformance = useEvaluationFormStore(s => s.classCadrePerformance);
+  const classManagementLevel = useEvaluationFormStore(s => s.classManagementLevel);
+  const classClassParticipation = useEvaluationFormStore(s => s.classClassParticipation);
+  const classSpecialAchievement = useEvaluationFormStore(s => s.classSpecialAchievement);
+  const isSvViolationSec5 = useEvaluationFormStore(s => s.isSvViolationSec5);
+  const isClassViolationSec5 = useEvaluationFormStore(s => s.isClassViolationSec5);
+
+
+
+  // Actions
+  const setField = useEvaluationFormStore(s => s.setField);
+  const handleDeductionChange = useEvaluationFormStore(s => s.handleDeductionChange);
+  const setIsClassEdited = useEvaluationFormStore(s => s.setIsClassEdited);
+
+  // Convenience setters derived from setField
+  const setSvStudyAttitude = (v: string) => setField('svStudyAttitude', v);
+  const setSvNckh = (v: boolean) => setField('svNckh', v);
+  const setSvOlympic = (v: boolean) => setField('svOlympic', v);
+  const setSvCreative = (v: boolean) => setField('svCreative', v);
+  const setSvAcademicRank = (v: string) => setField('svAcademicRank', v);
+  const setClassStudyAttitude = (v: string) => setField('classStudyAttitude', v);
+  const setClassNckh = (v: boolean) => setField('classNckh', v);
+  const setClassOlympic = (v: boolean) => setField('classOlympic', v);
+  const setClassCreative = (v: boolean) => setField('classCreative', v);
+  const setClassAcademicRank = (v: string) => setField('classAcademicRank', v);
+  const setIsSvViolationSec1 = (v: boolean) => setField('isSvViolationSec1', v);
+  const setIsClassViolationSec1 = (v: boolean) => setField('isClassViolationSec1', v);
+
+  const setSvNoViolationScore = (v: number) => setField('svNoViolationScore', v);
+  const setClassNoViolationScore = (v: number) => setField('classNoViolationScore', v);
+  const setIsSvViolationSec2 = (v: boolean) => setField('isSvViolationSec2', v);
+  const setIsClassViolationSec2 = (v: boolean) => setField('isClassViolationSec2', v);
+
+  const setSvActivity1 = (v: string) => setField('svActivity1', v);
+  const setSvActivity2 = (v: string) => setField('svActivity2', v);
+  const setSvActivity3 = (v: string) => setField('svActivity3', v);
+  const setSvActivity4 = (v: string) => setField('svActivity4', v);
+  const setSvRewardPoints = (v: number) => setField('svRewardPoints', v);
+  const setClassActivity1 = (v: string) => setField('classActivity1', v);
+  const setClassActivity2 = (v: string) => setField('classActivity2', v);
+  const setClassActivity3 = (v: string) => setField('classActivity3', v);
+  const setClassActivity4 = (v: string) => setField('classActivity4', v);
+  const setClassRewardPoints = (v: number) => setField('classRewardPoints', v);
+  const setIsSvViolationSec3 = (v: boolean) => setField('isSvViolationSec3', v);
+  const setIsClassViolationSec3 = (v: boolean) => setField('isClassViolationSec3', v);
+
+  const setSvPolicy = (v: string) => setField('svPolicy', v);
+  const setSvSolidarity = (v: string) => setField('svSolidarity', v);
+  const setSvLocality = (v: string) => setField('svLocality', v);
+  const setClassPolicy = (v: string) => setField('classPolicy', v);
+  const setClassSolidarity = (v: string) => setField('classSolidarity', v);
+  const setClassLocality = (v: string) => setField('classLocality', v);
+  const setIsSvViolationSec4 = (v: boolean) => setField('isSvViolationSec4', v);
+  const setIsClassViolationSec4 = (v: boolean) => setField('isClassViolationSec4', v);
+
+  const setSvRoleType = (v: 'cadre' | 'student') => setField('svRoleType', v);
+  const setSvCadrePosition = (v: 'a1' | 'a2') => setField('svCadrePosition', v);
+  const setSvCadrePerformance = (v: string) => setField('svCadrePerformance', v);
+  const setSvManagementLevel = (v: string) => setField('svManagementLevel', v);
+  const setSvClassParticipation = (v: number) => setField('svClassParticipation', v);
+  const setSvSpecialAchievement = (v: string) => setField('svSpecialAchievement', v);
+  const setClassRoleType = (v: 'cadre' | 'student') => setField('classRoleType', v);
+  const setClassCadrePosition = (v: 'a1' | 'a2') => setField('classCadrePosition', v);
+  const setClassCadrePerformance = (v: string) => setField('classCadrePerformance', v);
+  const setClassManagementLevel = (v: string) => setField('classManagementLevel', v);
+  const setClassClassParticipation = (v: number) => setField('classClassParticipation', v);
+  const setClassSpecialAchievement = (v: string) => setField('classSpecialAchievement', v);
+  const setIsSvViolationSec5 = (v: boolean) => setField('isSvViolationSec5', v);
+  const setIsClassViolationSec5 = (v: boolean) => setField('isClassViolationSec5', v);
 
   const [notes, setNotes] = useState<Record<string,string>>({});
   const setNote = (key: string, v: string) => setNotes(prev => ({...prev,[key]:v}));
@@ -306,19 +425,19 @@ export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
                 {svNckh && (
                   <div className="mt-2 border-t pt-1.5 border-gray-100">
                     <span className="text-[10px] font-bold text-gray-600 block">Minh chứng NCKH:</span>
-                    <MiniUpload fileKey="sv_nckh" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required fileUploadProgress={fileUploadProgress}/>
+                    <MiniUpload fileKey="sv_nckh" disabled={!isSvEditable} required/>
                   </div>
                 )}
                 {svOlympic && (
                   <div className="mt-2 border-t pt-1.5 border-gray-100">
                     <span className="text-[10px] font-bold text-gray-600 block">Minh chứng Olympic:</span>
-                    <MiniUpload fileKey="sv_olympic" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required fileUploadProgress={fileUploadProgress}/>
+                    <MiniUpload fileKey="sv_olympic" disabled={!isSvEditable} required/>
                   </div>
                 )}
                 {svCreative && (
                   <div className="mt-2 border-t pt-1.5 border-gray-100">
                     <span className="text-[10px] font-bold text-gray-600 block">Minh chứng Hoạt động học thuật:</span>
-                    <MiniUpload fileKey="sv_creative" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required fileUploadProgress={fileUploadProgress}/>
+                    <MiniUpload fileKey="sv_creative" disabled={!isSvEditable} required/>
                   </div>
                 )}
               </td>
@@ -403,7 +522,7 @@ export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
                 <td className={`${tdR} text-center font-bold text-gray-600`}>{row.max}.00</td>
                 <td className={tdR}><NoteArea value={notes[`sv_${row.key}`]||''} onChange={v=>setNote(`sv_${row.key}`,v)} disabled={!isSvEditable||isSvViolationSec3}/></td>
                 <td className={tdR}>{isSvViolationSec3?<LockedScore/>:<><ScoreSelect options={row.opts} value={row.svVal} onChange={v=>{if(isSvEditable)row.svSet(v);}} disabled={!isSvEditable||isSvViolationSec3}/><FieldError name={sec3FieldByKey[row.key]}/></>}</td>
-                <td className={tdR}><NoteArea value={notes[`cl_${row.key}`]||''} onChange={v=>setNote(`cl_${row.key}`,v)} disabled={!isClassEditable||isClassViolationSec3}/></td>
+                <td className={tdR}><NoteArea value={notes[`cl_${row.key}`]||''} onChange={v=>setNote(`cl_${row.key}`,v)} disabled={!isClassEditable||isSvViolationSec3}/></td>
                 <td className={tdBase}>{isClassViolationSec3?<LockedScore/>:<ScoreSelect options={row.opts} value={row.clVal} onChange={v=>{if(isClassEditable){markClassEdited();row.clSet(v);}}} disabled={!isClassEditable||isClassViolationSec3}/>}</td>
               </tr>
             ))}
@@ -420,7 +539,7 @@ export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
                 {svRewardPoints > 0 && (
                   <div className="mt-2 border-t pt-1.5 border-gray-100">
                     <span className="text-[10px] font-bold text-gray-600 block">Minh chứng Khen thưởng:</span>
-                    <MiniUpload fileKey="sv_reward" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable||isSvViolationSec3} required={svRewardPoints>0} fileUploadProgress={fileUploadProgress}/>
+                    <MiniUpload fileKey="sv_reward" disabled={!isSvEditable||isSvViolationSec3} required={svRewardPoints>0}/>
                   </div>
                 )}
               </td>
@@ -444,13 +563,13 @@ export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
                   {row.key==='iv1'&&svPolicy==='GOOD_WITH_REWARD'&& (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-[10px] font-bold text-gray-600 block">Minh chứng tuyên truyền xuất sắc:</span>
-                      <MiniUpload fileKey="sv_policy" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required fileUploadProgress={fileUploadProgress}/>
+                      <MiniUpload fileKey="sv_policy" disabled={!isSvEditable} required/>
                     </div>
                   )}
                   {row.key==='iv2'&&svSolidarity==='excellent_achievements'&& (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-[10px] font-bold text-gray-600 block">Minh chứng thành tích đặc biệt:</span>
-                      <MiniUpload fileKey="sv_solidarity" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required fileUploadProgress={fileUploadProgress}/>
+                      <MiniUpload fileKey="sv_solidarity" disabled={!isSvEditable} required/>
                     </div>
                   )}
                 </td>
@@ -517,7 +636,7 @@ export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
                   {svCadrePerformance==='excellent'&&svRoleType==='cadre'&& (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-[10px] font-bold text-gray-600 block">Minh chứng hoàn thành xuất sắc:</span>
-                      <MiniUpload fileKey="sv_cadre_perf" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required fileUploadProgress={fileUploadProgress}/>
+                      <MiniUpload fileKey="sv_cadre_perf" disabled={!isSvEditable} required/>
                     </div>
                   )}
                 </td>
@@ -560,7 +679,7 @@ export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
                   {(svSpecialAchievement==='national_intl'||svSpecialAchievement==='provincial')&&svRoleType==='student'&& (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-[10px] font-bold text-gray-600 block">Minh chứng thành tích cấp Tỉnh/QG:</span>
-                      <MiniUpload fileKey="sv_special_ach" uploadedFiles={uploadedFiles} handleFileUpload={handleFileUpload} removeFile={removeFile} disabled={!isSvEditable} required fileUploadProgress={fileUploadProgress}/>
+                      <MiniUpload fileKey="sv_special_ach" disabled={!isSvEditable} required/>
                     </div>
                   )}
                 </td>

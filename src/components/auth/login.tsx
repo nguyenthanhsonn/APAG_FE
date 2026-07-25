@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { GraduationCap, Lock, User, AlertCircle } from 'lucide-react';
+import { GraduationCap, Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { API_Auth } from '../../api/API_Auth';
 import { useFormik } from 'formik';
@@ -27,6 +27,7 @@ const LoginSchema = Yup.object().shape({
 
 export default function Login() {
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [captchaId, setCaptchaId] = useState('');
   const [captchaImage, setCaptchaImage] = useState('');
   const [captchaLoading, setCaptchaLoading] = useState(false);
@@ -104,14 +105,14 @@ export default function Login() {
           formik.setFieldError('captchaCode', 'Mã captcha không đúng, vui lòng nhập lại');
           formik.setFieldValue('captchaCode', '');
           await loadCaptcha();
-          
+
           wrongCaptchaCountRef.current += 1;
           if (wrongCaptchaCountRef.current >= 3) {
             wrongCaptchaCountRef.current = 0;
             toast.error('Bạn đã nhập sai nhiều lần, mã captcha mới đã được tạo.');
           }
         } else {
-          setError(getUserFriendlyError(err, 'Đã xảy ra lỗi. Vui lòng thử lại.'));
+          setError(getUserFriendlyError(err, 'Đăng nhập không thành công. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu.'));
           formik.setFieldValue('captchaCode', '');
           await loadCaptcha();
         }
@@ -171,11 +172,19 @@ export default function Login() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
-                  type="password"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   placeholder="Nhập mật khẩu"
                   {...formik.getFieldProps('password')}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer focus:outline-none p-1 transition-colors select-none"
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
               {formik.errors.password && (
                 <p className="text-red-500 text-sm mt-1">{formik.errors.password}</p>
@@ -191,12 +200,11 @@ export default function Login() {
                 <div className="relative flex-1">
                   <input
                     type="text"
-                    className={`w-full px-4 py-3 border rounded-xl uppercase focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200 ${
-                      formik.touched.captchaCode && formik.errors.captchaCode
+                    className={`w-full px-4 py-3 border rounded-xl uppercase focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200 ${formik.touched.captchaCode && formik.errors.captchaCode
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20 animate-shake'
                         : 'border-gray-300 focus:border-blue-500'
-                    }`}
-                    placeholder=""
+                      }`}
+                    placeholder="Nhập mã captcha"
                     autoComplete="off"
                     {...formik.getFieldProps('captchaCode')}
                     onChange={(e) => {
@@ -229,7 +237,7 @@ export default function Login() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Validation Error Message */}
               {formik.touched.captchaCode && formik.errors.captchaCode && (
                 <p className="text-red-500 text-xs font-medium mt-1.5 flex items-center gap-1 animate-fade-in">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Edit, Trash2, Lock, Unlock, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, Lock, Unlock, AlertCircle, ChevronDown } from 'lucide-react';
 import ModalCreateStudent from '../../components/admin/modalCreateStudent';
 import ModalCreateManualStudent from '../../components/admin/modalCreateManualStudent';
 import ModalImportExcel from '../../components/admin/modalImportExcel';
@@ -380,17 +380,20 @@ export const AdminUsers = () => {
         >
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-gray-500">Vai trò:</span>
-            <select
-              value={roleFilter}
-              onChange={(e) => handleRoleChange(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-            >
-              {roleFilterOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={roleFilter}
+                onChange={(e) => handleRoleChange(e.target.value)}
+                className="appearance-none rounded-lg border border-gray-300 bg-white pl-3 pr-8 py-1.5 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 hover:border-gray-400 transition cursor-pointer"
+              >
+                {roleFilterOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={15} />
+            </div>
           </div>
         </SearchFilterBar>
       </div>
