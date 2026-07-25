@@ -187,7 +187,7 @@ export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
     );
   };
 
-  // Updated to match the mockup exactly
+  // Updated to match the approved table design.
   const studyAttitudeOpts = [
     {value:'very_good',label:'6.00 đ - Điểm TB học kỳ >= 9'},
     {value:'good',label:'5.00 đ - Điểm TB học kỳ từ 7 đến cận 9'},
@@ -197,7 +197,7 @@ export const EvaluationTableGrid = (props: EvaluationTableGridProps) => {
     {value:'none',label:'0.00 đ - Khác / Không đạt'},
   ];
 
-  // Updated to match the mockup exactly
+  // Updated to match the approved table design.
   const academicRankOpts = [
     {value:'excellent',label:'8.00 đ - Loại xuất sắc'},
     {value:'good',label:'7.00 đ - Loại Giỏi'},

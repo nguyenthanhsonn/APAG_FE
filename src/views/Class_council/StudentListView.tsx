@@ -83,7 +83,7 @@ export function StudentListView() {
   const [loading, setLoading] = useState(true);
   const [className, setClassName] = useState('Lớp phụ trách');
   const [students, setStudents] = useState<CouncilStudentReview[]>([]);
-  const [semester, setSemester] = useState('2025-2026-hk1');
+  const [semester, setSemester] = useState('all');
   const [status, setStatus] = useState<ReviewStatusFilter>('all');
   const [keyword, setKeyword] = useState('');
 
@@ -236,6 +236,7 @@ export function StudentListView() {
           />
           <ClassReviewFilterBar
             semester={semester}
+            semesterOptions={[]}
             status={status}
             keyword={keyword}
             onSemesterChange={setSemester}

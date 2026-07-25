@@ -82,58 +82,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw error;
     }
   },
-  loginMock: (role) => {
-    if (role === 'student') {
-      const mockStudent = {
-        id: 'student-id-123',
-        username: 'student.test2',
-        fullName: 'Nguyễn Sinh Viên (Mock)',
-        role: 'student' as const,
-        email: 'student.test2@csmts.local',
-        studentCode: 'SV99999',
-        className: 'CNTT K18',
-        dateOfBirth: '2003-01-01',
-        phoneNumber: '0987654321',
-        admissionYear: 2021,
-        isActive: true,
-      };
-      set({ user: mockStudent, isAuthenticated: true, isHydrated: true });
-      localStorage.setItem('user', JSON.stringify(mockStudent));
-      localStorage.setItem('accessToken', 'mock-access-token');
-      localStorage.setItem('refreshToken', 'mock-refresh-token');
-    } else if (role === 'admin') {
-      const mockAdmin = {
-        id: 'admin-id-123',
-        username: 'admin',
-        fullName: 'Hệ thống Quản trị (Mock)',
-        role: 'admin' as const,
-        email: 'admin@csmts.local',
-        isActive: true,
-      };
-      set({ user: mockAdmin, isAuthenticated: true, isHydrated: true });
-      localStorage.setItem('user', JSON.stringify(mockAdmin));
-      localStorage.setItem('accessToken', 'mock-access-token');
-      localStorage.setItem('refreshToken', 'mock-refresh-token');
-    } else {
-      const mockClassCouncil = {
-        id: 'class-council-id-123',
-        username: 'gvcn',
-        fullName: 'Giảng viên Chủ nhiệm (Mock)',
-        role: 'class_council' as const,
-        email: 'gvcn@csmts.local',
-        isActive: true,
-      };
-      set({ user: mockClassCouncil, isAuthenticated: true, isHydrated: true });
-      localStorage.setItem('user', JSON.stringify(mockClassCouncil));
-      localStorage.setItem('accessToken', 'mock-access-token');
-      localStorage.setItem('refreshToken', 'mock-refresh-token');
-    }
-  },
   logout: async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
       const accessToken = localStorage.getItem('accessToken');
-      if (refreshToken && refreshToken !== 'mock-refresh-token') {
+      if (refreshToken) {
         await API_Auth.logout(refreshToken, accessToken || undefined);
       }
     } catch (error) {
@@ -148,7 +101,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   refreshProfile: async () => {
     const accessToken = localStorage.getItem('accessToken');
 
-    if (!accessToken || accessToken === 'mock-access-token') {
+    if (!accessToken) {
       return;
     }
 
@@ -173,43 +126,33 @@ export const useAuthStore = create<AuthState>((set) => ({
   updateProfile: async (data: Partial<Student | Admin>) => {
     const accessToken = localStorage.getItem('accessToken');
 
-    if (accessToken && accessToken !== 'mock-access-token') {
-      try {
-        const hasPhone = Object.prototype.hasOwnProperty.call(data, 'phone');
-        const hasPhoneNumber = Object.prototype.hasOwnProperty.call(data, 'phoneNumber');
-        const payload = {
-          fullName: (data as any).fullName,
-          phone: hasPhone ? (data as any).phone : hasPhoneNumber ? (data as any).phoneNumber : undefined,
-          dateOfBirth: (data as any).dateOfBirth,
-        };
-        const updateRes = await API_Auth.updateProfile(accessToken, payload);
-        const updatedProfile = normalizeProfile(updateRes.data || updateRes);
-
-        set((state) => ({
-          user: state.user ? { ...state.user, ...updatedProfile } : null,
-        }));
-
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          localStorage.setItem('user', JSON.stringify({ ...parsedUser, ...updatedProfile }));
-        }
-        return;
-      } catch (error) {
-        console.error('Update profile API error:', error);
-        throw error;
-      }
+    if (!accessToken) {
+      throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
     }
-    
-    // Fallback/Mock local update
-    set((state) => ({
-      user: state.user ? { ...state.user, ...data } : null,
-    }));
-    
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      localStorage.setItem('user', JSON.stringify({ ...parsedUser, ...data }));
+
+    try {
+      const hasPhone = Object.prototype.hasOwnProperty.call(data, 'phone');
+      const hasPhoneNumber = Object.prototype.hasOwnProperty.call(data, 'phoneNumber');
+      const payload = {
+        fullName: (data as any).fullName,
+        phone: hasPhone ? (data as any).phone : hasPhoneNumber ? (data as any).phoneNumber : undefined,
+        dateOfBirth: (data as any).dateOfBirth,
+      };
+      const updateRes = await API_Auth.updateProfile(accessToken, payload);
+      const updatedProfile = normalizeProfile(updateRes.data || updateRes);
+
+      set((state) => ({
+        user: state.user ? { ...state.user, ...updatedProfile } : null,
+      }));
+
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        localStorage.setItem('user', JSON.stringify({ ...parsedUser, ...updatedProfile }));
+      }
+    } catch (error) {
+      console.error('Update profile API error:', error);
+      throw error;
     }
   },
 }));

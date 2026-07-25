@@ -6,12 +6,6 @@ import type { ReviewStatusFilter, ClassReviewFilterBarProps } from '@/types/admi
 
 export type { ReviewStatusFilter };
 
-const semesterOptions = [
-  { id: '2025-2026-hk1', name: 'HK1 2025-2026' },
-  { id: '2024-2025-hk2', name: 'HK2 2024-2025' },
-  { id: '2024-2025-hk1', name: 'HK1 2024-2025' },
-];
-
 const statusOptions = [
   { id: 'all', name: 'Tất cả' },
   { id: 'submitted', name: 'Đã nộp' },
@@ -20,6 +14,7 @@ const statusOptions = [
 
 export default function ClassReviewFilterBar({
   semester,
+  semesterOptions = [],
   status,
   keyword,
   onSemesterChange,
@@ -33,7 +28,7 @@ export default function ClassReviewFilterBar({
           label="Học kỳ"
           value={semester}
           onChange={onSemesterChange}
-          options={semesterOptions}
+          options={[{ id: 'all', name: 'Tất cả học kỳ' }, ...semesterOptions]}
         />
         <CustomSelect
           label="Trạng thái"

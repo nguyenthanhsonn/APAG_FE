@@ -93,31 +93,13 @@ export const StudentResults = () => {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken || accessToken === 'mock-access-token') {
-          // Set mock data
-          setResultData({
-            semester: 'HK2',
-            academicYear: '2023-2024',
-            scores: {
-              academic: 28,
-              discipline: 25,
-              politicalSocial: 18,
-              community: 12,
-              leadership: 5,
-              total: 88,
-            },
-            rating: 'Xuất sắc',
-            reviewerComments: 'Sinh viên có ý thức học tập tốt, tích cực tham gia các hoạt động phong trào. Tiếp tục phát huy!',
-          });
-        } else {
-          const listRes = await API_Student.getMyEvaluations(accessToken);
+          const listRes = await API_Student.getMyEvaluations();
           const evaluations = listRes.data || listRes;
           
           // Use the latest evaluation record (first in the list)
           const latestEval = evaluations[0];
           if (latestEval) {
-            const detail = await API_Student.getEvaluationDetail(accessToken, latestEval.id);
+            const detail = await API_Student.getEvaluationDetail(latestEval.id);
             const detailData = (detail.data || detail) as any;
             const studyData = detailData.sections?.study || {};
             const discData = detailData.sections?.discipline || {};
@@ -131,41 +113,27 @@ export const StudentResults = () => {
             setResultData({
               semester: detailData.semester && typeof detailData.semester === 'object'
                 ? detailData.semester.semester === 'SEMESTER_1' ? 'HK1' : 'HK2'
-                : detailData.semester || latestEval.semester || 'HK1',
+                : detailData.semester || latestEval.semester || '',
               academicYear: detailData.semester && typeof detailData.semester === 'object'
                 ? `${detailData.semester.year - 1}-${detailData.semester.year}`
-                : detailData.academicYear || latestEval.academicYear || '2024-2025',
+                : detailData.academicYear || latestEval.academicYear || '',
               scores: {
                 academic: detailData.sectionScores?.studyScore ?? studyData.score ?? getStudyScoreNum(studyData.regularScoreLevel, studyData.activities || []),
                 discipline: detailData.sectionScores?.disciplineScore ?? discData.score ?? Math.max(0, (discData.baseScore || 0) - getDisciplineDeduction(discData.violations || [])),
                 politicalSocial: detailData.sectionScores?.activityScore ?? actData.score ?? getActScoreNum(actData),
                 community: detailData.sectionScores?.communityScore ?? commData.score ?? getCommScoreNum(commData),
                 leadership: detailData.sectionScores?.roleScore ?? roleData.score ?? getRoleScoreNum(roleData),
-                total: totalScore ?? 88,
+                total: totalScore ?? 0,
               },
-              rating: getRankText(classification || 'Xuất sắc'),
-              reviewerComments: detailData.note || 'Sinh viên có ý thức rèn luyện tốt, nghiêm túc chấp hành quy chế nội quy nhà trường.',
+              rating: getRankText(classification),
+              reviewerComments: detailData.note || '',
             });
           } else {
-            // Fallback mock if no evaluations on server
-            setResultData({
-              semester: 'HK2',
-              academicYear: '2023-2024',
-              scores: {
-                academic: 28,
-                discipline: 25,
-                politicalSocial: 18,
-                community: 12,
-                leadership: 5,
-                total: 88,
-              },
-              rating: 'Xuất sắc',
-              reviewerComments: 'Sinh viên có ý thức học tập tốt, tích cực tham gia các hoạt động phong trào. Tiếp tục phát huy!',
-            });
+            setResultData(null);
           }
-        }
       } catch (err) {
         console.error('Failed to load results:', err);
+        setResultData(null);
       } finally {
         setLoading(false);
       }

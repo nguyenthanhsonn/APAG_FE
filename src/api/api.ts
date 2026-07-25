@@ -76,7 +76,7 @@ axiosInstance.interceptors.request.use((config) => {
 
   const token = getStoredToken('accessToken');
 
-  if (token && token !== 'mock-access-token') {
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -97,7 +97,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       const refreshToken = getStoredToken('refreshToken');
 
-      if (refreshToken && refreshToken !== 'mock-refresh-token') {
+      if (refreshToken) {
         try {
           const refreshResponse = await axiosInstance.post<ApiResponse<RefreshTokenResponse>>(
             '/auth/refresh-token',

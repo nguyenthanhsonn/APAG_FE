@@ -76,22 +76,18 @@ export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProp
     setLoading(true);
     try {
       const accessToken = localStorage.getItem('accessToken');
-      
-      if (!accessToken || accessToken === 'mock-access-token') {
-        // Mock success response
-        await new Promise((resolve) => setTimeout(resolve, 1200));
-        setSuccess('Đổi mật khẩu thành công (Mock)!');
-        setTimeout(() => {
-          handleClose();
-        }, 1500);
-      } else {
-        await API_Auth.changePassword(accessToken, currentPassword, newPassword);
-        setSuccess('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
-        setTimeout(() => {
-          handleClose();
-          logout();
-        }, 1200);
+
+      if (!accessToken) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        return;
       }
+
+      await API_Auth.changePassword(accessToken, currentPassword, newPassword);
+      setSuccess('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
+      setTimeout(() => {
+        handleClose();
+        logout();
+      }, 1200);
     } catch (err: any) {
       setError(getUserFriendlyError(err, 'Đã xảy ra lỗi khi đổi mật khẩu.'));
     } finally {

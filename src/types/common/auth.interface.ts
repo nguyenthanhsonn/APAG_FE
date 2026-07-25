@@ -78,7 +78,6 @@ export interface AuthState {
   isHydrated: boolean;
   hydrateAuth: () => void;
   login: (username: string, password: string, captchaId: string, captchaCode: string) => Promise<boolean>;
-  loginMock: (role: UserRole) => void;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (data: Partial<Student | Admin>) => Promise<void>;

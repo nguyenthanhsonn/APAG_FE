@@ -243,23 +243,20 @@ export const StudentProfile = () => {
     setPasswordLoading(true);
     try {
       const accessToken = localStorage.getItem('accessToken');
-      
-      if (!accessToken || accessToken === 'mock-access-token') {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setPasswordSuccess('Đổi mật khẩu thành công (Mock)!');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-      } else {
-        await API_Auth.changePassword(accessToken, currentPassword, newPassword);
-        setPasswordSuccess('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-	        setTimeout(() => {
-	          logout();
-	        }, 1200);
-	      }
+
+      if (!accessToken) {
+        setPasswordError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        return;
+      }
+
+      await API_Auth.changePassword(accessToken, currentPassword, newPassword);
+      setPasswordSuccess('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => {
+        logout();
+      }, 1200);
     } catch (err: any) {
       setPasswordError(err.message || 'Đã xảy ra lỗi khi đổi mật khẩu.');
     } finally {

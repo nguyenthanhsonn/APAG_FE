@@ -117,7 +117,6 @@ export interface LinkEvidenceUrlPayload {
 export interface NotificationListQuery {
   page?: number;
   limit?: number;
-  unreadOnly?: boolean;
 }
 
 /** Danh sách thông báo có phân trang. */

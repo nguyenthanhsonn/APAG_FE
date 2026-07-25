@@ -203,6 +203,7 @@ export type ReviewStatusFilter = 'all' | 'not_submitted' | 'submitted';
 
 export interface ClassReviewFilterBarProps {
   semester: string;
+  semesterOptions?: Array<{ id: string; name: string }>;
   status: ReviewStatusFilter;
   keyword: string;
   onSemesterChange: (value: string) => void;

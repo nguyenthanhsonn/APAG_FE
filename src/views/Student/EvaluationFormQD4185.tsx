@@ -685,11 +685,11 @@ export const EvaluationFormQD4185 = () => {
   };
 
   // Helper method to load details of a specific evaluation
-  const loadEvaluationDetails = async (accessToken: string, targetId: string) => {
+  const loadEvaluationDetails = async (targetId: string) => {
     try {
       setEvaluationId(targetId);
       resetFormFields();
-      const detailRes = await API_Student.getEvaluationDetail(accessToken, targetId);
+      const detailRes = await API_Student.getEvaluationDetail(targetId);
       const detail = (detailRes.data || detailRes) as any;
       if (detail.phone) setPhoneNumber(detail.phone);
       if (detail.note) setNote(detail.note);
@@ -763,13 +763,6 @@ export const EvaluationFormQD4185 = () => {
   };
 
   // Sync helper methods for URL parameters
-	  const setUrlParams = (sem: string, year: string) => {
-	    const params = new URLSearchParams(window.location.search);
-	    params.set('semester', sem);
-	    params.set('year', year);
-	    router.replace(`${pathname}?${params.toString()}`);
-	  };
-
 	  const setEvaluationUrlParam = (id?: string | null) => {
 	    if (!id) return;
 	    const params = new URLSearchParams();
@@ -804,17 +797,14 @@ export const EvaluationFormQD4185 = () => {
   // Load evaluations list once on mount
   useEffect(() => {
     const loadMyEvals = async () => {
-      const accessToken = localStorage.getItem('accessToken');
-      if (accessToken && accessToken !== 'mock-access-token') {
-        try {
-          const res = await API_Student.getMyEvaluations(accessToken);
-          const data = res.data || res;
-          if (Array.isArray(data)) {
-            setEvaluationsList(data);
-          }
-        } catch (err) {
-          console.error('Failed to load evaluations list:', err);
+      try {
+        const res = await API_Student.getMyEvaluations();
+        const data = res.data || res;
+        if (Array.isArray(data)) {
+          setEvaluationsList(data);
         }
+      } catch (err) {
+        console.error('Failed to load evaluations list:', err);
       }
     };
     loadMyEvals();
@@ -887,7 +877,7 @@ export const EvaluationFormQD4185 = () => {
 	    });
 	  };
 
-		  const openExistingEvaluation = async (match: any, accessToken: string | null) => {
+		  const openExistingEvaluation = async (match: any) => {
 	    setEvaluationWorkflow({
 	      status: match.status,
 	      statusLabel: match.statusLabel,
@@ -895,15 +885,13 @@ export const EvaluationFormQD4185 = () => {
 	    });
 	    applyEvaluationLockState(match);
 
-    if (accessToken && accessToken !== 'mock-access-token') {
-      setLoading(true);
-      try {
-        await loadEvaluationDetails(accessToken, match.id);
-      } catch (err) {
-        console.error('Failed to load details:', err);
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      await loadEvaluationDetails(match.id);
+    } catch (err) {
+      console.error('Failed to load details:', err);
+    } finally {
+      setLoading(false);
     }
 
 	    setEvaluationId(match.id);
@@ -931,32 +919,29 @@ export const EvaluationFormQD4185 = () => {
   // Check status and date gates before proceeding
   const handleCheckAndProceed = async (targetSem: string, targetYear: string, targetSemesterId = selectedSemesterId) => {
     if (!targetSem || !targetYear) return;
-    const accessToken = localStorage.getItem('accessToken');
     const selectedSemester = findSemesterConfig(targetSem, targetYear, targetSemesterId);
     const resolvedSemesterId = selectedSemester?.id || targetSemesterId;
     const match = findEvaluationForPeriod(evaluationsList, targetSem, targetYear, resolvedSemesterId);
 
 	    if (match) {
-	      await openExistingEvaluation(match, accessToken);
+	      await openExistingEvaluation(match);
 	      return;
 	    }
 
     if (!resolvedSemesterId || !selectedSemester?.isActive) {
-      if (accessToken && accessToken !== 'mock-access-token') {
-        try {
-          const refreshed = await API_Student.getMyEvaluations(accessToken);
-          const refreshedList = refreshed.data || refreshed;
-          const list = Array.isArray(refreshedList) ? refreshedList : [];
-          setEvaluationsList(list);
-          const existing = findEvaluationForPeriod(list, targetSem, targetYear, resolvedSemesterId);
+      try {
+        const refreshed = await API_Student.getMyEvaluations();
+        const refreshedList = refreshed.data || refreshed;
+        const list = Array.isArray(refreshedList) ? refreshedList : [];
+        setEvaluationsList(list);
+        const existing = findEvaluationForPeriod(list, targetSem, targetYear, resolvedSemesterId);
 
-	          if (existing) {
-	            await openExistingEvaluation(existing, accessToken);
-	            return;
-	          }
-        } catch (reloadErr) {
-          console.error('Failed to reload existing evaluation:', reloadErr);
+        if (existing) {
+          await openExistingEvaluation(existing);
+          return;
         }
+      } catch (reloadErr) {
+        console.error('Failed to reload existing evaluation:', reloadErr);
       }
 
       toast.error('Học kỳ này chưa mở đánh giá rèn luyện.');
@@ -967,56 +952,50 @@ export const EvaluationFormQD4185 = () => {
 		    setIsReadOnly(false);
 		    setIsLocked(false);
 		    setAlreadyEvaluated(false);
-    if (accessToken && accessToken !== 'mock-access-token') {
-      try {
-        setLoading(true);
-		        const newEvalRes = await API_Student.createEvaluation(accessToken, targetSem, targetYear);
-		        const newEval = (newEvalRes.data || newEvalRes) as any;
-		        setEvaluationId(newEval.id);
-		        setEvaluationWorkflow({
-		          status: newEval.status || 'DRAFT',
-		          statusLabel: newEval.statusLabel,
-		          steps: newEval.review?.steps,
-		        });
-		        applyEvaluationLockState({
-	          ...newEval,
-	          status: newEval.status || 'DRAFT',
-	          isLocked: newEval.isLocked ?? false,
-	          semesterIsActive: newEval.semesterIsActive ?? true,
-	        });
-	        resetFormFields();
-	        setStep(2);
-	        setEvaluationUrlParam(newEval.id);
-      } catch (err: any) {
-        const message = getUserFriendlyError(err, 'Không thể tạo phiếu đánh giá.');
-        if (err.statusCode === 409 || message.includes('đã tồn tại')) {
-          try {
-            const refreshed = await API_Student.getMyEvaluations(accessToken);
-            const refreshedList = refreshed.data || refreshed;
-            const list = Array.isArray(refreshedList) ? refreshedList : [];
-            setEvaluationsList(list);
-	            const existing = findEvaluationForPeriod(list, targetSem, targetYear, resolvedSemesterId);
+    try {
+      setLoading(true);
+      const newEvalRes = await API_Student.createEvaluation({ semester: targetSem, academicYear: targetYear });
+      const newEval = (newEvalRes.data || newEvalRes) as any;
+      setEvaluationId(newEval.id);
+      setEvaluationWorkflow({
+        status: newEval.status || 'DRAFT',
+        statusLabel: newEval.statusLabel,
+        steps: newEval.review?.steps,
+      });
+      applyEvaluationLockState({
+        ...newEval,
+        status: newEval.status || 'DRAFT',
+        isLocked: newEval.isLocked ?? false,
+        semesterIsActive: newEval.semesterIsActive ?? true,
+      });
+      resetFormFields();
+      setStep(2);
+      setEvaluationUrlParam(newEval.id);
+    } catch (err: any) {
+      const message = getUserFriendlyError(err, 'Không thể tạo phiếu đánh giá.');
+      if (err.statusCode === 409 || message.includes('đã tồn tại')) {
+        try {
+          const refreshed = await API_Student.getMyEvaluations();
+          const refreshedList = refreshed.data || refreshed;
+          const list = Array.isArray(refreshedList) ? refreshedList : [];
+          setEvaluationsList(list);
+          const existing = findEvaluationForPeriod(list, targetSem, targetYear, resolvedSemesterId);
 
-	            if (existing) {
-	              await openExistingEvaluation(existing, accessToken);
-	              return;
-	            }
-          } catch (reloadErr) {
-            console.error('Failed to reload existing evaluation:', reloadErr);
+          if (existing) {
+            await openExistingEvaluation(existing);
+            return;
           }
+        } catch (reloadErr) {
+          console.error('Failed to reload existing evaluation:', reloadErr);
         }
-
-        toast.error(message);
-        setStep(1);
-        clearUrlParams();
-      } finally {
-        setLoading(false);
       }
-	    } else {
-	      resetFormFields();
-	      setStep(2);
-	      setUrlParams(targetSem, targetYear);
-	    }
+
+      toast.error(message);
+      setStep(1);
+      clearUrlParams();
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Sync state with URL query parameters
@@ -1024,19 +1003,12 @@ export const EvaluationFormQD4185 = () => {
     const idParam = searchParams.get('id');
     const semParam = searchParams.get('semester');
     const yearParam = searchParams.get('year');
-    const accessToken = localStorage.getItem('accessToken');
 
     if (idParam) {
       if (evaluationId === idParam && step === 2) return;
 
-      if (!accessToken || accessToken === 'mock-access-token') {
-        toast.error('Vui lòng đăng nhập để xem chi tiết phiếu đánh giá.');
-        setStep(1);
-        return;
-      }
-
       setLoading(true);
-      loadEvaluationDetails(accessToken, idParam)
+      loadEvaluationDetails(idParam)
         .then(() => {
           setStep(2);
         })
@@ -1348,113 +1320,102 @@ export const EvaluationFormQD4185 = () => {
     }
     
     setIsSubmitting(true);
-    const accessToken = localStorage.getItem('accessToken');
-    if (accessToken && accessToken !== 'mock-access-token') {
-      try {
-        let currentId = evaluationId;
-        if (!currentId) {
-          const createRes = await API_Student.createEvaluation(accessToken, semester, academicYear);
-          const created = createRes.data || createRes;
-          currentId = created.id;
-          setEvaluationId(created.id);
-        }
-        // Save latest updates to the draft
-        await API_Student.updateEvaluationDraft(accessToken, currentId!, {
-          phone: phoneNumber,
-          note: note,
-        });
-
-        const compactPayload = (payload: Record<string, unknown>) =>
-          Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
-        const studyPayload = compactPayload({
-          regularScoreLevel: mapStudyAttitude(svStudyAttitude),
-          academicRank: mapAcademicRank(svAcademicRank),
-          activities: [
-            { code: 'ACADEMIC_EVENT_PARTICIPATION', checked: svNckh, score: 2 },
-            { code: 'SCIENTIFIC_PUBLICATION_OR_CONTEST', checked: svOlympic, score: 2 },
-            { code: 'SCIENTIFIC_AWARD', checked: svCreative, score: 2 },
-          ].filter((activity) => activity.checked),
-        });
-        const rolePayload =
-          svRoleType === 'cadre'
-            ? compactPayload({
-                studentRoleType: 'CLASS_OFFICER',
-                positionGroup: svCadrePosition === 'a1' ? 'LEADER_GROUP' : 'MEMBER_GROUP',
-                taskCompletionLevel: mapCadrePerformance(svCadrePerformance),
-                managementSkillLevel: mapManagementLevel(svManagementLevel),
-                specialAchievementLevel: mapSpecialAchievement(svSpecialAchievement),
-              })
-            : compactPayload({
-                studentRoleType: 'NORMAL_STUDENT',
-                normalStudentActivityScore: svClassParticipation,
-                specialAchievementLevel: mapSpecialAchievement(svSpecialAchievement),
-	              });
-        const disciplineViolations = svDeductions.map((count, idx) => ({
-          code: DISCIPLINE_VIOLATION_CODES[idx],
-          count,
-          deductScore: DISCIPLINE_DEDUCTION_WEIGHTS[idx],
-        })).filter((violation) => violation.count > 0);
-
-        // Save detailed score sections
-        const saveRequests: Array<Promise<unknown>> = [
-          API_Student.updateActivityScore(accessToken, currentId!, {
-            politicalActivityLevel: mapActivity1(svActivity1),
-            cultureSportLevel: mapActivity2(svActivity2),
-            clubActivityLevel: mapActivity3(svActivity3),
-            socialPreventionLevel: mapActivity4(svActivity4),
-            rewardScore: svRewardPoints
-          }),
-          API_Student.updateCommunityScore(accessToken, currentId!, {
-            lawComplianceLevel: mapPolicy(svPolicy),
-            volunteerActivityLevel: mapSolidarity(svSolidarity),
-            communityRelationshipLevel: mapLocality(svLocality)
-          }),
-          API_Student.updateRoleScore(accessToken, currentId!, rolePayload)
-        ];
-
-        saveRequests.unshift(API_Student.updateDisciplineScore(accessToken, currentId!, {
-          baseScore: Math.min(25, Math.max(0, Number(svNoViolationScore) || 0)),
-          violations: disciplineViolations,
-        }));
-
-        if (
-          studyPayload.regularScoreLevel ||
-          studyPayload.academicRank ||
-          (Array.isArray(studyPayload.activities) && studyPayload.activities.length > 0)
-        ) {
-          saveRequests.unshift(API_Student.updateStudyScore(accessToken, currentId!, studyPayload));
-        }
-
-        await Promise.all(saveRequests);
-        await API_Student.submitEvaluation(currentId!);
-        
-        setIsSubmitting(false);
-        setValidationError(null);
-        setFieldErrors({});
-        localStorage.removeItem('evaluation_draft_qd4185');
-        toast.success('Gửi phiếu đánh giá thành công.');
-        router.replace('/student/history');
-      } catch (err: any) {
-        setIsSubmitting(false);
-        const message = getUserFriendlyError(err, 'Lỗi gửi duyệt phiếu đánh giá.');
-        toast.error(message);
-        const apiFieldErrors = mapApiErrorsToFields(err.errors);
-        if (message.includes('đã đóng') || message.includes('đã bị khóa')) {
-          setIsReadOnly(true);
-          setIsLocked(true);
-        }
-        setFieldErrors(apiFieldErrors);
-        setValidationError(message);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      let currentId = evaluationId;
+      if (!currentId) {
+        const createRes = await API_Student.createEvaluation({ semester, academicYear });
+        const created = createRes.data || createRes;
+        currentId = created.id;
+        setEvaluationId(created.id);
       }
-    } else {
-      // Mock: dùng thời gian hiện tại làm timestamp submit
-      setTimeout(() => {
-        setIsSubmitting(false);
-        localStorage.removeItem('evaluation_draft_qd4185');
-        toast.success('Gửi phiếu đánh giá thành công.');
-        router.replace('/student/history');
-      }, 1200);
+      // Save latest updates to the draft
+      await API_Student.updateEvaluationDraft(currentId!, {
+        phone: phoneNumber,
+        note: note,
+      });
+
+      const compactPayload = (payload: Record<string, unknown>) =>
+        Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+      const studyPayload = compactPayload({
+        regularScoreLevel: mapStudyAttitude(svStudyAttitude),
+        academicRank: mapAcademicRank(svAcademicRank),
+        activities: [
+          { code: 'ACADEMIC_EVENT_PARTICIPATION', checked: svNckh, score: 2 },
+          { code: 'SCIENTIFIC_PUBLICATION_OR_CONTEST', checked: svOlympic, score: 2 },
+          { code: 'SCIENTIFIC_AWARD', checked: svCreative, score: 2 },
+        ].filter((activity) => activity.checked),
+      });
+      const rolePayload =
+        svRoleType === 'cadre'
+          ? compactPayload({
+              studentRoleType: 'CLASS_OFFICER',
+              positionGroup: svCadrePosition === 'a1' ? 'LEADER_GROUP' : 'MEMBER_GROUP',
+              taskCompletionLevel: mapCadrePerformance(svCadrePerformance),
+              managementSkillLevel: mapManagementLevel(svManagementLevel),
+              specialAchievementLevel: mapSpecialAchievement(svSpecialAchievement),
+            })
+          : compactPayload({
+              studentRoleType: 'NORMAL_STUDENT',
+              normalStudentActivityScore: svClassParticipation,
+              specialAchievementLevel: mapSpecialAchievement(svSpecialAchievement),
+            });
+      const disciplineViolations = svDeductions.map((count, idx) => ({
+        code: DISCIPLINE_VIOLATION_CODES[idx],
+        count,
+        deductScore: DISCIPLINE_DEDUCTION_WEIGHTS[idx],
+      })).filter((violation) => violation.count > 0);
+
+      // Save detailed score sections
+      const saveRequests: Array<Promise<unknown>> = [
+        API_Student.updateActivityScore(currentId!, {
+          politicalActivityLevel: mapActivity1(svActivity1),
+          cultureSportLevel: mapActivity2(svActivity2),
+          clubActivityLevel: mapActivity3(svActivity3),
+          socialPreventionLevel: mapActivity4(svActivity4),
+          rewardScore: svRewardPoints
+        }),
+        API_Student.updateCommunityScore(currentId!, {
+          lawComplianceLevel: mapPolicy(svPolicy),
+          volunteerActivityLevel: mapSolidarity(svSolidarity),
+          communityRelationshipLevel: mapLocality(svLocality)
+        }),
+        API_Student.updateRoleScore(currentId!, rolePayload)
+      ];
+
+      saveRequests.unshift(API_Student.updateDisciplineScore(currentId!, {
+        baseScore: Math.min(25, Math.max(0, Number(svNoViolationScore) || 0)),
+        violations: disciplineViolations,
+      }));
+
+      if (
+        studyPayload.regularScoreLevel ||
+        studyPayload.academicRank ||
+        (Array.isArray(studyPayload.activities) && studyPayload.activities.length > 0)
+      ) {
+        saveRequests.unshift(API_Student.updateStudyScore(currentId!, studyPayload));
+      }
+
+      await Promise.all(saveRequests);
+      await API_Student.submitEvaluation(currentId!);
+      
+      setIsSubmitting(false);
+      setValidationError(null);
+      setFieldErrors({});
+      localStorage.removeItem('evaluation_draft_qd4185');
+      toast.success('Gửi phiếu đánh giá thành công.');
+      router.replace('/student/history');
+    } catch (err: any) {
+      setIsSubmitting(false);
+      const message = getUserFriendlyError(err, 'Lỗi gửi duyệt phiếu đánh giá.');
+      toast.error(message);
+      const apiFieldErrors = mapApiErrorsToFields(err.errors);
+      if (message.includes('đã đóng') || message.includes('đã bị khóa')) {
+        setIsReadOnly(true);
+        setIsLocked(true);
+      }
+      setFieldErrors(apiFieldErrors);
+      setValidationError(message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -1607,7 +1568,7 @@ export const EvaluationFormQD4185 = () => {
             </div>
           )}
 
-          {/* Mockup Styled details card */}
+          {/* Styled details card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Top Red Tab & Breadcrumbs flow */}
             <div className="flex flex-col md:flex-row md:items-center justify-between bg-gray-50 border-b border-gray-200">

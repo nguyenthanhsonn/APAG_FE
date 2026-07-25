@@ -4,9 +4,6 @@ export const WelcomeBanner = ({ displayName }: WelcomeBannerProps) => {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#3D4A6B] to-[#2A3550] p-5 sm:p-6 text-white shadow-sm border border-gray-800/10">
       <div className="relative z-10 max-w-md">
-        <span className="inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase backdrop-blur-sm">
-          Học kỳ I / 2024-2025
-        </span>
         <h1 className="mt-2.5 text-xl sm:text-2xl font-semibold leading-tight">
           Chào mừng trở lại, {displayName}!
         </h1>

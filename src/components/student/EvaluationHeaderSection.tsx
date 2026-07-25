@@ -4,23 +4,9 @@ import { User, ChevronUp, ChevronDown } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
 
 const admissionYears = ['2020', '2021', '2022', '2023', '2024'];
-const mockFaculties = [
-  { id: 'cntt', name: 'Công nghệ thông tin' },
-  { id: 'dtvt', name: 'Điện tử viễn thông' },
-  { id: 'kt', name: 'Kinh tế & Quản trị' }
-];
-const mockMajors = [
-  { id: 'khmt', name: 'Khoa học máy tính', facultyId: 'cntt' },
-  { id: 'cnpm', name: 'Công nghệ phần mềm', facultyId: 'cntt' },
-  { id: 'dttg', name: 'Điện tử truyền thông', facultyId: 'dtvt' },
-  { id: 'qtkd', name: 'Quản trị kinh doanh', facultyId: 'kt' }
-];
-const mockClasses = [
-  { id: 'cntt-k18', name: 'CNTT K18', majorId: 'khmt' },
-  { id: 'cnpm-k19', name: 'CNPM K19', majorId: 'cnpm' },
-  { id: 'dt-k18', name: 'ĐTVT K18', majorId: 'dttg' },
-  { id: 'qt-k19', name: 'QTKD K19', majorId: 'qtkd' }
-];
+const facultyOptions: Array<{ id: string; name: string }> = [];
+const majorOptions: Array<{ id: string; name: string; facultyId?: string }> = [];
+const classOptions: Array<{ id: string; name: string; majorId?: string }> = [];
 
 interface EvaluationHeaderSectionProps {
   expanded: boolean;
@@ -108,7 +94,7 @@ export const EvaluationHeaderSection = ({
             <CustomSelect
               value={facultyId}
               onChange={(val) => setFacultyId(val)}
-              options={mockFaculties}
+              options={facultyOptions}
               label="Khoa quản lý *"
             />
 
@@ -116,7 +102,7 @@ export const EvaluationHeaderSection = ({
             <CustomSelect
               value={majorId}
               onChange={(val) => setMajorId(val)}
-              options={mockMajors}
+              options={majorOptions}
               label="Ngành học *"
             />
 
@@ -124,7 +110,7 @@ export const EvaluationHeaderSection = ({
             <CustomSelect
               value={classId}
               onChange={(val) => setClassId(val)}
-              options={mockClasses}
+              options={classOptions}
               label="Lớp học *"
             />
 
@@ -178,10 +164,7 @@ export const EvaluationHeaderSection = ({
             <CustomSelect
               value={academicYear}
               onChange={(val) => setAcademicYear(val)}
-              options={[
-                { id: '2024-2025', name: '2024-2025' },
-                { id: '2023-2024', name: '2023-2024' }
-              ]}
+              options={[]}
               label="Năm học *"
             />
 

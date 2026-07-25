@@ -1,7 +1,6 @@
-import { TrendingUp } from 'lucide-react';
 import { ResultBannerProps } from '../../types';
 
-export const ResultBanner = ({ semester, academicYear, rating, totalScore, rankBadgeClass: _rankBadgeClass }: ResultBannerProps) => {
+export const ResultBanner = ({ semester, academicYear, rating, totalScore }: ResultBannerProps) => {
   const circumference = 2 * Math.PI * 44;
   const strokeDashoffset = circumference * (1 - totalScore / 100);
 
@@ -44,10 +43,6 @@ export const ResultBanner = ({ semester, academicYear, rating, totalScore, rankB
             <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getRankStyle(rating)}`}>
               Xếp loại: {rating}
             </span>
-            <div className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/8 px-2.5 py-1 text-xs font-medium text-white/65">
-              <TrendingUp size={12} className="text-indigo-300" />
-              <span>+6đ so với kỳ trước</span>
-            </div>
           </div>
         </div>
 

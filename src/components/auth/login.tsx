@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { GraduationCap, Lock, User, AlertCircle, ShieldCheck } from 'lucide-react';
+import { GraduationCap, Lock, User, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { API_Auth } from '../../api/API_Auth';
 import { useFormik } from 'formik';
@@ -32,7 +32,6 @@ export default function Login() {
   const [captchaLoading, setCaptchaLoading] = useState(false);
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
-  const loginMock = useAuthStore((state) => state.loginMock);
   const wrongCaptchaCountRef = useRef(0);
   const toast = useToast();
 
@@ -65,11 +64,6 @@ export default function Login() {
     }
   };
 
-  const handleMockLogin = (role: UserRole) => {
-    loginMock(role);
-    router.push(getRoleHome(role));
-  };
-
   const formik = useFormik<Yup.InferType<typeof LoginSchema>>({
     initialValues: {
       username: '',
@@ -85,23 +79,6 @@ export default function Login() {
     ) => {
       setError('');
       try {
-        const usernameLower = values.username.trim().toLowerCase();
-
-        // Check if mock credentials are used
-        if (usernameLower === 'student' || usernameLower === 'student.test2') {
-          loginMock('student');
-          router.push('/student');
-          return;
-        } else if (usernameLower === 'admin') {
-          loginMock('admin');
-          router.push('/admin');
-          return;
-        } else if (usernameLower === 'council' || usernameLower === 'class_council' || usernameLower === 'gvcn') {
-          loginMock('class_council');
-          router.push('/class_council');
-          return;
-        }
-
         if (!captchaId) {
           setError('Vui lòng tải lại mã captcha.');
           await loadCaptcha();
@@ -270,38 +247,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Quick Mock Login Panel */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs font-semibold text-gray-500 text-center mb-3 tracking-wider uppercase">
-              Đăng nhập nhanh (Mock)
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleMockLogin('student')}
-                className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 transition-all duration-200 group cursor-pointer"
-              >
-                <User className="text-gray-500 group-hover:text-blue-600 mb-1" size={18} />
-                <span className="text-xs font-medium text-gray-700 group-hover:text-blue-600">Student</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMockLogin('class_council')}
-                className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 transition-all duration-200 group cursor-pointer"
-              >
-                <ShieldCheck className="text-gray-500 group-hover:text-blue-600 mb-1" size={18} />
-                <span className="text-xs font-medium text-gray-700 group-hover:text-blue-600">Council</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMockLogin('admin')}
-                className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 transition-all duration-200 group cursor-pointer"
-              >
-                <Lock className="text-gray-500 group-hover:text-blue-600 mb-1" size={18} />
-                <span className="text-xs font-medium text-gray-700 group-hover:text-blue-600">Admin</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

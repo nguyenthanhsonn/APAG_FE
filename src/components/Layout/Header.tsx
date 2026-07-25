@@ -9,6 +9,7 @@ import { ChangePasswordModal } from '../auth/changePassword';
 import { API_Student } from '../../api/API_Student';
 import { API_URL } from '../../api/api';
 import type { HeaderProps } from '@/types/common';
+import { hasAccessToken } from '@/utils/authToken';
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuthStore();
@@ -61,6 +62,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user || user.role !== 'student') return;
+    if (!hasAccessToken()) return;
     try {
       const unread = await API_Student.getUnreadCount();
       setUnreadCount((unread as any)?.unreadCount ?? (unread as any)?.data?.unreadCount ?? (unread as any)?.count ?? 0);
@@ -72,6 +74,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   // Fetch notifications for student
   const fetchNotifications = useCallback(async () => {
     if (!user || user.role !== 'student') return;
+    if (!hasAccessToken()) return;
     try {
       const list = await API_Student.getNotifications({ page: 1, limit: 5 });
       const items = Array.isArray((list as any)?.items)
@@ -106,7 +109,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   }, [bellOpen, fetchNotifications, fetchUnreadCount]);
 
   useEffect(() => {
-    if (!user?.id || user.role !== 'student') return;
+    if (!user?.id || user.role !== 'student' || !hasAccessToken()) return;
 
     let socket: import('socket.io-client').Socket | null = null;
     let disposed = false;
@@ -179,7 +182,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
       : user.username
     : undefined;
 
-  // Fix initials to ignore parentheses / brackets (e.g. "(Mock)")
+  // Fix initials to ignore parentheses / brackets.
   const cleanName = displayName ? displayName.replace(/\s*\([^)]*\)/g, '').trim() : '';
   const initials = cleanName
     ? cleanName.split(' ').slice(-2).map((n) => n[0]).join('').toUpperCase()
