@@ -150,8 +150,22 @@ export const EvaluationTableGrid = () => {
   const currentUserRole = useEvaluationFormStore(s => s.currentUserRole);
   const isReadOnly = useEvaluationFormStore(s => s.isReadOnly);
   const fieldErrors = useEvaluationFormStore(s => s.fieldErrors);
-  const svScores = useEvaluationFormStore(s => computeEvaluationScores(s, true));
-  const classScores = useEvaluationFormStore(s => computeEvaluationScores(s, false));
+  const svScores = {
+    sec1: useEvaluationFormStore(s => computeEvaluationScores(s, true).sec1),
+    sec2: useEvaluationFormStore(s => computeEvaluationScores(s, true).sec2),
+    sec3: useEvaluationFormStore(s => computeEvaluationScores(s, true).sec3),
+    sec4: useEvaluationFormStore(s => computeEvaluationScores(s, true).sec4),
+    sec5: useEvaluationFormStore(s => computeEvaluationScores(s, true).sec5),
+    total: useEvaluationFormStore(s => computeEvaluationScores(s, true).total),
+  };
+  const classScores = {
+    sec1: useEvaluationFormStore(s => computeEvaluationScores(s, false).sec1),
+    sec2: useEvaluationFormStore(s => computeEvaluationScores(s, false).sec2),
+    sec3: useEvaluationFormStore(s => computeEvaluationScores(s, false).sec3),
+    sec4: useEvaluationFormStore(s => computeEvaluationScores(s, false).sec4),
+    sec5: useEvaluationFormStore(s => computeEvaluationScores(s, false).sec5),
+    total: useEvaluationFormStore(s => computeEvaluationScores(s, false).total),
+  };
 
   // Sec 1
   const svStudyAttitude = useEvaluationFormStore(s => s.svStudyAttitude);

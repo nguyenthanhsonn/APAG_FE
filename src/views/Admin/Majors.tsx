@@ -205,7 +205,7 @@ export const AdminMajors = () => {
 
   const handlePageChange = (value: number) => {
     setPage(value);
-    setQuery({ page: value === 1 ? null : value });
+    setQuery({ page: value });
   };
 
   return (

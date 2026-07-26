@@ -5,6 +5,7 @@ import type { Student } from './student-user.type';
 export type {
   AcademicYear,
   CreateEvaluationPayload,
+  EvaluationPopupResponse,
   EvaluationStatusResponse,
   EvaluationSummary,
   LinkEvidenceUrlPayload,

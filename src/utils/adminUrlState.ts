@@ -36,7 +36,7 @@ export function useAdminUrlState(defaultValues: Record<string, string> = {}) {
       });
 
       if (options.resetPage) {
-        params.delete('page');
+        params.set('page', '1');
       }
 
       const query = params.toString();

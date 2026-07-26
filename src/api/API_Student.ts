@@ -4,6 +4,7 @@ import type {
   AcademicYear,
   Class,
   CreateEvaluationPayload,
+  EvaluationPopupResponse,
   Faculty,
   LinkEvidenceUrlPayload,
   Major,
@@ -44,6 +45,11 @@ async function getSemesters() {
 /** Lấy học kỳ đang mở. */
 async function getCurrentSemester() {
   return get<Semester>('/semesters/current');
+}
+
+/** Lấy trạng thái popup nhắc nhở đánh giá rèn luyện cho sinh viên. */
+async function getEvaluationPopup() {
+  return get<EvaluationPopupResponse>('/semesters/evaluation-popup');
 }
 
 /** Lấy danh sách năm học. */
@@ -208,6 +214,7 @@ export const API_Student = {
   getMyEvaluationList,
   getSemesters,
   getCurrentSemester,
+  getEvaluationPopup,
   getAcademicYears,
   getFaculties,
   getMajors,

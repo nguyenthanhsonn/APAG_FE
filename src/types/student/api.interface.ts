@@ -18,6 +18,16 @@ export interface Semester {
   hasEvaluationForms?: boolean;
 }
 
+/** Quyết định hiển thị popup nhắc nhở đánh giá rèn luyện. */
+export interface EvaluationPopupResponse {
+  visible: boolean;
+  title: string | null;
+  content: string | null;
+  semesterId: string | null;
+  startDate: string | null;
+  endDate: string | null;
+}
+
 /** Năm học để chọn trong biểu mẫu. */
 export interface AcademicYear {
   id: string;
