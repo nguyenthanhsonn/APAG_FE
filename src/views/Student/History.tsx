@@ -486,8 +486,8 @@ export const StudentHistory = () => {
                     </div>
                     <div>
                       <p className="text-[10px] text-gray-500 uppercase tracking-wide">Xếp loại</p>
-                      <p className={`text-xs font-bold mt-0.5 ${getRatingColor(item.rank || item.rating)}`}>
-                        {getRankText(item.rank || item.rating)}
+                      <p className={`text-xs font-bold mt-0.5 ${getRatingColor(rank)}`}>
+                        {getRankText(rank)}
                       </p>
 	                    </div>
 		                    <div className="flex items-center justify-end col-span-2 sm:col-span-1">
