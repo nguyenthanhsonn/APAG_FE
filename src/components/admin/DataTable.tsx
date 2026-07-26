@@ -14,6 +14,7 @@ export default function DataTable<T>({
   showSummary = true,
   paginationAlign = 'right',
   currentPage: controlledPage,
+  totalItems,
   onPageChange,
   onRowClick,
 }: DataTableProps<T>) {
@@ -35,7 +36,9 @@ export default function DataTable<T>({
     }
   }, [data, onPageChange]);
 
-  const totalPages = Math.ceil(data.length / pageSize) || 1;
+  const isServerPaginated = totalItems !== undefined;
+  const totalCount = totalItems ?? data.length;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
@@ -43,10 +46,9 @@ export default function DataTable<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, totalPages]);
 
-  const paginatedData = data.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const paginatedData = isServerPaginated
+    ? data
+    : data.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -72,8 +74,8 @@ export default function DataTable<T>({
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
 
-  const showingStart = data.length ? (currentPage - 1) * pageSize + 1 : 0;
-  const showingEnd = Math.min(currentPage * pageSize, data.length);
+  const showingStart = totalCount ? (currentPage - 1) * pageSize + 1 : 0;
+  const showingEnd = Math.min((currentPage - 1) * pageSize + paginatedData.length, totalCount);
 
   // Determine title column: explicit cardTitle, or first non-actions column
   const titleColIndex = (() => {
@@ -94,7 +96,7 @@ export default function DataTable<T>({
 
   /* ── Shared Pagination ── */
   const Pagination = () =>
-    data.length > 0 ? (
+    totalCount > 0 ? (
       <div className="px-4 py-3 border-t border-gray-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-auto">
         {showSummary && (
           <div className="text-xs sm:text-sm text-[#868E96]">
@@ -103,7 +105,7 @@ export default function DataTable<T>({
               {showingStart}-{showingEnd}
             </span>{' '}
             của{' '}
-            <span className="font-semibold text-[#1A1B1E]">{data.length}</span>{' '}
+            <span className="font-semibold text-[#1A1B1E]">{totalCount}</span>{' '}
             kết quả
           </div>
         )}

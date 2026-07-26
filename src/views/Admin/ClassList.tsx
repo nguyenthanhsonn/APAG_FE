@@ -187,7 +187,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   useEffect(() => {
     const loadCouncils = async () => {
       try {
-        const data = await API_Admin.getUsers({ role: 'class_council' });
+        const data = await API_Admin.getUsers({ role: 'class_council', page: 1, limit: 100, includeDeleted: false });
         setCouncils(toArray(data as any));
       } catch {
         setCouncils([]);
@@ -363,7 +363,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
 
   const handlePageChange = (value: number) => {
     setPage(value);
-    setQuery({ page: value === 1 ? null : value });
+    setQuery({ page: value });
   };
 
   return (

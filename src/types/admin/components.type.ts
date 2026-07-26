@@ -64,6 +64,7 @@ export interface DataTableProps<T> {
   showSummary?: boolean;
   paginationAlign?: 'left' | 'center' | 'right';
   currentPage?: number;
+  totalItems?: number;
   onPageChange?: (page: number) => void;
   onRowClick?: (row: T) => void;
 }

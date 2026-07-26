@@ -17,7 +17,9 @@ import { useAdminUrlState } from '../../utils/adminUrlState';
 
 export const AdminUsers = () => {
   const toast = useToast();
+  const pageSize = 10;
   const [students, setStudents] = useState<StudentManagementItem[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   const [showModal, setShowModal] = useState(false);
   const [studentModalOpen, setStudentModalOpen] = useState(false);
@@ -44,13 +46,24 @@ export const AdminUsers = () => {
   const fetchStudents = async () => {
     try {
       setErrorMsg('');
-      const usersRes = await API_Admin.getUsers();
+      const usersRes = await API_Admin.getUsers({
+        page,
+        limit: pageSize,
+        keyword: searchTerm.trim() || undefined,
+        role: roleFilter === 'all' ? undefined : roleFilter,
+        isActive:
+          statusFilter === 'all'
+            ? undefined
+            : statusFilter === 'active',
+        includeDeleted: false,
+      });
 
-      const list = toArray(usersRes as any);
+      const response = usersRes as any;
+      const list = toArray(response);
       const mapped = list.map((u: any) => ({
         id: u.id,
         username: u.username || (u.email ? u.email.split('@')[0] : 'unknown'),
-        fullName: u.fullName,
+        fullName: u.fullName || '',
         role: u.role,
         email: u.email,
         phone: u.phone,
@@ -59,14 +72,18 @@ export const AdminUsers = () => {
         isActive: u.isActive,
       }));
       setStudents(mapped);
+      setTotalUsers(typeof response?.total === 'number' ? response.total : mapped.length);
     } catch (err) {
       setErrorMsg(getUserFriendlyError(err, 'Không thể tải danh sách người dùng. Vui lòng thử lại sau.'));
+      setStudents([]);
+      setTotalUsers(0);
     }
   };
 
   useEffect(() => {
     fetchStudents();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, searchTerm, statusFilter, roleFilter]);
 
   useEffect(() => {
     const loadClasses = async () => {
@@ -80,23 +97,6 @@ export const AdminUsers = () => {
 
     loadClasses();
   }, []);
-
-  const filteredStudents = students.filter((s) => {
-    const matchSearch =
-      s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.studentCode?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchRole = roleFilter === 'all' ? true : s.role === roleFilter;
-    const matchStatus =
-      statusFilter === 'all'
-        ? true
-        : statusFilter === 'active'
-        ? s.isActive
-        : !s.isActive;
-
-    return matchSearch && matchRole && matchStatus;
-  });
 
   const handleToggleActive = (id: string) => {
     const s = students.find((item) => item.id === id);
@@ -361,7 +361,7 @@ export const AdminUsers = () => {
 
   const handlePageChange = (value: number) => {
     setPage(value);
-    setQuery({ page: value === 1 ? null : value });
+    setQuery({ page: value });
   };
 
   return (
@@ -408,8 +408,9 @@ export const AdminUsers = () => {
       <div className="flex-1 mt-4">
         <DataTable
           columns={columns}
-          data={filteredStudents}
-          pageSize={8}
+          data={students}
+          pageSize={pageSize}
+          totalItems={totalUsers}
           emptyText="Không tìm thấy người dùng nào"
           minHeight={400}
           showSummary={false}

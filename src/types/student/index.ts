@@ -19,6 +19,7 @@ export type { HistoryItem } from './history-item.type';
 export type {
   AcademicYear,
   CreateEvaluationPayload,
+  EvaluationPopupResponse,
   EvaluationStatusResponse,
   EvaluationSummary,
   LinkEvidenceUrlPayload,

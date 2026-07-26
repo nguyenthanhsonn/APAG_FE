@@ -6,12 +6,13 @@ import { API_Admin } from '../../api/API_Admin';
 import type { AdminSemester, SemesterPayload, SemesterFormState } from '../../types';
 import DataTable, { type Column } from '../../components/admin/DataTable';
 import ModalConfirm from '../../components/common/modalConfirm';
+import { useToast } from '../../components/common/ToastProvider';
 import { getUserFriendlyError, toArray } from '../../utils/adminData';
 import { useAdminUrlState } from '../../utils/adminUrlState';
 
 const defaultForm: SemesterFormState = {
-  year: String(new Date().getFullYear()),
-  semester: 'HK1',
+  year: '',
+  semester: '',
   startDate: '',
   endDate: '',
   isActive: false,
@@ -22,6 +23,8 @@ const semesterLabels: Record<string, string> = {
   HK2: 'Học kỳ 2',
   SUMMER: 'Học kỳ hè',
 };
+
+type SemesterFormErrors = Partial<Record<'year' | 'semester' | 'startDate' | 'endDate', string>>;
 
 const toDateInput = (value?: string | null) => {
   if (!value) return '';
@@ -45,21 +48,38 @@ const normalizeSemester = (item: any): AdminSemester => ({
   semesterName: item.semesterName || semesterLabels[item.semester] || item.semester,
   name: item.name,
   startDate: item.startDate || '',
-  endDate: item.endDate || '',  isActive: item.isActive ?? false,
+  endDate: item.endDate || '',
+  isActive: item.isActive ?? false,
   hasEvaluationForms: item.hasEvaluationForms ?? false,
 });
 
 const validateSemesterForm = (values: SemesterFormState) => {
-  if (!values.year.trim() || Number.isNaN(Number(values.year))) return 'Vui lòng nhập năm bắt đầu hợp lệ.';
-  if (!values.semester) return 'Vui lòng chọn học kỳ.';
-  if (!values.startDate) return 'Vui lòng chọn ngày bắt đầu.';
-  if (!values.endDate) return 'Vui lòng chọn ngày kết thúc.';
+  const errors: SemesterFormErrors = {};
+  const year = Number(values.year);
+  const currentYear = new Date().getFullYear();
 
-  if (new Date(values.startDate).getTime() > new Date(values.endDate).getTime()) {
-    return 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.';
+  if (!values.year.trim() || Number.isNaN(year) || year < currentYear - 1 || year > currentYear + 5) {
+    errors.year = `Năm học phải trong khoảng ${currentYear - 1} - ${currentYear + 5}`;
+  }
+  if (!values.semester) {
+    errors.semester = 'Vui lòng chọn học kỳ';
+  }
+  if (!values.startDate) {
+    errors.startDate = 'Vui lòng chọn ngày bắt đầu';
+  }
+  if (!values.endDate) {
+    errors.endDate = 'Vui lòng chọn ngày kết thúc';
+  }
+  if (values.startDate && values.endDate && new Date(values.startDate) >= new Date(values.endDate)) {
+    errors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
   }
 
-  return '';
+  return errors;
+};
+
+const isDateRelatedError = (message: string) => {
+  const lowerMessage = message.toLowerCase();
+  return lowerMessage.includes('ngày') || lowerMessage.includes('trùng');
 };
 
 function SemesterModal({
@@ -68,19 +88,24 @@ function SemesterModal({
   onClose,
   onSubmit,
   loading,
+  submitErrors,
+  onClearSubmitErrors,
 }: {
   open: boolean;
   editing: AdminSemester | null;
   onClose: () => void;
-  onSubmit: (payload: SemesterPayload) => void;
+  onSubmit: (values: SemesterFormState) => void;
   loading: boolean;
+  submitErrors: SemesterFormErrors;
+  onClearSubmitErrors: () => void;
 }) {
   const [values, setValues] = useState<SemesterFormState>(defaultForm);
-  const [error, setError] = useState('');
+  const [formErrors, setFormErrors] = useState<SemesterFormErrors>({});
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     if (!open) return;
-    setError('');
+    setFormErrors({});
     setValues(
       editing
         ? {
@@ -97,24 +122,30 @@ function SemesterModal({
   if (!open) return null;
 
   const setField = (key: keyof SemesterFormState, value: string | boolean) => {
-    setValues((prev) => ({ ...prev, [key]: value }));
+    setValues((prev) => ({
+      ...prev,
+      [key]: value,
+      ...(key === 'year' ? { semester: '' } : {}),
+    }));
+    setFormErrors((prev) => ({ ...prev, [key]: undefined }));
+    onClearSubmitErrors();
   };
 
   const handleSubmit = () => {
-    const validationError = validateSemesterForm(values);
-    if (validationError) {
-      setError(validationError);
+    const validationErrors = validateSemesterForm(values);
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
       return;
     }
 
-    onSubmit({
-      year: Number(values.year),
-      semester: values.semester,
-      startDate: values.startDate,
-      endDate: values.endDate,
-      isActive: values.isActive,
-    });
+    onSubmit(values);
   };
+
+  const errors = { ...submitErrors, ...formErrors };
+  const inputClassName = (field: keyof SemesterFormErrors) =>
+    `mt-1 w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2 ${
+      errors[field] ? 'border-red-300 focus:ring-red-500/20' : 'border-gray-200 focus:ring-blue-500/20'
+    }`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
@@ -128,32 +159,35 @@ function SemesterModal({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            {error}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="text-sm font-semibold text-gray-700">
             Năm bắt đầu
             <input
+              type="number"
+              min={currentYear - 1}
+              max={currentYear + 5}
+              inputMode="numeric"
               value={values.year}
               onChange={(e) => setField('year', e.target.value)}
-              className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+              placeholder={`VD: ${currentYear}`}
+              className={inputClassName('year')}
             />
+            {errors.year && <p className="mt-1 text-xs font-semibold text-red-600">{errors.year}</p>}
           </label>
           <label className="text-sm font-semibold text-gray-700">
             Học kỳ
             <select
               value={values.semester}
               onChange={(e) => setField('semester', e.target.value)}
-              className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+              disabled={!values.year}
+              className={`${inputClassName('semester')} disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400`}
             >
+              <option value="">Chọn học kỳ</option>
               <option value="HK1">Học kỳ 1</option>
               <option value="HK2">Học kỳ 2</option>
               <option value="SUMMER">Học kỳ hè</option>
             </select>
+            {errors.semester && <p className="mt-1 text-xs font-semibold text-red-600">{errors.semester}</p>}
           </label>
           <label className="text-sm font-semibold text-gray-700">
             Ngày bắt đầu
@@ -161,8 +195,9 @@ function SemesterModal({
               type="date"
               value={values.startDate}
               onChange={(e) => setField('startDate', e.target.value)}
-              className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+              className={inputClassName('startDate')}
             />
+            {errors.startDate && <p className="mt-1 text-xs font-semibold text-red-600">{errors.startDate}</p>}
           </label>
           <label className="text-sm font-semibold text-gray-700">
             Ngày kết thúc
@@ -170,8 +205,9 @@ function SemesterModal({
               type="date"
               value={values.endDate}
               onChange={(e) => setField('endDate', e.target.value)}
-              className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+              className={inputClassName('endDate')}
             />
+            {errors.endDate && <p className="mt-1 text-xs font-semibold text-red-600">{errors.endDate}</p>}
           </label>
           {!editing && (
             <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-700">
@@ -204,6 +240,7 @@ function SemesterModal({
 }
 
 export const AdminSemesters = () => {
+  const toast = useToast();
   const { getPage, getValue, setQuery } = useAdminUrlState({ status: 'all' });
   const [semesters, setSemesters] = useState<AdminSemester[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,6 +251,7 @@ export const AdminSemesters = () => {
   const [page, setPage] = useState(() => getPage());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSemester, setEditingSemester] = useState<AdminSemester | null>(null);
+  const [semesterFormErrors, setSemesterFormErrors] = useState<SemesterFormErrors>({});
   const [confirmTarget, setConfirmTarget] = useState<AdminSemester | null>(null);
 
   const loadSemesters = async () => {
@@ -246,6 +284,8 @@ export const AdminSemesters = () => {
 
   const handleOpenCreate = () => {
     setEditingSemester(null);
+    setSemesterFormErrors({});
+    setErrorMsg('');
     setModalOpen(true);
   };
 
@@ -253,6 +293,7 @@ export const AdminSemesters = () => {
     try {
       setActionLoading(true);
       setErrorMsg('');
+      setSemesterFormErrors({});
       const detail = await API_Admin.getSemesterById(semester.id);
       setEditingSemester(normalizeSemester(detail));
       setModalOpen(true);
@@ -263,20 +304,63 @@ export const AdminSemesters = () => {
     }
   };
 
-  const handleSubmit = async (payload: SemesterPayload) => {
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingSemester(null);
+    setSemesterFormErrors({});
+  };
+
+  const handleSubmitError = (err: unknown, fallbackMessage: string) => {
+    const message = getUserFriendlyError(err, fallbackMessage);
+
+    setErrorMsg(message);
+    toast.error(message);
+
+    if (isDateRelatedError(message)) {
+      setSemesterFormErrors((prev) => ({ ...prev, startDate: message }));
+    }
+  };
+
+  const handleSubmit = async (values: SemesterFormState) => {
+    const payload: SemesterPayload = {
+      year: Number(values.year),
+      semester: values.semester,
+      startDate: values.startDate,
+      endDate: values.endDate,
+    };
+
     try {
       setActionLoading(true);
       setErrorMsg('');
+      setSemesterFormErrors({});
+
       if (editingSemester) {
         await API_Admin.updateSemester(editingSemester.id, payload);
+        toast.success('Cập nhật học kỳ thành công');
       } else {
-        await API_Admin.createSemester(payload);
+        const createdSemester = await API_Admin.createSemester(payload);
+
+        if (values.isActive) {
+          try {
+            await API_Admin.toggleSemesterActive(createdSemester.id, { isActive: true });
+            toast.success('Đã tạo và mở học kỳ thành công');
+          } catch {
+            toast.info('Đã tạo học kỳ thành công, nhưng mở học kỳ thất bại. Vui lòng vào danh sách và bấm "Mở kỳ" thủ công.');
+          }
+        } else {
+          toast.success('Tạo học kỳ thành công');
+        }
       }
-      setModalOpen(false);
-      setEditingSemester(null);
+
+      closeModal();
       await loadSemesters();
-    } catch (err: any) {
-      setErrorMsg(getUserFriendlyError(err, 'Không thể lưu học kỳ. Vui lòng kiểm tra lại thông tin.'));
+    } catch (err) {
+      handleSubmitError(
+        err,
+        editingSemester
+          ? 'Không thể lưu học kỳ. Vui lòng kiểm tra lại thông tin.'
+          : 'Có lỗi xảy ra khi tạo học kỳ'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -426,7 +510,7 @@ export const AdminSemesters = () => {
           currentPage={page}
           onPageChange={(nextPage) => {
             setPage(nextPage);
-            setQuery({ page: nextPage === 1 ? null : nextPage });
+            setQuery({ page: nextPage });
           }}
         />
       )}
@@ -442,9 +526,11 @@ export const AdminSemesters = () => {
       <SemesterModal
         open={modalOpen}
         editing={editingSemester}
-        onClose={() => setModalOpen(false)}
+        onClose={closeModal}
         onSubmit={handleSubmit}
         loading={actionLoading}
+        submitErrors={semesterFormErrors}
+        onClearSubmitErrors={() => setSemesterFormErrors({})}
       />
 
       <ModalConfirm

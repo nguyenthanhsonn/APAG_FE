@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Send, 
   CheckCircle, 
@@ -56,9 +56,7 @@ export const EvaluationFormQD4185 = () => {
   const [currentUserRole] = useState<'student' | 'class'>('student');
 
   // ── Zustand store (factory pattern — isolated per mount) ──────────────────
-  const storeRef = useRef<EvaluationFormStore | null>(null);
-  if (!storeRef.current) storeRef.current = createEvaluationFormStore();
-  const store = storeRef.current;
+  const [store] = useState<EvaluationFormStore>(() => createEvaluationFormStore());
 
 
   // (Accordion sections removed — replaced by EvaluationTableGrid)

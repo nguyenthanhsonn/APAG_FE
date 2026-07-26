@@ -3,7 +3,7 @@ import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestCo
 import type { RefreshTokenResponse } from '../types';
 import { getUserFriendlyError, logError } from '../utils/errorHelper';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://10.36.120.154:5050/api/v1';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 interface ApiResponse<T> {
   success: boolean;

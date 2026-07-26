@@ -148,6 +148,7 @@ export type {
   HistoryItem,
   AcademicYear,
   CreateEvaluationPayload,
+  EvaluationPopupResponse,
   EvaluationStatusResponse,
   EvaluationSummary,
   LinkEvidenceUrlPayload,

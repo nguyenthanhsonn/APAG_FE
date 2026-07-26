@@ -35,7 +35,7 @@ export const AdminDashboard = () => {
         setLoading(true);
         setErrorMsg('');
         const [usersRes, facsRes, majsRes, clssRes] = await Promise.all([
-          API_Admin.getUsers(),
+          API_Admin.getUsers({ page: 1, limit: 100, includeDeleted: false }),
           API_Admin.getFaculties(),
           API_Admin.getMajors(),
           API_Admin.getClasses(),
@@ -60,14 +60,12 @@ export const AdminDashboard = () => {
         });
 
         // Compute faculty stats
-        const computedFacs = facs.map((f: any, index: number) => {
+        const computedFacs = facs.map((f: any) => {
           // Count students of this faculty
           const stdCount = studs.filter((s: any) => s.facultyId === f.id).length;
-          // Fallback values for premium-looking visual representations if DB is empty
-          const fallbackValues = [420, 330, 260, 190];
           return {
             name: f.name || f.code,
-            students: stdCount || fallbackValues[index] || 120,
+            students: stdCount,
           };
         });
         setFacultyStats(computedFacs);

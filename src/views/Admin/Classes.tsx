@@ -252,7 +252,7 @@ export const AdminClasses = () => {
 
   const handlePageChange = (value: number) => {
     setPage(value);
-    setQuery({ page: value === 1 ? null : value });
+    setQuery({ page: value });
   };
 
   if (viewingClassId) {

@@ -39,9 +39,10 @@ export interface CreateStudentPayload {
 
 /** Điều kiện xem danh sách người dùng. */
 export interface UserListQuery extends PaginationQuery {
-  role?: string;
+  role?: 'admin' | 'student' | 'class_council';
   keyword?: string;
   isActive?: boolean;
+  includeDeleted?: boolean;
 }
 
 /** Điều kiện xem danh sách phiếu đánh giá. */
