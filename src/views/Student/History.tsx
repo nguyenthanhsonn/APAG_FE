@@ -454,7 +454,6 @@ export const StudentHistory = () => {
 	              const academicYear = getAcademicYear(item);
 	              const semesterLabel = getSemesterLabel(item);
               const totalScore = getEvaluationScore(item);
-              const rank = getEvaluationRank(item);
 
               return (
                 <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3.5 transition hover:shadow-md">
@@ -485,10 +484,10 @@ export const StudentHistory = () => {
                       <p className="text-base font-bold text-gray-900 mt-0.5">{totalScore}đ</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wide">Xếp loại</p>
-                      <p className={`text-xs font-bold mt-0.5 ${getRatingColor(rank)}`}>
-                        {getRankText(rank)}
-                      </p>
+	                      <p className="text-[10px] text-gray-500 uppercase tracking-wide">Xếp loại</p>
+	                      <p className={`text-xs font-bold mt-0.5 ${getRatingColor(getEvaluationRank(item))}`}>
+	                        {getRankText(getEvaluationRank(item))}
+	                      </p>
 	                    </div>
 		                    <div className="flex items-center justify-end col-span-2 sm:col-span-1">
 	                      <button
