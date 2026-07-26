@@ -71,9 +71,145 @@ export const StudentHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await API_Student.getEvaluations();
-        const data = res.data || res;
-        setHistory(Array.isArray(data) ? data : []);
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken || accessToken === 'mock-access-token') {
+          setHistory([
+            {
+              id: '1',
+              status: 'draft',
+              studentScore: 85,
+              classScore: null,
+              finalScore: null,
+              rank: 'GOOD',
+              submittedAt: null,
+              semester: {
+                year: 2024,
+                semester: 'SEMESTER_1'
+              }
+            },
+            {
+              id: '2',
+              status: 'finalized',
+              studentScore: 88,
+              classScore: 88,
+              finalScore: 88,
+              rank: 'EXCELLENT',
+              submittedAt: '2024-05-15T00:00:00.000Z',
+              semester: {
+                year: 2024,
+                semester: 'SEMESTER_2'
+              }
+            },
+            {
+              id: '3',
+              status: 'finalized',
+              studentScore: 82,
+              classScore: 82,
+              finalScore: 82,
+              rank: 'GOOD',
+              submittedAt: '2023-12-20T00:00:00.000Z',
+              semester: {
+                year: 2023,
+                semester: 'SEMESTER_1'
+              }
+            },
+            {
+              id: '4',
+              status: 'finalized',
+              studentScore: 79,
+              classScore: 79,
+              finalScore: 79,
+              rank: 'FAIR',
+              submittedAt: '2023-05-18T00:00:00.000Z',
+              semester: {
+                year: 2023,
+                semester: 'SEMESTER_2'
+              }
+            },
+            {
+              id: '5',
+              status: 'finalized',
+              studentScore: 75,
+              classScore: 75,
+              finalScore: 75,
+              rank: 'FAIR',
+              submittedAt: '2022-12-22T00:00:00.000Z',
+              semester: {
+                year: 2022,
+                semester: 'SEMESTER_1'
+              }
+            },
+            {
+              id: '6',
+              status: 'finalized',
+              studentScore: 91,
+              classScore: 91,
+              finalScore: 91,
+              rank: 'EXCELLENT',
+              submittedAt: '2022-05-14T00:00:00.000Z',
+              semester: {
+                year: 2022,
+                semester: 'SEMESTER_2'
+              }
+            },
+            {
+              id: '7',
+              status: 'finalized',
+              studentScore: 84,
+              classScore: 84,
+              finalScore: 84,
+              rank: 'GOOD',
+              submittedAt: '2021-12-18T00:00:00.000Z',
+              semester: {
+                year: 2021,
+                semester: 'SEMESTER_1'
+              }
+            },
+            {
+              id: '8',
+              status: 'finalized',
+              studentScore: 68,
+              classScore: 68,
+              finalScore: 68,
+              rank: 'AVERAGE',
+              submittedAt: '2021-05-20T00:00:00.000Z',
+              semester: {
+                year: 2021,
+                semester: 'SEMESTER_2'
+              }
+            },
+            {
+              id: '9',
+              status: 'finalized',
+              studentScore: 72,
+              classScore: 72,
+              finalScore: 72,
+              rank: 'FAIR',
+              submittedAt: '2020-12-19T00:00:00.000Z',
+              semester: {
+                year: 2020,
+                semester: 'SEMESTER_1'
+              }
+            },
+            {
+              id: '10',
+              status: 'finalized',
+              studentScore: 86,
+              classScore: 86,
+              finalScore: 86,
+              rank: 'GOOD',
+              submittedAt: '2020-05-15T00:00:00.000Z',
+              semester: {
+                year: 2020,
+                semester: 'SEMESTER_2'
+              }
+            }
+          ]);
+        } else {
+          const res = await API_Student.getEvaluations(accessToken);
+          const data = res.data || res;
+          setHistory(data || []);
+        }
       } catch (err: any) {
         console.error(err);
         setError(err.message || 'Không thể tải danh sách phiếu đánh giá');
@@ -206,6 +342,7 @@ export const StudentHistory = () => {
 
   const getRankText = (rank: string | null | undefined) => {
     if (!rank) return 'Chưa xếp loại';
+    const normalizedRank = String(rank).trim().toUpperCase();
     const ranks = {
       EXCELLENT: 'Xuất sắc',
       GOOD: 'Tốt',
@@ -218,7 +355,7 @@ export const StudentHistory = () => {
       'Trung bình': 'Trung bình',
       'Yếu': 'Yếu',
     };
-    return ranks[rank as keyof typeof ranks] || rank;
+    return ranks[normalizedRank as keyof typeof ranks] || rank;
   };
 
   const getRatingColor = (rank: string | null | undefined) => {
@@ -349,8 +486,8 @@ export const StudentHistory = () => {
                     </div>
                     <div>
                       <p className="text-[10px] text-gray-500 uppercase tracking-wide">Xếp loại</p>
-                      <p className={`text-xs font-bold mt-0.5 ${getRatingColor(rank)}`}>
-                        {getRankText(rank)}
+                      <p className={`text-xs font-bold mt-0.5 ${getRatingColor(item.rank || item.rating)}`}>
+                        {getRankText(item.rank || item.rating)}
                       </p>
 	                    </div>
 		                    <div className="flex items-center justify-end col-span-2 sm:col-span-1">
