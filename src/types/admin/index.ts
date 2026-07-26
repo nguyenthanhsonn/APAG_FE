@@ -5,6 +5,7 @@ export type { StudentManagementItem, ClassListStudentItem } from './student-mana
 export type {
   AddStudentToClassPayload,
   AdminSemester,
+  AdminStudentListQuery,
   AdminClass,
   AdminEvaluationItem,
   AdminEvaluationListQuery,
@@ -43,6 +44,7 @@ export type {
   SemesterQuery,
   StatusPayload,
   TrainingResultsReport,
+  UpdateUserPayload,
   UserListQuery,
 } from './api.type';
 export type { FacultyFormValues, MajorFormValues, ClassFormValues, StudentFormValues, SemesterFormState } from './forms.type';

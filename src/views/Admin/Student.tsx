@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Edit, Trash2, Lock, Unlock, AlertCircle, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, Lock, Unlock, AlertCircle, ChevronDown, UserPlus } from 'lucide-react';
 import ModalCreateStudent from '../../components/admin/modalCreateStudent';
-import ModalCreateManualStudent from '../../components/admin/modalCreateManualStudent';
-import ModalImportExcel from '../../components/admin/modalImportExcel';
-import { Class, CreateStudentPayload, StudentManagementItem, StudentFormValues } from '../../types';
+import { StudentManagementItem, StudentFormValues, UpdateUserPayload } from '../../types';
 import ModalConfirm from '../../components/common/modalConfirm';
 import SearchFilterBar from '../../components/admin/SearchFilterBar';
 import DataTable, { type Column } from '../../components/admin/DataTable';
-import { AddActionsDropdown } from '../../components/admin/AddActionsDropdown';
 import { API_Admin } from '../../api/API_Admin';
 import { useToast } from '../../components/common/ToastProvider';
 import { getUserFriendlyError, toArray } from '../../utils/adminData';
@@ -22,11 +19,9 @@ export const AdminUsers = () => {
   const [totalUsers, setTotalUsers] = useState(0);
 
   const [showModal, setShowModal] = useState(false);
-  const [studentModalOpen, setStudentModalOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentFormValues | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [classesList, setClassesList] = useState<Class[]>([]);
   const { getPage, getValue, setQuery } = useAdminUrlState({ status: 'all', role: 'all' });
   const [searchTerm, setSearchTerm] = useState(() => getValue('search'));
 
@@ -38,39 +33,42 @@ export const AdminUsers = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>(
     () => getValue('status', 'all') as 'all' | 'active' | 'inactive'
   );
-  const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'admin' | 'class_council'>(
-    () => getValue('role', 'all') as 'all' | 'student' | 'admin' | 'class_council'
-  );
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'class_council'>(() => {
+    const role = getValue('role', 'all');
+    return role === 'admin' || role === 'class_council' ? role : 'all';
+  });
   const [page, setPage] = useState(() => getPage());
+
+  const mapUserItem = (u: any): StudentManagementItem => ({
+    id: u.id,
+    username: u.username || (u.email ? u.email.split('@')[0] : 'unknown'),
+    fullName: u.fullName || '',
+    role: u.role,
+    email: u.email,
+    phone: u.phone,
+    dateOfBirth: u.dateOfBirth,
+    studentCode: u.studentCode || '',
+    isActive: u.isActive,
+  });
 
   const fetchStudents = async () => {
     try {
       setErrorMsg('');
+      const queryBase = {
+        keyword: searchTerm.trim() || undefined,
+        isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
+        includeDeleted: false,
+      };
+
       const usersRes = await API_Admin.getUsers({
+        ...queryBase,
         page,
         limit: pageSize,
-        keyword: searchTerm.trim() || undefined,
         role: roleFilter === 'all' ? undefined : roleFilter,
-        isActive:
-          statusFilter === 'all'
-            ? undefined
-            : statusFilter === 'active',
-        includeDeleted: false,
       });
 
       const response = usersRes as any;
-      const list = toArray(response);
-      const mapped = list.map((u: any) => ({
-        id: u.id,
-        username: u.username || (u.email ? u.email.split('@')[0] : 'unknown'),
-        fullName: u.fullName || '',
-        role: u.role,
-        email: u.email,
-        phone: u.phone,
-        dateOfBirth: u.dateOfBirth,
-        studentCode: u.studentCode || '',
-        isActive: u.isActive,
-      }));
+      const mapped = toArray(response).map(mapUserItem);
       setStudents(mapped);
       setTotalUsers(typeof response?.total === 'number' ? response.total : mapped.length);
     } catch (err) {
@@ -84,19 +82,6 @@ export const AdminUsers = () => {
     fetchStudents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, searchTerm, statusFilter, roleFilter]);
-
-  useEffect(() => {
-    const loadClasses = async () => {
-      try {
-        const data = await API_Admin.getClasses();
-        setClassesList(toArray(data as any));
-      } catch {
-        setClassesList([]);
-      }
-    };
-
-    loadClasses();
-  }, []);
 
   const handleToggleActive = (id: string) => {
     const s = students.find((item) => item.id === id);
@@ -119,11 +104,11 @@ export const AdminUsers = () => {
       setErrorMsg('');
 
       if (confirmType === 'delete') {
-        await API_Admin.deleteUser(pendingStudent.id);
+        await API_Admin.deleteAccount(pendingStudent.id, pendingStudent.role);
         toast.success('Đã xóa tài khoản.');
       } else {
         const nextIsActive = confirmType === 'unlock';
-        await API_Admin.updateUserStatus(pendingStudent.id, { isActive: nextIsActive });
+        await API_Admin.updateAccountStatus(pendingStudent.id, pendingStudent.role, { isActive: nextIsActive });
         toast.success(nextIsActive ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.');
       }
 
@@ -157,25 +142,49 @@ export const AdminUsers = () => {
       admissionYear: s.admissionYear ?? String(new Date().getFullYear()),
       role: s.role as 'admin' | 'class_council',
     });
+    setEditingUserId(s.id);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingStudent(null);
+    setEditingUserId(null);
   };
 
   const handleSubmitModal = async (values: StudentFormValues) => {
     try {
-      if (editingStudent) {
-        // TODO: Nối API PATCH /admin/users/:id khi backend hoàn thiện
+      setErrorMsg('');
+
+      if (editingStudent && editingUserId) {
+        const payload: UpdateUserPayload = {
+          username: values.username.trim(),
+          email: values.email.trim(),
+          fullName: values.fullName.trim(),
+          role: values.role,
+          phone: values.phone.trim() || undefined,
+          dateOfBirth: values.dateOfBirth || undefined,
+        };
+        const res = await API_Admin.updateUser(editingUserId, payload);
+        const updated = (res as any).data || res;
         setStudents((prev) =>
           prev.map((s) =>
-            s.username === editingStudent.username
-              ? { ...s, ...values }
+            s.id === editingUserId
+              ? {
+                  ...s,
+                  username: updated.username || payload.username || s.username,
+                  email: updated.email || payload.email || s.email,
+                  fullName: updated.fullName || payload.fullName || s.fullName,
+                  role: updated.role || payload.role || s.role,
+                  phone: updated.phone ?? values.phone,
+                  dateOfBirth: updated.dateOfBirth ?? values.dateOfBirth,
+                  isActive: updated.isActive ?? s.isActive,
+                }
               : s
           )
         );
+        await fetchStudents();
+        toast.success('Cập nhật người dùng thành công.');
       } else {
         const res = await API_Admin.createUser({
           username: values.username,
@@ -219,37 +228,9 @@ export const AdminUsers = () => {
       }
       setShowModal(false);
       setEditingStudent(null);
+      setEditingUserId(null);
     } catch (err) {
       const friendlyMessage = getUserFriendlyError(err, 'Không thể lưu thông tin người dùng. Vui lòng kiểm tra lại thông tin đã nhập.');
-      setErrorMsg(friendlyMessage);
-      throw new Error(friendlyMessage);
-    }
-  };
-
-  const handleCreateManualStudent = async (values: CreateStudentPayload) => {
-    try {
-      setErrorMsg('');
-      const created = await API_Admin.createStudent(values);
-      const newStudent: StudentManagementItem = {
-        id: created.id || String(Date.now()),
-        username: created.username || values.username,
-        fullName: created.fullName || values.fullName,
-        role: 'student',
-        email: created.email || values.email,
-        phone: created.phone || values.phone,
-        dateOfBirth: created.dateOfBirth || values.dateOfBirth,
-        studentCode: created.studentCode || values.studentCode,
-        classId: values.classId,
-        isActive: created.isActive ?? true,
-      };
-      setStudents((prev) => [...prev, newStudent]);
-      if (created.accountEmailSent === false && created.accountEmailError) {
-        toast.error('Tài khoản đã tạo, nhưng email chưa được gửi.');
-      } else {
-        toast.success('Tạo sinh viên thành công.');
-      }
-    } catch (err) {
-      const friendlyMessage = getUserFriendlyError(err, 'Không thể tạo sinh viên. Vui lòng kiểm tra lại thông tin đã nhập.');
       setErrorMsg(friendlyMessage);
       throw new Error(friendlyMessage);
     }
@@ -258,7 +239,6 @@ export const AdminUsers = () => {
   const roleBadgeConfig = {
     admin: { label: 'Quản trị viên', className: 'bg-purple-100 text-purple-700' },
     class_council: { label: 'Cố vấn học tập', className: 'bg-orange-100 text-orange-700' },
-    student: { label: 'Sinh viên', className: 'bg-blue-100 text-blue-700' },
   } as const;
 
   const columns: Column<StudentManagementItem>[] = [
@@ -273,7 +253,7 @@ export const AdminUsers = () => {
       label: 'Vai trò',
       width: '15%',
       render: (val) => {
-        const config = roleBadgeConfig[(val as keyof typeof roleBadgeConfig) || 'student'] || roleBadgeConfig.student;
+        const config = roleBadgeConfig[(val as keyof typeof roleBadgeConfig) || 'admin'] || roleBadgeConfig.admin;
         return (
           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${config.className}`}>
             {config.label}
@@ -336,7 +316,6 @@ export const AdminUsers = () => {
   ];
   const roleFilterOptions = [
     { label: 'Tất cả', value: 'all' },
-    { label: 'Sinh viên', value: 'student' },
     { label: 'Cố vấn học tập', value: 'class_council' },
     { label: 'Quản trị viên', value: 'admin' },
   ];
@@ -354,7 +333,7 @@ export const AdminUsers = () => {
   };
 
   const handleRoleChange = (value: string) => {
-    setRoleFilter(value as 'all' | 'student' | 'admin' | 'class_council');
+    setRoleFilter(value as 'all' | 'admin' | 'class_council');
     setPage(1);
     setQuery({ role: value }, { resetPage: true });
   };
@@ -421,11 +400,18 @@ export const AdminUsers = () => {
       </div>
 
       <div className="fixed bottom-8 right-8 z-20">
-        <AddActionsDropdown
-          onAddStudent={() => setStudentModalOpen(true)}
-          onImportExcel={() => setImportOpen(true)}
-          onAddUser={() => { setEditingStudent(null); setShowModal(true); }}
-        />
+        <button
+          type="button"
+          onClick={() => {
+            setEditingStudent(null);
+            setEditingUserId(null);
+            setShowModal(true);
+          }}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#0B3A82] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/25 transition hover:bg-[#104E92] hover:shadow-xl disabled:opacity-60"
+        >
+          <UserPlus size={18} />
+          Thêm người dùng
+        </button>
       </div>
 
       <ModalCreateStudent
@@ -433,19 +419,6 @@ export const AdminUsers = () => {
         onClose={handleCloseModal}
         onSubmit={handleSubmitModal}
         editData={editingStudent}
-      />
-
-      <ModalCreateManualStudent
-        isOpen={studentModalOpen}
-        onClose={() => setStudentModalOpen(false)}
-        onSubmit={handleCreateManualStudent}
-        classes={classesList}
-      />
-
-      <ModalImportExcel
-        isOpen={importOpen}
-        onClose={() => setImportOpen(false)}
-        onSuccess={fetchStudents}
       />
 
       <ModalConfirm

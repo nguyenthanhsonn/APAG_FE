@@ -81,20 +81,25 @@ const MiniUpload = ({ fileKey, disabled }: { fileKey:string; disabled:boolean; r
   return (
     <div className="mt-1.5 space-y-1">
       {/* Các file đã upload thành công */}
-      {files.map((f,i)=>(
-        <div key={i} className="flex items-center justify-between gap-2 text-[10px] text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1 font-semibold">
+      {files.map((f,i)=> {
+        const hasUrl = Boolean(f.url);
+        return (
+        <div key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 text-[10px] text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1 font-semibold">
           <CheckCircle size={11} className="shrink-0 text-green-500" />
           <button
             type="button"
-            onClick={() => window.open(f.url, '_blank', 'noopener,noreferrer')}
-            className="truncate max-w-[120px] text-left underline decoration-dotted underline-offset-2 hover:text-green-900"
-            title="Click để xem minh chứng"
+            onClick={() => {
+              if (hasUrl) window.open(f.url, '_blank', 'noopener,noreferrer');
+            }}
+            disabled={!hasUrl}
+            className="truncate max-w-[120px] text-left underline decoration-dotted underline-offset-2 hover:text-green-900 disabled:cursor-not-allowed disabled:no-underline disabled:text-green-700"
+            title={hasUrl ? 'Click để xem minh chứng' : 'Minh chứng chưa có đường dẫn xem trực tiếp'}
           >
             {f.name}
           </button>
           {!disabled&&<button type="button" onClick={()=>removeFile(fileKey,i)} className="text-red-500 hover:text-red-700 ml-auto"><X size={12}/></button>}
         </div>
-      ))}
+      );})}
       {/* Các file đang tải lên — hiển thị progress bar ngay tại chỗ */}
       {pendingEntries.map(([name, pct]) => (
         <div key={name} className="text-[10px] bg-blue-50 border border-blue-200 rounded px-2 py-1">

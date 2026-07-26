@@ -4,6 +4,7 @@ import type { StudentManagementItem } from './student-management.type';
 export type {
   AddStudentToClassPayload,
   AdminSemester,
+  AdminStudentListQuery,
   AdminEvaluationListQuery,
   AssignCouncilPayload,
   BulkFinalizeEvaluationsPayload,
@@ -35,6 +36,7 @@ export type {
   SemesterQuery,
   StatusPayload,
   TrainingResultsReport,
+  UpdateUserPayload,
   UserListQuery,
 } from './api.interface';
 

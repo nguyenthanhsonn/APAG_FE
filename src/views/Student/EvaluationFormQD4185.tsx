@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { API_Student } from '../../api/API_Student';
+import { API_URL } from '../../api/api';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { uploadEvidenceFile } from '../../services/cloudinaryUpload';
 import { useToast } from '../../components/common/ToastProvider';
@@ -93,19 +94,113 @@ export const EvaluationFormQD4185 = () => {
 
 		  const mapEvidenceCriteriaCode = (criteriaKey: string) => {
 	    if (criteriaKey.startsWith('sv_nckh') || criteriaKey.startsWith('sv_olympic') || criteriaKey.startsWith('sv_creative')) {
-	      return 'TC1';
+	      return 'I.2';
 	    }
 	    if (criteriaKey.startsWith('sv_reward')) {
-	      return 'TC3';
+	      return 'III.5';
 	    }
-	    if (criteriaKey.startsWith('sv_policy') || criteriaKey.startsWith('sv_solidarity')) {
-	      return 'TC4';
+	    if (criteriaKey.startsWith('sv_policy')) {
+	      return 'IV.1';
 	    }
-	    if (criteriaKey.startsWith('sv_cadre') || criteriaKey.startsWith('sv_special')) {
-	      return 'TC5';
+	    if (criteriaKey.startsWith('sv_solidarity')) {
+	      return 'IV.2';
+	    }
+	    if (criteriaKey.startsWith('sv_cadre')) {
+	      return 'V.A.2';
+	    }
+	    if (criteriaKey.startsWith('sv_special')) {
+	      return 'V.B.2';
 	    }
 		    return criteriaKey;
 		  };
+
+  const normalizeEvidenceUrl = (value?: string | null) => {
+    if (!value) return '';
+    if (/^(https?:|blob:|data:)/i.test(value)) return value;
+    const normalizedPath = value.startsWith('/') ? value : `/${value}`;
+    if (/^https?:/i.test(API_URL)) {
+      try {
+        return `${new URL(API_URL).origin}${normalizedPath}`;
+      } catch {
+        return normalizedPath;
+      }
+    }
+    return normalizedPath;
+  };
+
+  const getEvidenceFileKeys = (evidence: any) => {
+    const code = String(
+      evidence?.criterion?.code ||
+      evidence?.criteria?.code ||
+      evidence?.criteriaCode ||
+      evidence?.criterionCode ||
+      ''
+    ).toUpperCase();
+
+    if (code === 'TC1' || code === 'I.2') return ['sv_nckh', 'sv_olympic', 'sv_creative'];
+    if (code === 'TC3' || code === 'III.5') return ['sv_reward'];
+    if (code === 'TC4') return ['sv_policy', 'sv_solidarity'];
+    if (code === 'IV.1') return ['sv_policy'];
+    if (code === 'IV.2') return ['sv_solidarity'];
+    if (code === 'TC5') return ['sv_cadre_perf', 'sv_special_ach'];
+    if (code === 'V.A.2') return ['sv_cadre_perf'];
+    if (code === 'V.B.2') return ['sv_special_ach'];
+    return [];
+  };
+
+  const appendEvidenceFile = (
+    grouped: Record<string, UploadedEvidenceFile[]>,
+    key: string,
+    file: UploadedEvidenceFile
+  ) => {
+    const exists = grouped[key]?.some((item) => item.url === file.url || item.name === file.name);
+    if (!exists) {
+      grouped[key] = [...(grouped[key] || []), file];
+    }
+  };
+
+  const mapEvaluationEvidenceFiles = (detail: any): Record<string, UploadedEvidenceFile[]> => {
+    const grouped: Record<string, UploadedEvidenceFile[]> = {};
+    const evidenceItems = [
+      ...(Array.isArray(detail?.evidences) ? detail.evidences : []),
+      ...(Array.isArray(detail?.evidenceFiles) ? detail.evidenceFiles : []),
+      ...(Array.isArray(detail?.files) ? detail.files : []),
+    ];
+    const attachmentItems = [
+      ...(Array.isArray(detail?.attachments) ? detail.attachments : []),
+      ...(Array.isArray(detail?.attachmentFiles) ? detail.attachmentFiles : []),
+    ];
+    const sourceItems = [
+      ...evidenceItems.map((item: any) => ({ ...item, sourceType: 'evidence' })),
+      ...attachmentItems.map((item: any) => ({ ...item, sourceType: 'attachment' })),
+    ];
+
+    sourceItems.forEach((item: any) => {
+      const url = normalizeEvidenceUrl(item.url || item.imageUrl || item.secureUrl || item.fileUrl || item.downloadUrl || item.storageKey);
+      if (!url) return;
+
+      const keys = getEvidenceFileKeys(item);
+
+      const file: UploadedEvidenceFile = {
+        name: item.originalName || item.fileName || item.publicId || item.criterion?.title || item.criteria?.title || 'Minh chứng',
+        url,
+        type: item.mimeType || item.fileType || (item.imageUrl ? 'image' : undefined),
+      };
+
+      (keys.length > 0 ? keys : ['sv_general']).forEach((key) => {
+        appendEvidenceFile(grouped, key, file);
+      });
+    });
+
+    return grouped;
+  };
+
+  const hasMappedEvidenceFiles = (files: Record<string, UploadedEvidenceFile[]>) =>
+    Object.values(files).some((items) => items.length > 0);
+
+  const evidenceFilesForDisplay = Object.values(uploadedFiles)
+    .flat()
+    .filter((file, index, arr) => arr.findIndex((item) => item.url === file.url || item.name === file.name) === index);
 
 	  const normalizeEvaluationStatus = (status?: string) => String(status || '').toUpperCase();
 
@@ -676,6 +771,8 @@ export const EvaluationFormQD4185 = () => {
     setIsSvViolationSec3(false);
     setIsSvViolationSec4(false);
     setIsSvViolationSec5(false);
+    setUploadedFiles({});
+    setFileProgress({});
   };
 
 
@@ -699,6 +796,20 @@ export const EvaluationFormQD4185 = () => {
 	        steps: detail.review?.steps,
 	      });
 	      applyEvaluationLockState(detail);
+      let mappedFiles = mapEvaluationEvidenceFiles(detail);
+      if (!hasMappedEvidenceFiles(mappedFiles)) {
+        try {
+          const fallbackRes = await API_Student.getMyEvidences();
+          const fallbackItems = Array.isArray(fallbackRes) ? fallbackRes : (Array.isArray((fallbackRes as any)?.data) ? (fallbackRes as any).data : []);
+          const relatedItems = fallbackItems.filter((item: any) => !item.evaluationFormId || item.evaluationFormId === targetId);
+          mappedFiles = mapEvaluationEvidenceFiles({ evidences: relatedItems });
+        } catch (evidenceErr) {
+          console.warn('Failed to load fallback evidences:', evidenceErr);
+        }
+      }
+      setUploadedFiles(mappedFiles);
+      setFileProgress({});
+      store.getState().batchSet({ uploadedFiles: mappedFiles, fileProgress: {} });
 
       const studyData = detail.sections?.study || {};
       const discData = detail.sections?.discipline || {};
@@ -1386,6 +1497,29 @@ export const EvaluationFormQD4185 = () => {
                       ? 'Học kỳ này đã kết thúc, phiếu chỉ ở chế độ xem.'
                       : 'Phiếu này đã được gửi hoặc phê duyệt, không thể chỉnh sửa.'}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {evidenceFilesForDisplay.length > 0 && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="mb-3 flex items-center gap-2 text-emerald-800">
+                <CheckCircle size={17} className="shrink-0 text-emerald-600" />
+                <h4 className="text-sm font-bold">Minh chứng đã nộp</h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {evidenceFilesForDisplay.map((file, index) => (
+                  <button
+                    key={`${file.url || file.name}-${index}`}
+                    type="button"
+                    onClick={() => file.url && window.open(file.url, '_blank', 'noopener,noreferrer')}
+                    disabled={!file.url}
+                    className="max-w-full truncate rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-900 disabled:cursor-not-allowed disabled:opacity-70"
+                    title={file.url ? 'Click để xem minh chứng' : 'Minh chứng chưa có đường dẫn xem trực tiếp'}
+                  >
+                    {file.name}
+                  </button>
+                ))}
               </div>
             </div>
           )}

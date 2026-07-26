@@ -34,26 +34,27 @@ export const AdminDashboard = () => {
       try {
         setLoading(true);
         setErrorMsg('');
-        const [usersRes, facsRes, majsRes, clssRes] = await Promise.all([
+        const [usersRes, studentsRes, facsRes, majsRes, clssRes] = await Promise.all([
           API_Admin.getUsers({ page: 1, limit: 100, includeDeleted: false }),
+          API_Admin.getStudents({ page: 1, limit: 100, includeDeleted: false }),
           API_Admin.getFaculties(),
           API_Admin.getMajors(),
           API_Admin.getClasses(),
         ]);
 
         const usersList = toArray<any>(usersRes);
-
-        const studs = usersList.filter((u: any) => u.role === 'student' || !u.role);
-        const adms = usersList.filter((u: any) => u.role === 'admin' || u.role === 'council');
+        const studentsList = toArray<any>(studentsRes);
+        const userTotal = typeof (usersRes as any)?.total === 'number' ? (usersRes as any).total : usersList.length;
+        const studentTotal = typeof (studentsRes as any)?.total === 'number' ? (studentsRes as any).total : studentsList.length;
 
         const facs = toArray<any>(facsRes);
         const majs = toArray<any>(majsRes);
         const clss = toArray<any>(clssRes);
 
         setStatsData({
-          totalUsers: usersList.length,
-          totalStudents: studs.length,
-          totalAdmins: adms.length,
+          totalUsers: userTotal + studentTotal,
+          totalStudents: studentTotal,
+          totalAdmins: userTotal,
           totalFaculties: facs.length,
           totalMajors: majs.length,
           totalClasses: clss.length,
@@ -62,7 +63,7 @@ export const AdminDashboard = () => {
         // Compute faculty stats
         const computedFacs = facs.map((f: any) => {
           // Count students of this faculty
-          const stdCount = studs.filter((s: any) => s.facultyId === f.id).length;
+          const stdCount = studentsList.filter((s: any) => s.facultyId === f.id).length;
           return {
             name: f.name || f.code,
             students: stdCount,

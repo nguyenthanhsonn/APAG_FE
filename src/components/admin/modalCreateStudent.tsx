@@ -26,7 +26,7 @@ function Field({ label, icon: Icon, required, error, children }: FieldProps) {
 
 const currentYear = new Date().getFullYear();
 
-const validationSchema = Yup.object({
+const buildValidationSchema = (isEdit: boolean) => Yup.object({
   username: Yup.string()
     .min(3, 'Tối thiểu 3 ký tự')
     .max(50, 'Tối đa 50 ký tự')
@@ -35,10 +35,12 @@ const validationSchema = Yup.object({
     .min(2, 'Tối thiểu 2 ký tự')
     .max(100, 'Tối đa 100 ký tự')
     .required('Vui lòng nhập họ tên'),
-  password: Yup.string()
-    .min(6, 'Tối thiểu 6 ký tự')
-    .max(50, 'Tối đa 50 ký tự')
-    .required('Vui lòng nhập mật khẩu'),
+  password: isEdit
+    ? Yup.string().optional()
+    : Yup.string()
+        .min(6, 'Tối thiểu 6 ký tự')
+        .max(50, 'Tối đa 50 ký tự')
+        .required('Vui lòng nhập mật khẩu'),
   email: Yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
   phone: Yup.string()
     .matches(/^[0-9]{9,11}$/, 'Số điện thoại không hợp lệ')
@@ -78,7 +80,7 @@ export default function ModalCreateStudent({
 
   const formik = useFormik<StudentFormValues>({
     initialValues: editData ?? defaultValues,
-    validationSchema,
+    validationSchema: buildValidationSchema(isEdit),
     validateOnBlur: false,
     validateOnChange: false,
     onSubmit: async (
@@ -171,8 +173,9 @@ export default function ModalCreateStudent({
                 <Field label="Mật khẩu" icon={Lock} required={!isEdit} error={formik.errors.password}>
                   <input
                     type="password"
-                    className={inputCls('password')}
-                    placeholder={isEdit ? 'Để trống nếu không muốn đổi' : 'Nhập mật khẩu'}
+                    className={`${inputCls('password')} ${isEdit ? 'cursor-not-allowed bg-[#F1F3F5] text-[#868E96]' : ''}`}
+                    placeholder={isEdit ? 'Không đổi mật khẩu tại đây' : 'Nhập mật khẩu'}
+                    disabled={isEdit}
                     {...formik.getFieldProps('password')}
                   />
                 </Field>

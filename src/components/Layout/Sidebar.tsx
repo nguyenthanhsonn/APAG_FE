@@ -26,7 +26,8 @@ const studentMenuItems = [
 
 const adminMenuItems = [
   { path: '/admin', icon: Home, label: 'Dashboard' },
-  { path: '/admin/student', icon: Users, label: 'Quản lý người dùng' },
+  { path: '/admin/users', icon: Users, label: 'Quản lý người dùng' },
+  { path: '/admin/students', icon: GraduationCap, label: 'Quản lý sinh viên' },
   { path: '/admin/faculties', icon: Building2, label: 'Quản lý Khoa' },
   { path: '/admin/majors', icon: Compass, label: 'Quản lý Ngành' },
   { path: '/admin/classes', icon: GraduationCap, label: 'Quản lý Lớp' },

@@ -31,6 +31,37 @@ export interface EvaluationPeriod {
   deadline?: string;
 }
 
+export interface EvaluationCriterionRef {
+  id: string;
+  code: string;
+  title: string;
+}
+
+export interface EvaluationEvidenceItem {
+  id: string;
+  studentId?: string;
+  evaluationFormId?: string;
+  criterionId: string;
+  criterion?: EvaluationCriterionRef;
+  imageUrl?: string;
+  publicId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EvaluationAttachmentItem {
+  id: string;
+  criteriaId?: string;
+  criterion?: EvaluationCriterionRef;
+  originalName?: string;
+  storageKey?: string;
+  mimeType?: string;
+  fileSizeBytes?: number;
+  isApproved?: boolean | null;
+  rejectReason?: string | null;
+  uploadedAt?: string;
+}
+
 export interface EvaluationForm {
   id: string;
   studentId: string;
@@ -43,6 +74,42 @@ export interface EvaluationForm {
   finalScore?: number | null;
   totalScore?: number | null;
   classification?: string | null;
+  statusLabel?: string;
+  studyScore?: number;
+  disciplineScore?: number;
+  activityScore?: number;
+  communityScore?: number;
+  roleScore?: number;
+  sectionScores?: {
+    studyScore?: number;
+    disciplineScore?: number;
+    activityScore?: number;
+    communityScore?: number;
+    roleScore?: number;
+  };
+  review?: {
+    evaluationId?: string;
+    status?: EvaluationStatus;
+    statusLabel?: string;
+    isLocked?: boolean;
+    lockedAt?: string | null;
+    semesterIsActive?: boolean;
+    currentStep?: string;
+    submittedAt?: string;
+    steps?: Array<{
+      key: string;
+      label: string;
+      status: string;
+      completedAt?: string | null;
+    }>;
+  };
+  sections?: {
+    study?: Record<string, unknown>;
+    discipline?: Record<string, unknown>;
+    activity?: Record<string, unknown>;
+    community?: Record<string, unknown>;
+    role?: Record<string, unknown>;
+  };
   rank?: string;
   period: EvaluationPeriod;
   status: EvaluationStatus;
@@ -54,7 +121,8 @@ export interface EvaluationForm {
   politicalSocial: PoliticalSocialActivity;
   community: CommunityActivity;
   leadership: LeadershipRole;
-  evidences: Evidence[];
+  evidences: Array<Evidence | EvaluationEvidenceItem>;
+  attachments?: EvaluationAttachmentItem[];
   scores: {
     academic: number;
     discipline: number;

@@ -19,8 +19,19 @@ export interface CreateUserPayload {
   username: string;
   email: string;
   fullName: string;
-  role: string;
+  role: 'admin' | 'class_council';
   password?: string;
+  phone?: string;
+  dateOfBirth?: string;
+}
+
+/** Thông tin cập nhật tài khoản admin/cố vấn. */
+export interface UpdateUserPayload {
+  username?: string;
+  email?: string;
+  fullName?: string;
+  role?: 'admin' | 'class_council';
+  isActive?: boolean;
   phone?: string;
   dateOfBirth?: string;
 }
@@ -39,9 +50,18 @@ export interface CreateStudentPayload {
 
 /** Điều kiện xem danh sách người dùng. */
 export interface UserListQuery extends PaginationQuery {
-  role?: 'admin' | 'student' | 'class_council';
+  role?: 'admin' | 'class_council';
   keyword?: string;
   isActive?: boolean;
+  includeDeleted?: boolean;
+}
+
+/** Điều kiện xem danh sách sinh viên. */
+export interface AdminStudentListQuery extends PaginationQuery {
+  keyword?: string;
+  classId?: string;
+  facultyId?: string;
+  majorId?: string;
   includeDeleted?: boolean;
 }
 

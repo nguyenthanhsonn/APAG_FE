@@ -8,6 +8,7 @@ import type {
   AdminFaculty,
   AdminMajor,
   AdminSemester,
+  AdminStudentListQuery,
   AdminUser,
   BulkFinalizeEvaluationsPayload,
   ConfirmImportPayload,
@@ -33,6 +34,7 @@ import type {
   SemesterQuery,
   StatusPayload,
   TrainingResultsReport,
+  UpdateUserPayload,
   UserListQuery,
 } from '../types';
 
@@ -44,6 +46,13 @@ async function createUser(_accessTokenOrPayload: string | CreateUserPayload, pay
 /** Tạo sinh viên thủ công. */
 async function createStudent(payload: CreateStudentPayload) {
   return post<AdminUser>('/admin/students', payload);
+}
+
+/** Lấy danh sách sinh viên. */
+async function getStudents(query?: AdminStudentListQuery) {
+  return get<PaginatedResponse<AdminUser> | AdminUser[]>('/admin/students', {
+    params: buildQueryParams(query),
+  });
 }
 
 /** Lấy danh sách người dùng. */
@@ -58,6 +67,11 @@ async function getUserById(_accessTokenOrId: string, id?: string) {
   return get<AdminUser>(`/admin/users/${id || _accessTokenOrId}`);
 }
 
+/** Cập nhật thông tin tài khoản admin/cố vấn. */
+async function updateUser(id: string, payload: UpdateUserPayload) {
+  return patch<AdminUser>(`/admin/users/${id}`, payload);
+}
+
 /** Xóa tài khoản admin/cố vấn. */
 async function deleteUser(id: string) {
   return del<null>(`/admin/users/${id}`);
@@ -65,7 +79,7 @@ async function deleteUser(id: string) {
 
 /** Cập nhật trạng thái tài khoản admin/cố vấn. */
 async function updateUserStatus(id: string, payload: StatusPayload) {
-  return patch<AdminUser>(`/admin/users/${id}/status`, payload);
+  return patch<AdminUser>(`/admin/users/${id}/lock`, { locked: !payload.isActive });
 }
 
 /** Xóa tài khoản sinh viên. */
@@ -75,7 +89,19 @@ async function deleteStudent(id: string) {
 
 /** Cập nhật trạng thái tài khoản sinh viên. */
 async function updateStudentStatus(id: string, payload: StatusPayload) {
-  return patch<AdminUser>(`/admin/students/${id}/status`, payload);
+  return patch<AdminUser>(`/admin/students/${id}`, payload);
+}
+
+/** Xóa tài khoản theo vai trò. */
+async function deleteAccount(id: string, role?: string) {
+  return role === 'student' ? deleteStudent(id) : deleteUser(id);
+}
+
+/** Khóa/mở khóa tài khoản theo vai trò. */
+async function updateAccountStatus(id: string, role: string | undefined, payload: StatusPayload) {
+  return role === 'student'
+    ? updateStudentStatus(id, payload)
+    : updateUserStatus(id, payload);
 }
 
 /** Lấy danh sách phiếu đánh giá. */
@@ -379,12 +405,16 @@ async function getPosts(_accessToken?: string) {
 export const API_Admin = {
   createUser,
   createStudent,
+  getStudents,
   getUsers,
   getUserById,
+  updateUser,
   deleteUser,
   updateUserStatus,
   deleteStudent,
   updateStudentStatus,
+  deleteAccount,
+  updateAccountStatus,
   getAdminEvaluationList,
   getAdminEvaluations,
   getEvaluationDetail,

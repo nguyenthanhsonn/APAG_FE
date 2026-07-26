@@ -133,11 +133,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const hasPhone = Object.prototype.hasOwnProperty.call(data, 'phone');
       const hasPhoneNumber = Object.prototype.hasOwnProperty.call(data, 'phoneNumber');
-      const payload = {
-        fullName: (data as any).fullName,
-        phone: hasPhone ? (data as any).phone : hasPhoneNumber ? (data as any).phoneNumber : undefined,
-        dateOfBirth: (data as any).dateOfBirth,
-      };
+      const payload: Record<string, unknown> = {};
+      if (hasPhone || hasPhoneNumber) {
+        payload.phone = hasPhone ? (data as any).phone : (data as any).phoneNumber;
+      }
       const updateRes = await API_Auth.updateProfile(accessToken, payload);
       const updatedProfile = normalizeProfile(updateRes.data || updateRes);
 

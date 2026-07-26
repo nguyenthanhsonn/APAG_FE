@@ -5,11 +5,14 @@ import type { Class, Faculty, Major, Student, ProfileUser } from '../../types';
 import { API_Student } from '../../api/API_Student';
 import { API_Auth } from '../../api/API_Auth';
 import { CustomSelect } from '../../components/common/CustomSelect';
+import { useToast } from '../../components/common/ToastProvider';
 
 export const StudentProfile = () => {
   const user = useAuthStore((state) => state.user) as ProfileUser | null;
   const updateProfile = useAuthStore((state) => state.updateProfile);
+  const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const logout = useAuthStore((state) => state.logout);
+  const toast = useToast();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const isStudent = user?.role === 'student';
@@ -45,9 +48,9 @@ export const StudentProfile = () => {
   
   // Form state - Thông tin sinh viên
   const [admissionYear, setAdmissionYear] = useState('2021');
-  const [facultyId, setFacultyId] = useState('1');
-  const [majorId, setMajorId] = useState('1');
-  const [classId, setClassId] = useState('1');
+  const [facultyId, setFacultyId] = useState('');
+  const [majorId, setMajorId] = useState('');
+  const [classId, setClassId] = useState('');
   const [studentCode, setStudentCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -122,9 +125,6 @@ export const StudentProfile = () => {
         setMetadataError('');
         const data = await API_Student.getFaculties();
         setFacultiesList(data || []);
-        if (data?.length && !data.some((faculty) => faculty.id === facultyId)) {
-          setFacultyId(data[0].id);
-        }
       } catch (err: any) {
         setMetadataError(err.message || 'Không thể tải danh mục khoa.');
       } finally {
@@ -133,7 +133,7 @@ export const StudentProfile = () => {
     };
 
     loadFaculties();
-  }, [facultyId, isStudent]);
+  }, [isStudent]);
 
   useEffect(() => {
     const loadMajors = async () => {
@@ -196,18 +196,14 @@ export const StudentProfile = () => {
   const handleSave = async () => {
     setSaved(false);
     setErrorMsg('');
-    if (!fullName.trim()) {
-      setErrorMsg('Họ và tên không được để trống.');
-      return;
-    }
 
     try {
       await updateProfile({
-        fullName: fullName.trim(),
         phone: phoneNumber.trim() || null,
-        dateOfBirth: dateOfBirth || null,
       } as Partial<Student>);
+      await refreshProfile();
       setSaved(true);
+      toast.success('Đã lưu thông tin thành công');
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Lỗi cập nhật thông tin liên hệ');
@@ -335,57 +331,57 @@ export const StudentProfile = () => {
                   {isStudent && (
                     <CustomSelect
                       value={admissionYear}
-                      onChange={(val) => setAdmissionYear(val)}
-                      options={admissionYears.map(year => ({ id: year, name: year }))}
-                      label="Năm trúng tuyển"
-                      required
-                    />
+	                      onChange={() => undefined}
+	                      options={admissionYears.map(year => ({ id: year, name: year }))}
+	                      label="Năm trúng tuyển"
+	                      disabled
+	                    />
                   )}
 
                   {/* Field: Khoa */}
                   {isStudent && (
                     <CustomSelect
                       value={facultyId}
-                      onChange={(val) => setFacultyId(val)}
-                      options={facultiesList}
-                      label="Khoa"
-                      required
-                    />
+	                      onChange={() => undefined}
+	                      options={facultiesList}
+	                      label="Khoa"
+	                      disabled
+	                    />
                   )}
 
                   {/* Field: Ngành */}
                   {isStudent && (
                     <CustomSelect
                       value={majorId}
-                      onChange={(val) => setMajorId(val)}
-                      options={majorsList}
-                      label="Ngành/chuyên ngành"
-                      required
-                    />
+	                      onChange={() => undefined}
+	                      options={majorsList}
+	                      label="Ngành/chuyên ngành"
+	                      disabled
+	                    />
                   )}
 
                   {/* Field: Lớp */}
                   {isStudent && (
                     <CustomSelect
                       value={classId}
-                      onChange={(val) => setClassId(val)}
-                      options={classesList}
-                      label="Lớp học"
-                      required
-                    />
+	                      onChange={() => undefined}
+	                      options={classesList}
+	                      label="Lớp học"
+	                      disabled
+	                    />
                   )}
 
                   {/* Field: Mã sinh viên */}
                   {isStudent && (
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                        Mã sinh viên <span className="text-red-500">*</span>
-                      </label>
+	                      <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+	                        Mã sinh viên
+	                      </label>
                       <input
                         type="text"
                         value={studentCode}
-                        onChange={(e) => setStudentCode(e.target.value)}
-                        className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-white"
+                        readOnly
+                        className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
                         placeholder="Nhập mã sinh viên"
                       />
                     </div>
@@ -393,28 +389,28 @@ export const StudentProfile = () => {
 
                   {/* Field: Họ và tên */}
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                      Họ và tên <span className="text-red-500">*</span>
-                    </label>
+	                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+	                      Họ và tên
+	                    </label>
                     <input
                       type="text"
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-white"
+                      readOnly
+                      className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
                       placeholder="Họ và tên"
                     />
                   </div>
 
                   {/* Field: Ngày sinh */}
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                      Ngày sinh <span className="text-red-500">*</span>
-                    </label>
+	                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+	                      Ngày sinh
+	                    </label>
                     <input
                       type="date"
                       value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-white"
+                      readOnly
+                      className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
                     />
                   </div>
 
