@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Save, Calendar, Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Save, Calendar } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import type { Class, Faculty, Major, Student, ProfileUser } from '../../types';
 import { API_Student } from '../../api/API_Student';
-import { API_Auth } from '../../api/API_Auth';
 import { CustomSelect } from '../../components/common/CustomSelect';
 import { useToast } from '../../components/common/ToastProvider';
 
@@ -11,31 +10,13 @@ export const StudentProfile = () => {
   const user = useAuthStore((state) => state.user) as ProfileUser | null;
   const updateProfile = useAuthStore((state) => state.updateProfile);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
-  const logout = useAuthStore((state) => state.logout);
   const toast = useToast();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const isStudent = user?.role === 'student';
   const managedClasses = user?.managedClasses ?? [];
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  // Listen to hash changes in URL to activate corresponding tab
-  useEffect(() => {
-    const handleHashChange = () => {
-      if (window.location.hash === '#change-password') {
-        setActiveTab('password');
-      } else {
-        setActiveTab('profile');
-      }
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // initial check
-
-    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   // Generate years for dropdowns
@@ -60,19 +41,6 @@ export const StudentProfile = () => {
   const [classesList, setClassesList] = useState<Class[]>([]);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [metadataError, setMetadataError] = useState('');
-
-  // Form state - Đổi mật khẩu
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   // Sync state once user is available on the client
   useEffect(() => {
@@ -210,56 +178,6 @@ export const StudentProfile = () => {
     }
   };
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError('');
-    setPasswordSuccess('');
-
-    if (!currentPassword) {
-      setPasswordError('Vui lòng nhập mật khẩu hiện tại.');
-      return;
-    }
-    if (!newPassword) {
-      setPasswordError('Vui lòng nhập mật khẩu mới.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordError('Mật khẩu mới phải có tối thiểu 6 ký tự.');
-      return;
-    }
-    if (newPassword === currentPassword) {
-      setPasswordError('Mật khẩu mới không được trùng với mật khẩu hiện tại.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Mật khẩu xác nhận không khớp.');
-      return;
-    }
-
-    setPasswordLoading(true);
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-
-      if (!accessToken) {
-        setPasswordError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        return;
-      }
-
-      await API_Auth.changePassword(accessToken, currentPassword, newPassword);
-      setPasswordSuccess('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setTimeout(() => {
-        logout();
-      }, 1200);
-    } catch (err: any) {
-      setPasswordError(err.message || 'Đã xảy ra lỗi khi đổi mật khẩu.');
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
-
   if (!mounted) {
     return <div className="p-5 text-gray-500 bg-white rounded-xl shadow-sm border">Đang tải thông tin...</div>;
   }
@@ -275,7 +193,7 @@ export const StudentProfile = () => {
           <p className="text-xs text-gray-500 mt-1">
             {isStudent
               ? 'Cập nhật hồ sơ sinh viên và kiểm tra thông tin kỳ đánh giá hiện tại.'
-              : 'Cập nhật hồ sơ cá nhân và đổi mật khẩu tài khoản.'}
+              : 'Cập nhật hồ sơ cá nhân và xem thông tin lớp phụ trách.'}
           </p>
         </div>
       </div>
@@ -285,35 +203,13 @@ export const StudentProfile = () => {
         {/* Left Side: Forms container (spans 2 cols) */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
           
-          {/* Tabs Navigation */}
-          <div className="flex border-b border-gray-200 bg-gray-50/50 px-5 pt-3">
-            <button
-              type="button"
-              onClick={() => { setActiveTab('profile'); window.location.hash = ''; }}
-              className={`border-b-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition-all duration-150 cursor-pointer ${
-                activeTab === 'profile'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
+          <div className="border-b border-gray-200 bg-gray-50/50 px-5 py-3">
+            <h2 className="text-sm font-bold text-gray-900">
               {isStudent ? 'Thông tin sinh viên' : 'Thông tin cá nhân'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('password'); window.location.hash = '#change-password'; }}
-              className={`border-b-2 px-4 py-2.5 text-xs sm:text-sm font-bold transition-all duration-150 cursor-pointer ${
-                activeTab === 'password'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Đổi mật khẩu
-            </button>
+            </h2>
           </div>
 
-          {/* Tab Content: Profile */}
-          {activeTab === 'profile' && (
-            <div className="flex flex-col">
+          <div className="flex flex-col">
               <div className="p-5 space-y-4 flex-1">
                 {isStudent && metadataLoading && (
                   <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
@@ -454,122 +350,6 @@ export const StudentProfile = () => {
                 </button>
               </div>
             </div>
-          )}
-
-          {/* Tab Content: Change Password */}
-          {activeTab === 'password' && (
-            <form onSubmit={handlePasswordChange} className="flex flex-col">
-              <div className="p-5 space-y-4 flex-1">
-                
-                {/* Success Notification */}
-                {passwordSuccess && (
-                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2.5 text-emerald-800 text-xs font-semibold">
-                    <CheckCircle size={16} className="shrink-0 text-emerald-600" />
-                    <span>{passwordSuccess}</span>
-                  </div>
-                )}
-
-                {/* Error Notification */}
-                {passwordError && (
-                  <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-2.5 text-rose-800 text-xs font-semibold">
-                    <AlertCircle size={16} className="shrink-0 text-rose-600" />
-                    <span>{passwordError}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  
-                  {/* Field: Current Password */}
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                      Mật khẩu hiện tại <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showCurrent ? 'text' : 'password'}
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        disabled={passwordLoading}
-                        placeholder="Mật khẩu hiện tại"
-                        className="w-full pl-3 pr-9 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5BDB] outline-none h-10 bg-white transition duration-150"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrent(!showCurrent)}
-                        disabled={passwordLoading}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition p-0.5 cursor-pointer"
-                      >
-                        {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Field: New Password */}
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                      Mật khẩu mới <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showNew ? 'text' : 'password'}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        disabled={passwordLoading}
-                        placeholder="Tối thiểu 6 ký tự"
-                        className="w-full pl-3 pr-9 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5BDB] outline-none h-10 bg-white transition duration-150"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNew(!showNew)}
-                        disabled={passwordLoading}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition p-0.5 cursor-pointer"
-                      >
-                        {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Field: Confirm Password */}
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                      Xác nhận mật khẩu <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showConfirm ? 'text' : 'password'}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={passwordLoading}
-                        placeholder="Nhập lại mật khẩu mới"
-                        className="w-full pl-3 pr-9 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5BDB] outline-none h-10 bg-white transition duration-150"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirm(!showConfirm)}
-                        disabled={passwordLoading}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition p-0.5 cursor-pointer"
-                      >
-                        {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer min-h-[40px] min-w-[140px] shadow-sm disabled:opacity-50"
-                >
-                  {passwordLoading && <Loader2 size={18} className="animate-spin" />}
-                  <span>{passwordLoading ? 'Đang cập nhật...' : 'Đổi mật khẩu'}</span>
-                </button>
-              </div>
-            </form>
-          )}
 
         </div>
 

@@ -5,7 +5,6 @@ import { LogOut, Menu, User, LockKeyhole, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
-import { ChangePasswordModal } from '../auth/changePassword';
 import { API_Student } from '../../api/API_Student';
 import type { HeaderProps } from '@/types/common';
 import { hasAccessToken } from '@/utils/authToken';
@@ -17,7 +16,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const router = useRouter();
   
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Bell notifications state
@@ -148,6 +146,11 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const profileHref = user?.role === 'class_council'
     ? '/class_council/profile'
     : '/student/profile';
+  const changePasswordHref = user?.role === 'admin'
+    ? '/admin/change-password'
+    : user?.role === 'class_council'
+    ? '/class_council/change-password'
+    : '/student/change-password';
   const roleLabel = user?.role === 'admin'
     ? 'Quản trị viên'
     : user?.role === 'class_council'
@@ -293,29 +296,15 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
                   {dropdownItems.length > 0 && <div className="my-1 border-t border-[#E2E8F0]" />}
 
-                  {/* Change Password Button */}
-                  {user.role === 'student' ? (
-                    <Link
-                      href={`${profileHref}#change-password`}
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-700 transition hover:bg-[#EDF2FF]/80 hover:text-[#3B5BDB] active:scale-[0.98]"
-                    >
-                      <LockKeyhole size={16} strokeWidth={2} className="shrink-0 text-gray-500" />
-                      <span>Đổi mật khẩu</span>
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        setChangePasswordOpen(true);
-                      }}
-                      className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-700 transition hover:bg-[#EDF2FF]/80 hover:text-[#3B5BDB] active:scale-[0.98]"
-                    >
-                      <LockKeyhole size={16} strokeWidth={2} className="shrink-0 text-gray-500" />
-                      <span>Đổi mật khẩu</span>
-                    </button>
-                  )}
+                  {/* Change Password Link */}
+                  <Link
+                    href={changePasswordHref}
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-700 transition hover:bg-[#EDF2FF]/80 hover:text-[#3B5BDB] active:scale-[0.98]"
+                  >
+                    <LockKeyhole size={16} strokeWidth={2} className="shrink-0 text-gray-500" />
+                    <span>Đổi mật khẩu</span>
+                  </Link>
 
                   <div className="my-1 border-t border-[#E2E8F0]" />
 
@@ -338,10 +327,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         )}
       </div>
 
-      <ChangePasswordModal
-        isOpen={changePasswordOpen}
-        onClose={() => setChangePasswordOpen(false)}
-      />
     </header>
   );
 };
