@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { GraduationCap, Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import { GraduationCap, Lock, User, AlertCircle, Eye, EyeOff, FlaskConical, Users, Building2, BarChart3, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { API_Auth } from '../../api/API_Auth';
 import { useFormik } from 'formik';
@@ -24,6 +25,33 @@ const LoginSchema = Yup.object().shape({
     .trim()
     .required('Vui lòng nhập mã captcha'),
 });
+
+const DEMO_ROLES = [
+  {
+    label: 'Lớp trưởng',
+    sub: 'CNTT-K45A',
+    href: '/class_leader',
+    icon: Users,
+    color: 'hover:border-amber-400',
+    iconBg: 'bg-amber-50 text-amber-600',
+  },
+  {
+    label: 'Khoa',
+    sub: 'Công nghệ thông tin',
+    href: '/faculty',
+    icon: Building2,
+    color: 'hover:border-blue-400',
+    iconBg: 'bg-blue-50 text-blue-600',
+  },
+  {
+    label: 'Phòng Đào tạo',
+    sub: 'Chỉ xem báo cáo',
+    href: '/training_department',
+    icon: BarChart3,
+    color: 'hover:border-purple-400',
+    iconBg: 'bg-purple-50 text-purple-600',
+  },
+] as const;
 
 export default function Login() {
   const [error, setError] = useState('');
@@ -125,6 +153,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
+        {/* ── Login Card ─────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
@@ -133,9 +162,6 @@ export default function Login() {
             <h1 className="text-2xl font-bold text-gray-900">
               Đánh giá Rèn luyện Sinh viên
             </h1>
-            {/* <p className="text-gray-600 mt-2">
-              Đăng nhập để tiếp tục
-            </p> */}
           </div>
 
           {error && (
@@ -196,28 +222,24 @@ export default function Login() {
                 Mã captcha
               </label>
               <div className="flex flex-row items-center gap-3 w-full">
-                {/* Left: Input box */}
                 <div className="relative flex-1">
                   <input
                     type="text"
                     className={`w-full px-4 py-3 border rounded-xl uppercase focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200 ${formik.touched.captchaCode && formik.errors.captchaCode
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20 animate-shake'
-                        : 'border-gray-300 focus:border-blue-500'
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20 animate-shake'
+                      : 'border-gray-300 focus:border-blue-500'
                       }`}
                     placeholder="Nhập mã captcha"
                     autoComplete="off"
                     {...formik.getFieldProps('captchaCode')}
                     onChange={(e) => {
                       formik.handleChange(e);
-                      // Clear captcha error automatically when user edits
                       if (formik.errors.captchaCode) {
                         formik.setFieldError('captchaCode', undefined);
                       }
                     }}
                   />
                 </div>
-
-                {/* Right: Captcha image & refresh button */}
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="flex h-12 w-[140px] items-center justify-center overflow-hidden rounded-xl bg-white select-none relative">
                     {captchaImage ? (
@@ -237,8 +259,6 @@ export default function Login() {
                   </div>
                 </div>
               </div>
-
-              {/* Validation Error Message */}
               {formik.touched.captchaCode && formik.errors.captchaCode && (
                 <p className="text-red-500 text-xs font-medium mt-1.5 flex items-center gap-1 animate-fade-in">
                   <span>{formik.errors.captchaCode}</span>
@@ -254,7 +274,39 @@ export default function Login() {
               {formik.isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
+        </div>
 
+        {/* ── Demo Mock Roles ─────────────────────────────────────────── */}
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <FlaskConical size={14} className="shrink-0 text-amber-600" />
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">
+              Demo — Vào thẳng không cần đăng nhập
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {DEMO_ROLES.map((r) => {
+              const Icon = r.icon;
+              return (
+                <Link
+                  key={r.href}
+                  href={r.href}
+                  className={`group flex flex-col items-center gap-1.5 rounded-xl border border-[#E9ECEF] bg-white px-2 py-3 text-center transition hover:shadow-sm ${r.color}`}
+                >
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${r.iconBg}`}>
+                    <Icon size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-[#1A1B1E] leading-tight">
+                      {r.label}
+                    </p>
+                    <p className="text-[10px] text-[#868E96] mt-0.5 leading-tight">{r.sub}</p>
+                  </div>
+                  <ArrowRight size={12} className="text-[#ADB5BD] transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

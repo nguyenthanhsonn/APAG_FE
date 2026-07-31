@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, FileText, Loader2, Paperclip, Send } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_Admin } from '@/api/API_Admin';
@@ -135,9 +135,7 @@ export function StudentDetailReviewView() {
   const [approving, setApproving] = useState(false);
 
   // ── Zustand store (factory pattern — isolated per student mount) ──────────
-  const storeRef = useRef<CouncilReviewStore | null>(null);
-  if (!storeRef.current) storeRef.current = createCouncilReviewStore();
-  const store = storeRef.current;
+  const [store] = useState<CouncilReviewStore>(() => createCouncilReviewStore());
 
   const [hasEvaluation, setHasEvaluation] = useState(false);
   const [student, setStudent] = useState<ReviewStudent | null>(null);
@@ -395,7 +393,7 @@ export function StudentDetailReviewView() {
     return () => {
       mounted = false;
     };
-  }, [classId, deductionWeights, evaluationId, toast]);
+  }, [classId, deductionWeights, evaluationId, store, toast]);
 
   const clampScore = (value: number, max: number) => Math.min(max, Math.max(0, Number.isFinite(value) ? value : 0));
 

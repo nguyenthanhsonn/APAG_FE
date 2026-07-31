@@ -345,7 +345,7 @@ export const createEvaluationFormStore = () =>
       }
     },
 
-    setIsClassEdited: (_v) => {
+    setIsClassEdited: () => {
       // Intentional no-op in store — isClassEdited is still tracked in page controller
       // via the useEffect propagation logic. The store action exists so that
       // EvaluationTableGrid can call it without needing a separate prop.

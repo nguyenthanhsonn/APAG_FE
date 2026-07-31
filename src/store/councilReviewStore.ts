@@ -338,7 +338,7 @@ export const createCouncilReviewStore = () =>
       }
     },
 
-    setIsClassEdited: (_v) => {
+    setIsClassEdited: () => {
       // No-op: council review does not track class-edited state
     },
   }));
