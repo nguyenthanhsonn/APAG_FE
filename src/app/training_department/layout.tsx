@@ -58,12 +58,6 @@ function TrainingDeptSidebar({ open, onClose }: { open: boolean; onClose: () => 
             })}
           </div>
         </nav>
-
-        <div className="px-4 py-3 border-t border-white/10">
-          <span className="inline-flex items-center rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-200">
-            MOCK / DEMO
-          </span>
-        </div>
       </aside>
     </>
   );
@@ -105,8 +99,7 @@ export default function TrainingDepartmentLayout({ children }: { children: React
 
         <footer className="shrink-0 border-t border-[#E9ECEF] bg-white px-6 py-3 lg:pl-0">
           <p className="text-center text-[11px] text-[#ADB5BD]">
-            © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS &nbsp;|&nbsp;
-            <span className="font-semibold text-amber-500">MOCK DATA — Chỉ dùng để demo</span>
+            © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
           </p>
         </footer>
       </div>

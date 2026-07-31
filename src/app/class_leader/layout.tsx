@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Users, Printer, X, Menu } from 'lucide-react';
 import { useState } from 'react';
-import { MOCK_CLASS_INFO } from '@/utils/mockClassLeaderData';
 
 const menuItems = [
   { path: '/class_leader', icon: Users, label: 'Danh sách lớp' },
@@ -14,7 +13,6 @@ const menuItems = [
 
 function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
-  const classInfo = MOCK_CLASS_INFO;
 
   return (
     <>
@@ -34,7 +32,7 @@ function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => v
             </div>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-bold leading-tight text-white">Lớp trưởng</p>
-              <p className="text-[10px] font-medium text-[#D0E2FF] truncate">{classInfo.code}</p>
+              <p className="text-[10px] font-medium text-[#D0E2FF] truncate">CSMTS</p>
             </div>
           </div>
           <button type="button" aria-label="Đóng menu" onClick={onClose} className="cursor-pointer text-[#D0E2FF] hover:text-white lg:hidden p-1">
@@ -42,10 +40,9 @@ function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => v
           </button>
         </div>
 
-        {/* Mock user info */}
         <div className="border-b border-white/10 px-4 py-3">
-          <p className="text-[11px] font-semibold text-[#D0E2FF]">{classInfo.leaderName}</p>
-          <p className="text-[10px] text-[#D0E2FF]/60">{classInfo.facultyName}</p>
+          <p className="text-[11px] font-semibold text-[#D0E2FF]">Tài khoản lớp trưởng</p>
+          <p className="text-[10px] text-[#D0E2FF]/60">Dữ liệu theo phiên đăng nhập</p>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -68,13 +65,6 @@ function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => v
             })}
           </div>
         </nav>
-
-        {/* Demo badge */}
-        <div className="px-4 py-3 border-t border-white/10">
-          <span className="inline-flex items-center rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-200">
-            MOCK / DEMO
-          </span>
-        </div>
       </aside>
     </>
   );
@@ -101,8 +91,8 @@ export default function ClassLeaderLayout({ children }: { children: React.ReactN
             <div className="flex-1" />
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col items-end text-right">
-                <span className="text-sm font-semibold text-gray-900">{MOCK_CLASS_INFO.leaderName}</span>
-                <span className="text-xs text-gray-500 font-medium">Lớp trưởng — {MOCK_CLASS_INFO.code}</span>
+                <span className="text-sm font-semibold text-gray-900">Lớp trưởng</span>
+                <span className="text-xs text-gray-500 font-medium">CSMTS</span>
               </div>
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#104E92] text-sm font-bold text-white shadow-sm">
                 LT
@@ -117,8 +107,7 @@ export default function ClassLeaderLayout({ children }: { children: React.ReactN
 
         <footer className="shrink-0 border-t border-[#E9ECEF] bg-white px-6 py-3 lg:pl-0">
           <p className="text-center text-[11px] text-[#ADB5BD]">
-            © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS &nbsp;|&nbsp;
-            <span className="font-semibold text-amber-500">MOCK DATA — Chỉ dùng để demo</span>
+            © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
           </p>
         </footer>
       </div>

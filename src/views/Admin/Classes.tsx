@@ -122,10 +122,7 @@ export const AdminClasses = () => {
   };
 
   const handleConfirmDelete = () => {
-    // TODO: Nối API DELETE /admin/classes/:id khi backend hoàn thiện
-    if (pendingDeleteId) {
-      setClasses((prev) => prev.filter((c) => c.id !== pendingDeleteId));
-    }
+    setErrorMsg('Chưa có API xóa lớp học.');
     setConfirmOpen(false);
     setPendingDeleteId(null);
   };
@@ -140,32 +137,8 @@ export const AdminClasses = () => {
     setEditingClass(null);
   };
 
-  const handleSubmitModal = (values: ClassFormValues) => {
-    // TODO: Nối API POST /admin/classes (tạo mới) và PATCH /admin/classes/:id (chỉnh sửa) khi backend hoàn thiện
-    if (editingClass) {
-      setClasses((prev) =>
-        prev.map((c) =>
-          c.id === editingClass.id ? { ...c, ...values } : c
-        )
-      );
-    } else {
-      const newClass: Class = {
-        id: String(Date.now()),
-        code: values.code,
-        name: values.name,
-        facultyId: values.facultyId,
-        majorId: values.majorId,
-        isActive: true,
-      };
-      setClasses((prev) => [
-        ...prev,
-        {
-          ...newClass,
-          majorName: majors.find((m) => m.id === values.majorId)?.name || '—',
-          facultyName: faculties.find((f) => f.id === values.facultyId)?.name || '—',
-        },
-      ]);
-    }
+  const handleSubmitModal = (_values: ClassFormValues) => {
+    setErrorMsg('Chưa có API tạo/cập nhật lớp học.');
   };
 
   const columns: Column<ClassTableRow>[] = [
