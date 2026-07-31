@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Building2, X, Menu } from 'lucide-react';
-import { MOCK_FACULTY_INFO } from '@/utils/mockFacultyData';
 
 const menuItems = [
   { path: '/faculty', icon: Building2, label: 'Duyệt điểm rèn luyện' },
@@ -12,7 +11,6 @@ const menuItems = [
 
 function FacultySidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
-  const info = MOCK_FACULTY_INFO;
 
   return (
     <>
@@ -32,7 +30,7 @@ function FacultySidebar({ open, onClose }: { open: boolean; onClose: () => void 
             </div>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-bold leading-tight text-white">Khoa</p>
-              <p className="text-[10px] font-medium text-[#D0E2FF] truncate">{info.semester}</p>
+              <p className="text-[10px] font-medium text-[#D0E2FF] truncate">CSMTS</p>
             </div>
           </div>
           <button type="button" aria-label="Đóng menu" onClick={onClose} className="cursor-pointer text-[#D0E2FF] hover:text-white lg:hidden p-1">
@@ -41,8 +39,8 @@ function FacultySidebar({ open, onClose }: { open: boolean; onClose: () => void 
         </div>
 
         <div className="border-b border-white/10 px-4 py-3">
-          <p className="text-[11px] font-semibold text-[#D0E2FF]">{info.staffName}</p>
-          <p className="text-[10px] text-[#D0E2FF]/60 break-words">{info.name}</p>
+          <p className="text-[11px] font-semibold text-[#D0E2FF]">Tài khoản khoa</p>
+          <p className="text-[10px] text-[#D0E2FF]/60 break-words">Dữ liệu theo phiên đăng nhập</p>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -65,12 +63,6 @@ function FacultySidebar({ open, onClose }: { open: boolean; onClose: () => void 
             })}
           </div>
         </nav>
-
-        <div className="px-4 py-3 border-t border-white/10">
-          <span className="inline-flex items-center rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-200">
-            MOCK / DEMO
-          </span>
-        </div>
       </aside>
     </>
   );
@@ -78,7 +70,6 @@ function FacultySidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const info = MOCK_FACULTY_INFO;
 
   return (
     <div className="h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#1A1B1E] overflow-hidden">
@@ -97,7 +88,7 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
             <div className="flex-1" />
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col items-end text-right">
-                <span className="text-sm font-semibold text-gray-900">{info.staffName}</span>
+                <span className="text-sm font-semibold text-gray-900">Khoa</span>
                 <span className="text-xs text-gray-500 font-medium">Khoa</span>
               </div>
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#104E92] text-sm font-bold text-white shadow-sm">
@@ -113,8 +104,7 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
 
         <footer className="shrink-0 border-t border-[#E9ECEF] bg-white px-6 py-3 lg:pl-0">
           <p className="text-center text-[11px] text-[#ADB5BD]">
-            © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS &nbsp;|&nbsp;
-            <span className="font-semibold text-amber-500">MOCK DATA — Chỉ dùng để demo</span>
+            © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
           </p>
         </footer>
       </div>

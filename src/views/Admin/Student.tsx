@@ -196,23 +196,6 @@ export const AdminUsers = () => {
           dateOfBirth: values.dateOfBirth || undefined,
         });
         const created = res.data || res;
-        
-        const newStudent: StudentManagementItem = {
-          id: created.id || String(Date.now()),
-          username: created.username || (created.email ? created.email.split('@')[0] : values.username),
-          fullName: created.fullName || values.fullName,
-          role: created.role || values.role,
-          email: created.email || values.email,
-          phone: created.phone || values.phone,
-          dateOfBirth: created.dateOfBirth || values.dateOfBirth,
-          studentCode: values.studentCode,
-          facultyId: values.facultyId,
-          majorId: values.majorId,
-          classId: values.classId,
-          admissionYear: values.admissionYear,
-          isActive: created.isActive ?? true,
-        };
-        setStudents((prev) => [...prev, newStudent]);
 
         if (values.role === 'class_council') {
           if (created.accountEmailSent === true) {
@@ -225,6 +208,8 @@ export const AdminUsers = () => {
         } else {
           toast.success('Tạo tài khoản thành công.');
         }
+
+        await fetchStudents();
       }
       setShowModal(false);
       setEditingStudent(null);

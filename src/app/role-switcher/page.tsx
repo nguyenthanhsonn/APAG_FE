@@ -3,12 +3,8 @@
 import Link from 'next/link';
 import {
   GraduationCap,
-  Users,
-  Building2,
-  BarChart3,
   ShieldCheck,
   ArrowRight,
-  FlaskConical,
   UserCheck,
 } from 'lucide-react';
 
@@ -21,7 +17,6 @@ interface RoleCard {
   badge: string;
   badgeColor: string;
   cardColor: string;
-  isMock: boolean;
 }
 
 const ROLES: RoleCard[] = [
@@ -34,7 +29,6 @@ const ROLES: RoleCard[] = [
     badge: 'Đăng nhập thật',
     badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     cardColor: 'hover:border-emerald-400',
-    isMock: false,
   },
   {
     role: 'class_council',
@@ -45,7 +39,6 @@ const ROLES: RoleCard[] = [
     badge: 'Đăng nhập thật',
     badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
     cardColor: 'hover:border-blue-400',
-    isMock: false,
   },
   {
     role: 'admin',
@@ -56,40 +49,6 @@ const ROLES: RoleCard[] = [
     badge: 'Đăng nhập thật',
     badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
     cardColor: 'hover:border-purple-400',
-    isMock: false,
-  },
-  {
-    role: 'class_leader',
-    label: 'Lớp trưởng',
-    description: 'Xác nhận họp lớp cho danh sách sinh viên đã nộp phiếu. Có nút in danh sách.',
-    href: '/class_leader',
-    icon: Users,
-    badge: 'MOCK / Demo',
-    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
-    cardColor: 'hover:border-amber-400',
-    isMock: true,
-  },
-  {
-    role: 'faculty',
-    label: 'Khoa',
-    description: 'Duyệt điểm rèn luyện lần cuối cho toàn bộ các lớp thuộc khoa.',
-    href: '/faculty',
-    icon: Building2,
-    badge: 'MOCK / Demo',
-    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
-    cardColor: 'hover:border-amber-400',
-    isMock: true,
-  },
-  {
-    role: 'training_department',
-    label: 'Phòng Đào tạo',
-    description: 'Xem báo cáo & thống kê toàn trường. Không thực hiện duyệt — chỉ đọc.',
-    href: '/training_department',
-    icon: BarChart3,
-    badge: 'MOCK / Demo',
-    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
-    cardColor: 'hover:border-amber-400',
-    isMock: true,
   },
 ];
 
@@ -106,15 +65,6 @@ export default function RoleSwitcherPage() {
           <h1 className="text-3xl font-extrabold text-[#1A1B1E]">Chọn vai trò</h1>
           <p className="mt-2 text-[#868E96] text-base font-medium">
             Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
-          </p>
-        </div>
-
-        {/* Mock badge info */}
-        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-8">
-          <FlaskConical size={18} className="shrink-0 text-amber-600" />
-          <p className="text-sm font-medium text-amber-700">
-            Các role <strong>MOCK / Demo</strong> có thể truy cập trực tiếp không cần đăng nhập, dùng để demo UI cho stakeholder.
-            Các role còn lại yêu cầu đăng nhập thật.
           </p>
         </div>
 
@@ -143,7 +93,7 @@ export default function RoleSwitcherPage() {
                   <p className="mt-1 text-sm text-[#868E96] leading-relaxed">{r.description}</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-sm font-semibold text-[#3B5BDB]">
-                  {r.isMock ? 'Xem Demo' : 'Đăng nhập'}
+                  Đăng nhập
                   <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
                 </div>
               </Link>
