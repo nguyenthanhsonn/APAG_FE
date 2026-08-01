@@ -2,12 +2,12 @@
 
 import { NotFoundContent } from '@/components/common/NotFoundContent';
 
-export default function RootNotFound() {
+export default function FacultyNotFound() {
   return (
     <NotFoundContent
-      homeLink="/login"
+      homeLink="/faculty"
       menuItems={[
-        { label: 'Về trang đăng nhập', href: '/login', icon: '🔑' },
+        { label: 'Duyệt điểm rèn luyện', href: '/faculty', icon: '🏢' },
       ]}
     />
   );

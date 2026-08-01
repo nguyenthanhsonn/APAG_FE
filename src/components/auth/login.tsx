@@ -59,6 +59,12 @@ export default function Login() {
         return '/admin';
       case 'class_council':
         return '/class_council';
+      case 'class_leader':
+        return '/class_leader';
+      case 'faculty':
+        return '/faculty';
+      case 'training_department':
+        return '/training_department';
       case 'student':
       default:
         return '/student';
@@ -246,6 +252,83 @@ export default function Login() {
               {formik.isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
+
+          {/* Quick Mock Login section */}
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-center mb-3">
+              ⚡ Đăng nhập nhanh (Mock Data)
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const mockUser = {
+                    id: 'mock-class-leader',
+                    username: 'lop_truong',
+                    fullName: 'Nguyễn Văn Lớp Trưởng',
+                    role: 'class_leader' as UserRole,
+                    isActive: true,
+                    email: 'loptruong@example.com',
+                  };
+                  useAuthStore.setState({ user: mockUser, isAuthenticated: true, isHydrated: true });
+                  localStorage.setItem('user', JSON.stringify(mockUser));
+                  localStorage.setItem('accessToken', 'mock-access-token');
+                  localStorage.setItem('refreshToken', 'mock-refresh-token');
+                  router.push('/class_leader');
+                }}
+                className="w-full py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-sm font-medium border border-amber-200 transition flex items-center justify-between cursor-pointer"
+              >
+                <span>👑 Lớp trưởng (class_leader)</span>
+                <span className="text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-semibold">Vào ngay →</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const mockUser = {
+                    id: 'mock-faculty',
+                    username: 'khoa_cntt',
+                    fullName: 'Ban BQL Khoa CNTT',
+                    role: 'faculty' as UserRole,
+                    isActive: true,
+                    email: 'faculty@example.com',
+                  };
+                  useAuthStore.setState({ user: mockUser, isAuthenticated: true, isHydrated: true });
+                  localStorage.setItem('user', JSON.stringify(mockUser));
+                  localStorage.setItem('accessToken', 'mock-access-token');
+                  localStorage.setItem('refreshToken', 'mock-refresh-token');
+                  router.push('/faculty');
+                }}
+                className="w-full py-2.5 px-3 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg text-sm font-medium border border-teal-200 transition flex items-center justify-between cursor-pointer"
+              >
+                <span>🏢 Khoa (faculty)</span>
+                <span className="text-xs bg-teal-200 text-teal-900 px-2 py-0.5 rounded font-semibold">Vào ngay →</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const mockUser = {
+                    id: 'mock-training-dept',
+                    username: 'phong_dao_tao',
+                    fullName: 'Phòng Đào Tạo',
+                    role: 'training_department' as UserRole,
+                    isActive: true,
+                    email: 'pdt@example.com',
+                  };
+                  useAuthStore.setState({ user: mockUser, isAuthenticated: true, isHydrated: true });
+                  localStorage.setItem('user', JSON.stringify(mockUser));
+                  localStorage.setItem('accessToken', 'mock-access-token');
+                  localStorage.setItem('refreshToken', 'mock-refresh-token');
+                  router.push('/training_department');
+                }}
+                className="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-lg text-sm font-medium border border-indigo-200 transition flex items-center justify-between cursor-pointer"
+              >
+                <span>🎓 Phòng đào tạo (training_department)</span>
+                <span className="text-xs bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded font-semibold">Vào ngay →</span>
+              </button>
+            </div>
+          </div>
         </div>
 
       </div>

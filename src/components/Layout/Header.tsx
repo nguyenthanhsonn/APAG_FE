@@ -14,7 +14,7 @@ import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuthStore();
   const router = useRouter();
-  
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -62,10 +62,10 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
       const items = Array.isArray((list as any)?.items)
         ? (list as any).items
         : Array.isArray((list as any)?.data?.items)
-        ? (list as any).data.items
-        : Array.isArray(list)
-        ? list
-        : [];
+          ? (list as any).data.items
+          : Array.isArray(list)
+            ? list
+            : [];
 
       setNotifications(
         items.map((item: any) => ({
@@ -149,15 +149,21 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const changePasswordHref = user?.role === 'admin'
     ? '/admin/change-password'
     : user?.role === 'class_council'
-    ? '/class_council/change-password'
-    : '/student/change-password';
+      ? '/class_council/change-password'
+      : '/student/change-password';
   const roleLabel = user?.role === 'admin'
     ? 'Quản trị viên'
     : user?.role === 'class_council'
     ? 'Hội đồng lớp'
+    : user?.role === 'class_leader'
+    ? 'Lớp trưởng'
+    : user?.role === 'faculty'
+    ? 'Ban/Khoa'
+    : user?.role === 'training_department'
+    ? 'Phòng Đào Tạo'
     : 'Sinh viên';
 
-  const dropdownItems = user?.role === 'admin'
+  const dropdownItems = (user?.role === 'admin' || user?.role === 'class_leader' || user?.role === 'faculty' || user?.role === 'training_department')
     ? []
     : [
         { label: 'Thông tin cá nhân', href: profileHref, icon: User },
@@ -213,20 +219,19 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                         </button>
                       )}
                     </div>
-                    
+
                     <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
                       {notifications.length === 0 ? (
                         <p className="text-[11px] text-gray-500 text-center py-4">Không có thông báo mới</p>
                       ) : (
-	                        notifications.map((item) => (
-	                          <div
-	                            key={item.id}
-	                            onClick={() => handleNotificationClick(item)}
-	                            className={`flex items-start gap-2.5 rounded-xl border-l-[3px] p-2.5 transition cursor-pointer hover:opacity-90 select-none ${
-                              item.isRead
+                        notifications.map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => handleNotificationClick(item)}
+                            className={`flex items-start gap-2.5 rounded-xl border-l-[3px] p-2.5 transition cursor-pointer hover:opacity-90 select-none ${item.isRead
                                 ? 'border-l-gray-300 bg-gray-50'
                                 : 'border-l-amber-500 bg-amber-50/50'
-                            }`}
+                              }`}
                           >
                             <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${item.isRead ? 'bg-gray-400' : 'bg-amber-500'}`} />
                             <div className="min-w-0">
@@ -277,7 +282,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                       {roleLabel}
                     </p>
                   </div>
-                  
+
                   {/* Navigation Items */}
                   {dropdownItems.map((item) => {
                     const Icon = item.icon;
@@ -311,9 +316,10 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                   {/* Logout Button */}
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setDropdownOpen(false);
-                      logout();
+                      await logout();
+                      router.push('/login');
                     }}
                     className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-[#D92D20] transition hover:bg-[#FFF5F5] active:scale-[0.98]"
                   >
