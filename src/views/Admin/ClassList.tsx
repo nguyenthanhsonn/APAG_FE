@@ -187,7 +187,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   useEffect(() => {
     const loadCouncils = async () => {
       try {
-        const data = await API_Admin.getUsers({ role: 'class_council', page: 1, limit: 100, includeDeleted: false });
+        const data = await API_Admin.getUsers({ role: 'advisor', page: 1, limit: 100, includeDeleted: false });
         setCouncils(toArray(data as any));
       } catch {
         setCouncils([]);

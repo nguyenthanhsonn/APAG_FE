@@ -1,5 +1,7 @@
 import type { AdminEvaluationItem } from './api.type';
 
+export type InternalUserRole = 'admin' | 'class_leader' | 'advisor' | 'faculty' | 'training_department';
+
 /** Thông tin chia trang danh sách. */
 export interface PaginationQuery {
   page?: number;
@@ -19,7 +21,7 @@ export interface CreateUserPayload {
   username: string;
   email: string;
   fullName: string;
-  role: 'admin' | 'class_council';
+  role: InternalUserRole;
   password?: string;
   phone?: string;
   dateOfBirth?: string;
@@ -30,7 +32,7 @@ export interface UpdateUserPayload {
   username?: string;
   email?: string;
   fullName?: string;
-  role?: 'admin' | 'class_council';
+  role?: InternalUserRole;
   isActive?: boolean;
   phone?: string;
   dateOfBirth?: string;
@@ -50,7 +52,7 @@ export interface CreateStudentPayload {
 
 /** Điều kiện xem danh sách người dùng. */
 export interface UserListQuery extends PaginationQuery {
-  role?: 'admin' | 'class_council';
+  role?: InternalUserRole;
   keyword?: string;
   isActive?: boolean;
   includeDeleted?: boolean;
@@ -144,7 +146,8 @@ export interface AdminSemester {
   semesterName?: string;
   name?: string;
   startDate: string;
-  endDate: string;  isActive: boolean;
+  endDate: string;
+  isActive: boolean;
   hasEvaluationForms?: boolean;
 }
 

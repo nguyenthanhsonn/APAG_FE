@@ -297,12 +297,56 @@ async function getClassById(id: string) {
 
 /** Lấy chi tiết lớp mà cố vấn học tập được phân công phụ trách. */
 async function getClassCouncilClassById(id: string) {
-  return get<AdminClass>(`/class-council/classes/${id}`);
+  return get<AdminClass>(`/advisor/classes/${id}`);
 }
 
 /** Cập nhật danh sách cố vấn phụ trách lớp. */
 async function updateClassCouncils(classId: string, payload: { userIds: string[] }) {
-  return patch<AdminClass>(`/admin/classes/${classId}/councils`, payload);
+  return patch<AdminClass>(`/admin/classes/${classId}/advisors`, payload);
+}
+
+/** Khoa lấy danh sách phiếu trong phạm vi khoa được phân công. */
+async function getFacultyEvaluations(facultyId: string, query?: AdminEvaluationListQuery) {
+  return get<PaginatedResponse<AdminEvaluationItem> | AdminEvaluationItem[]>(
+    `/faculty/faculties/${facultyId}/evaluations`,
+    { params: buildQueryParams(query) },
+  );
+}
+
+/** Khoa duyệt một phiếu đã được CVHT chốt. */
+async function approveFacultyEvaluation(id: string) {
+  return patch<AdminEvaluationItem>(`/faculty/evaluations/${id}/approve`);
+}
+
+/** Khoa trả phiếu về CVHT kèm lý do. */
+async function rejectFacultyEvaluation(id: string, reason: string) {
+  return patch<AdminEvaluationItem>(`/faculty/evaluations/${id}/reject`, { reason });
+}
+
+/** Lớp trưởng lấy danh sách phiếu của lớp mình được gán. */
+async function getClassLeaderEvaluations(classId: string, query?: AdminEvaluationListQuery) {
+  return get<PaginatedResponse<AdminEvaluationItem> | AdminEvaluationItem[]>(
+    `/class-leader/classes/${classId}/evaluations`,
+    { params: buildQueryParams(query) },
+  );
+}
+
+/** Lớp trưởng chốt một phiếu đang chờ lớp trưởng. */
+async function approveClassLeaderEvaluation(id: string, score: number) {
+  return patch<AdminEvaluationItem>(`/class-leader/evaluations/${id}/approve`, { score });
+}
+
+/** Phòng Đào tạo lấy danh sách phiếu toàn trường đang chờ duyệt cuối. */
+async function getTrainingDepartmentEvaluations(query?: AdminEvaluationListQuery) {
+  return get<PaginatedResponse<AdminEvaluationItem> | AdminEvaluationItem[]>(
+    '/training-department/evaluations',
+    { params: buildQueryParams(query) },
+  );
+}
+
+/** Phòng Đào tạo duyệt cuối một phiếu. */
+async function approveTrainingDepartmentEvaluation(id: string) {
+  return patch<AdminEvaluationItem>(`/training-department/evaluations/${id}/approve`);
 }
 
 /** Lấy sinh viên trong lớp. */
@@ -451,6 +495,13 @@ export const API_Admin = {
   getClassById,
   getClassCouncilClassById,
   updateClassCouncils,
+  getFacultyEvaluations,
+  approveFacultyEvaluation,
+  rejectFacultyEvaluation,
+  getClassLeaderEvaluations,
+  approveClassLeaderEvaluation,
+  getTrainingDepartmentEvaluations,
+  approveTrainingDepartmentEvaluation,
   getClassStudents,
   addStudentToClass,
   removeStudentFromClass,

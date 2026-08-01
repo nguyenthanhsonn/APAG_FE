@@ -38,7 +38,7 @@ const buildValidationSchema = (isEdit: boolean) => Yup.object({
   password: isEdit
     ? Yup.string().optional()
     : Yup.string()
-        .min(6, 'Tối thiểu 6 ký tự')
+        .min(8, 'Tối thiểu 8 ký tự')
         .max(50, 'Tối đa 50 ký tự')
         .required('Vui lòng nhập mật khẩu'),
   email: Yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
@@ -51,7 +51,7 @@ const buildValidationSchema = (isEdit: boolean) => Yup.object({
   majorId: Yup.string().optional(),
   classId: Yup.string().optional(),
   admissionYear: Yup.string().optional(),
-  role: Yup.string().oneOf(['admin', 'class_council']).required('Vui lòng chọn vai trò'),
+  role: Yup.string().oneOf(['admin', 'class_leader', 'advisor', 'faculty', 'training_department']).required('Vui lòng chọn vai trò'),
 });
 
 const defaultValues: StudentFormValues = {
@@ -139,7 +139,7 @@ export default function ModalCreateStudent({
                 {isEdit ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
               </h2>
               <p className="mt-0.5 text-xs text-[#868E96]">
-                {isEdit ? 'Cập nhật thông tin người dùng' : 'Điền đầy đủ thông tin để tạo tài khoản'}
+                {isEdit ? 'Cập nhật thông tin người dùng' : 'Tạo tài khoản nội bộ, không dùng cho sinh viên'}
               </p>
             </div>
             <button
@@ -188,7 +188,10 @@ export default function ModalCreateStudent({
                   onChange={(e) => formik.setFieldValue('role', e.target.value)}
                 >
                   <option value="admin">Quản trị viên</option>
-                  <option value="class_council">Cố vấn học tập</option>
+                  <option value="class_leader">Lớp trưởng</option>
+                  <option value="advisor">Cố vấn học tập</option>
+                  <option value="faculty">Khoa</option>
+                  <option value="training_department">Phòng Đào tạo</option>
                 </select>
               </Field>
 

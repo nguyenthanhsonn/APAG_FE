@@ -1,8 +1,10 @@
+import type { InternalUserRole } from './api.interface';
+
 export interface StudentManagementItem {
   id: string;
   username: string;
   fullName: string;
-  role: 'student' | 'admin' | 'class_council';
+  role: 'student' | InternalUserRole;
   email?: string;
   phone?: string;
   dateOfBirth?: string;

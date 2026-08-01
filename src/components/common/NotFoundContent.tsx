@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { useRouter } from 'next/navigation';
 
 export interface MenuItem {
@@ -15,7 +14,7 @@ export interface NotFoundContentProps {
   menuItems?: MenuItem[];
 }
 
-export function NotFoundContent({ roleName, homeLink = '/', menuItems = [] }: NotFoundContentProps) {
+export function NotFoundContent({ menuItems = [] }: NotFoundContentProps) {
   const router = useRouter();
 
   return (

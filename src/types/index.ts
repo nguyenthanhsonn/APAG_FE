@@ -47,6 +47,7 @@ export type {
   AdminClass,
   AdminEvaluationItem,
   AdminEvaluationListQuery,
+  InternalUserRole,
   AdminFaculty,
   AdminMajor,
   AdminUser,

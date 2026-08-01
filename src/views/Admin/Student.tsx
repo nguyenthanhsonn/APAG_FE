@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Edit, Trash2, Lock, Unlock, AlertCircle, ChevronDown, UserPlus } from 'lucide-react';
 import ModalCreateStudent from '../../components/admin/modalCreateStudent';
-import { StudentManagementItem, StudentFormValues, UpdateUserPayload } from '../../types';
+import { StudentManagementItem, StudentFormValues, UpdateUserPayload, type InternalUserRole } from '../../types';
 import ModalConfirm from '../../components/common/modalConfirm';
 import SearchFilterBar from '../../components/admin/SearchFilterBar';
 import DataTable, { type Column } from '../../components/admin/DataTable';
@@ -33,9 +33,10 @@ export const AdminUsers = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>(
     () => getValue('status', 'all') as 'all' | 'active' | 'inactive'
   );
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'class_council'>(() => {
-    const role = getValue('role', 'all');
-    return role === 'admin' || role === 'class_council' ? role : 'all';
+  const validInternalRoles: InternalUserRole[] = ['admin', 'class_leader', 'advisor', 'faculty', 'training_department'];
+  const [roleFilter, setRoleFilter] = useState<'all' | InternalUserRole>(() => {
+    const role = getValue('role', 'all') as InternalUserRole | 'all';
+    return validInternalRoles.includes(role as InternalUserRole) ? role : 'all';
   });
   const [page, setPage] = useState(() => getPage());
 
@@ -140,7 +141,7 @@ export const AdminUsers = () => {
       majorId: s.majorId ?? '',
       classId: s.classId ?? '',
       admissionYear: s.admissionYear ?? String(new Date().getFullYear()),
-      role: s.role as 'admin' | 'class_council',
+      role: s.role as InternalUserRole,
     });
     setEditingUserId(s.id);
     setShowModal(true);
@@ -197,14 +198,10 @@ export const AdminUsers = () => {
         });
         const created = res.data || res;
 
-        if (values.role === 'class_council') {
-          if (created.accountEmailSent === true) {
-            toast.success('Tạo tài khoản và gửi email thành công.');
-          } else if (created.accountEmailSent === false && created.accountEmailError) {
-            toast.error('Tạo tài khoản thành công nhưng chưa gửi được email.');
-          } else {
-            toast.success('Tạo tài khoản thành công.');
-          }
+        if (created.accountEmailSent === true) {
+          toast.success('Tạo tài khoản và gửi email thành công.');
+        } else if (created.accountEmailSent === false && created.accountEmailError) {
+          toast.error(`Tạo tài khoản thành công nhưng chưa gửi được email: ${created.accountEmailError}`);
         } else {
           toast.success('Tạo tài khoản thành công.');
         }
@@ -223,7 +220,10 @@ export const AdminUsers = () => {
 
   const roleBadgeConfig = {
     admin: { label: 'Quản trị viên', className: 'bg-purple-100 text-purple-700' },
-    class_council: { label: 'Cố vấn học tập', className: 'bg-orange-100 text-orange-700' },
+    class_leader: { label: 'Lớp trưởng', className: 'bg-amber-100 text-amber-700' },
+    advisor: { label: 'Cố vấn học tập', className: 'bg-orange-100 text-orange-700' },
+    faculty: { label: 'Khoa', className: 'bg-teal-100 text-teal-700' },
+    training_department: { label: 'Phòng Đào tạo', className: 'bg-indigo-100 text-indigo-700' },
   } as const;
 
   const columns: Column<StudentManagementItem>[] = [
@@ -238,7 +238,7 @@ export const AdminUsers = () => {
       label: 'Vai trò',
       width: '15%',
       render: (val) => {
-        const config = roleBadgeConfig[(val as keyof typeof roleBadgeConfig) || 'admin'] || roleBadgeConfig.admin;
+        const config = roleBadgeConfig[val as keyof typeof roleBadgeConfig] || roleBadgeConfig.admin;
         return (
           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${config.className}`}>
             {config.label}
@@ -301,8 +301,11 @@ export const AdminUsers = () => {
   ];
   const roleFilterOptions = [
     { label: 'Tất cả', value: 'all' },
-    { label: 'Cố vấn học tập', value: 'class_council' },
     { label: 'Quản trị viên', value: 'admin' },
+    { label: 'Lớp trưởng', value: 'class_leader' },
+    { label: 'Cố vấn học tập', value: 'advisor' },
+    { label: 'Khoa', value: 'faculty' },
+    { label: 'Phòng Đào tạo', value: 'training_department' },
   ];
 
   const handleSearchChange = (value: string) => {
@@ -318,7 +321,7 @@ export const AdminUsers = () => {
   };
 
   const handleRoleChange = (value: string) => {
-    setRoleFilter(value as 'all' | 'admin' | 'class_council');
+    setRoleFilter(value as 'all' | InternalUserRole);
     setPage(1);
     setQuery({ role: value }, { resetPage: true });
   };

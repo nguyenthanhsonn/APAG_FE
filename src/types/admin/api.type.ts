@@ -6,6 +6,7 @@ export type {
   AdminSemester,
   AdminStudentListQuery,
   AdminEvaluationListQuery,
+  InternalUserRole,
   AssignCouncilPayload,
   BulkFinalizeEvaluationsPayload,
   ConfirmImportPayload,
