@@ -1,3 +1,5 @@
+import type { InternalUserRole } from './api.interface';
+
 export interface FacultyFormValues {
   code: string;
   name: string;
@@ -28,7 +30,7 @@ export interface StudentFormValues {
   majorId: string;
   classId: string;
   admissionYear: string;
-  role: 'admin' | 'class_council';
+  role: InternalUserRole;
 }
 
 export type SemesterFormState = {

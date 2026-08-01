@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { GraduationCap, Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, HelpCircle, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { API_Auth } from '../../api/API_Auth';
 import { useFormik } from 'formik';
@@ -129,209 +129,168 @@ export default function Login() {
   });
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* ── Login Card ─────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-              <GraduationCap className="text-blue-600" size={32} />
+    <main className="relative flex min-h-screen flex-col bg-[#252478] text-white">
+      {/* Bottom Right Accent Red Circle */}
+      <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-[#e31a22] opacity-90" />
+
+      {/* Bottom Left Book Patterns */}
+      <div className="absolute bottom-4 left-4 z-0 hidden md:block">
+        <svg width="240" height="240" viewBox="0 0 240 240" fill="none" className="text-[#e31a22]/40">
+          {Array.from({ length: 6 }).map((_, r) =>
+            Array.from({ length: r + 1 }).map((_, c) => (
+              <path
+                key={`${r}-${c}`}
+                d={`M ${c * 36 + 12} ${220 - r * 30} C ${c * 36 + 18} ${214 - r * 30}, ${c * 36 + 24} ${214 - r * 30}, ${c * 36 + 30} ${220 - r * 30} C ${c * 36 + 36} ${214 - r * 30}, ${c * 36 + 42} ${214 - r * 30}, ${c * 36 + 48} ${220 - r * 30}`}
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            ))
+          )}
+        </svg>
+      </div>
+
+      {/* Top Red Header Wrapper */}
+      <div className="relative z-20 w-full bg-[#e31a22] shadow-md">
+        <div className="mx-auto flex max-w-[1220px] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
+          <div className="flex items-center gap-4">
+            <div className="relative z-30 -mb-10 flex h-[72px] w-[150px] items-center justify-center rounded-xl bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.25)] sm:h-[82px] sm:w-[180px]">
+              <Image
+                src="/apag-logo.png"
+                alt="APAG"
+                width={170}
+                height={90}
+                priority
+                className="h-full w-full object-contain"
+              />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Đánh giá Rèn luyện Sinh viên
-            </h1>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80 sm:text-[13px]">CSMTS Portal</p>
+              <h1 className="text-xl font-black uppercase tracking-wide text-white drop-shadow sm:text-2xl">APAG 1959</h1>
+            </div>
           </div>
 
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={20} />
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={formik.handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tên đăng nhập
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Nhập tên đăng nhập"
-                  autoComplete="username"
-                  {...formik.getFieldProps('username')}
-                />
-              </div>
-              {formik.errors.username && (
-                <p className="text-red-500 text-sm mt-1">{formik.errors.username}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mật khẩu
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Nhập mật khẩu"
-                  {...formik.getFieldProps('password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer focus:outline-none p-1 transition-colors select-none"
-                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {formik.errors.password && (
-                <p className="text-red-500 text-sm mt-1">{formik.errors.password}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mã captcha
-              </label>
-              <div className="flex flex-row items-center gap-3 w-full">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    className={`w-full px-4 py-3 border rounded-xl uppercase focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-200 ${formik.touched.captchaCode && formik.errors.captchaCode
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20 animate-shake'
-                      : 'border-gray-300 focus:border-blue-500'
-                      }`}
-                    placeholder="Nhập mã captcha"
-                    autoComplete="off"
-                    {...formik.getFieldProps('captchaCode')}
-                    onChange={(e) => {
-                      formik.handleChange(e);
-                      if (formik.errors.captchaCode) {
-                        formik.setFieldError('captchaCode', undefined);
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="flex h-12 w-[140px] items-center justify-center overflow-hidden rounded-xl bg-white select-none relative">
-                    {captchaImage ? (
-                      <Image
-                        src={captchaImage}
-                        alt="Captcha"
-                        width={140}
-                        height={48}
-                        unoptimized
-                        className="max-h-full max-w-full object-contain rounded-lg"
-                      />
-                    ) : (
-                      <span className="text-[10px] font-semibold text-gray-400">
-                        {captchaLoading ? '...' : 'Trống'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {formik.touched.captchaCode && formik.errors.captchaCode && (
-                <p className="text-red-500 text-xs font-medium mt-1.5 flex items-center gap-1 animate-fade-in">
-                  <span>{formik.errors.captchaCode}</span>
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={formik.isSubmitting || captchaLoading}
-              className="w-full bg-[#3B5BDB] text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {formik.isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
-            </button>
-          </form>
-
-          {/* Quick Mock Login section */}
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-center mb-3">
-              ⚡ Đăng nhập nhanh (Mock Data)
-            </p>
-            <div className="grid grid-cols-1 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const mockUser = {
-                    id: 'mock-class-leader',
-                    username: 'lop_truong',
-                    fullName: 'Nguyễn Văn Lớp Trưởng',
-                    role: 'class_leader' as UserRole,
-                    isActive: true,
-                    email: 'loptruong@example.com',
-                  };
-                  useAuthStore.setState({ user: mockUser, isAuthenticated: true, isHydrated: true });
-                  localStorage.setItem('user', JSON.stringify(mockUser));
-                  localStorage.setItem('accessToken', 'mock-access-token');
-                  localStorage.setItem('refreshToken', 'mock-refresh-token');
-                  router.push('/class_leader');
-                }}
-                className="w-full py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-sm font-medium border border-amber-200 transition flex items-center justify-between cursor-pointer"
-              >
-                <span>👑 Lớp trưởng (class_leader)</span>
-                <span className="text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-semibold">Vào ngay →</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const mockUser = {
-                    id: 'mock-faculty',
-                    username: 'khoa_cntt',
-                    fullName: 'Ban BQL Khoa CNTT',
-                    role: 'faculty' as UserRole,
-                    isActive: true,
-                    email: 'faculty@example.com',
-                  };
-                  useAuthStore.setState({ user: mockUser, isAuthenticated: true, isHydrated: true });
-                  localStorage.setItem('user', JSON.stringify(mockUser));
-                  localStorage.setItem('accessToken', 'mock-access-token');
-                  localStorage.setItem('refreshToken', 'mock-refresh-token');
-                  router.push('/faculty');
-                }}
-                className="w-full py-2.5 px-3 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg text-sm font-medium border border-teal-200 transition flex items-center justify-between cursor-pointer"
-              >
-                <span>🏢 Khoa (faculty)</span>
-                <span className="text-xs bg-teal-200 text-teal-900 px-2 py-0.5 rounded font-semibold">Vào ngay →</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const mockUser = {
-                    id: 'mock-training-dept',
-                    username: 'phong_dao_tao',
-                    fullName: 'Phòng Đào Tạo',
-                    role: 'training_department' as UserRole,
-                    isActive: true,
-                    email: 'pdt@example.com',
-                  };
-                  useAuthStore.setState({ user: mockUser, isAuthenticated: true, isHydrated: true });
-                  localStorage.setItem('user', JSON.stringify(mockUser));
-                  localStorage.setItem('accessToken', 'mock-access-token');
-                  localStorage.setItem('refreshToken', 'mock-refresh-token');
-                  router.push('/training_department');
-                }}
-                className="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-lg text-sm font-medium border border-indigo-200 transition flex items-center justify-between cursor-pointer"
-              >
-                <span>🎓 Phòng đào tạo (training_department)</span>
-                <span className="text-xs bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded font-semibold">Vào ngay →</span>
-              </button>
-            </div>
+          <div className="flex flex-wrap items-center justify-start gap-4 text-sm font-semibold text-white sm:justify-end">
+            <span className="inline-flex cursor-pointer items-center gap-1.5 text-white/95 hover:text-white transition"><HelpCircle size={18} /> Quên Mật khẩu?</span>
+            <span className="inline-flex cursor-pointer items-center gap-1.5 text-white/95 hover:text-white transition"><MessageSquare size={17} /> Góp ý</span>
+            <span className="cursor-pointer text-white underline decoration-white/60 underline-offset-4 hover:text-white/80">Tiếng Việt</span>
+            <span className="cursor-pointer text-white/80 hover:text-white">English</span>
           </div>
         </div>
-
       </div>
-    </div>
+
+      {/* Main Content Area */}
+      <div className="relative z-10 mx-auto flex w-full max-w-[1220px] flex-1 flex-col justify-center px-4 py-12 sm:px-8 lg:px-10">
+        <section className="overflow-hidden rounded-[10px] border border-white/30 bg-white/5 shadow-[0_18px_70px_rgba(0,0,0,0.34)] backdrop-blur-[1px]">
+          <div className="flex flex-wrap items-center justify-end gap-5 border-b border-white/20 bg-[#e31a22]/90 px-5 py-3 text-sm font-bold sm:text-base">
+            <span className="text-white">Đăng nhập với:</span>
+            {["Portal", "eLearning", "Diễn đàn", "Thư viện"].map((item, index) => (
+              <label key={item} className="inline-flex cursor-pointer items-center gap-2 text-white">
+                <span className={`h-4 w-4 rounded-full border-2 border-white bg-white ${index === 0 ? 'shadow-[inset_0_0_0_4px_#0ea5ff]' : ''}`} />
+                <span className={index === 0 ? 'text-yellow-300' : ''}>{item}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex min-h-[350px] items-center justify-center bg-[#1a195c]/85 px-5 py-10 sm:px-8">
+            <div className="w-full max-w-[540px] rounded-2xl border border-white/20 bg-white/10 p-5 shadow-[0_10px_35px_rgba(0,0,0,0.22)] backdrop-blur-md sm:p-6">
+              {error && (
+                <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+                  <AlertCircle className="mt-0.5 shrink-0" size={18} />
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={formik.handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-[130px_1fr] items-center gap-3">
+                  <label className="text-base font-semibold text-white">Tên Đăng nhập:</label>
+                  <input
+                    type="text"
+                    className="h-12 rounded-lg border-2 border-[#e31a22] bg-white px-4 text-lg font-semibold text-slate-800 outline-none transition focus:border-[#ef1b2d] focus:ring-2 focus:ring-red-200"
+                    placeholder="Nhập Tên đăng nhập"
+                    autoComplete="username"
+                    {...formik.getFieldProps('username')}
+                  />
+                </div>
+                {formik.errors.username && <p className="pl-[143px] text-xs font-bold text-red-100">{formik.errors.username}</p>}
+
+                <div className="grid grid-cols-[130px_1fr] items-center gap-3">
+                  <label className="text-base font-semibold text-white">Mật khẩu:</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="h-12 w-full rounded-lg border-2 border-[#e31a22] bg-white px-4 pr-11 text-lg font-semibold text-slate-800 outline-none transition focus:border-[#ef1b2d] focus:ring-2 focus:ring-red-200"
+                      placeholder="Nhập Mật khẩu"
+                      autoComplete="current-password"
+                      {...formik.getFieldProps('password')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-slate-500 transition hover:text-[#e31a22]"
+                      aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+                {formik.errors.password && <p className="pl-[143px] text-xs font-bold text-red-100">{formik.errors.password}</p>}
+
+                <div className="grid grid-cols-[130px_1fr] items-center gap-3">
+                  <label className="text-base font-semibold text-white">Mã xác nhận:</label>
+                  <div className="flex flex-row items-center gap-2">
+                    <input
+                      type="text"
+                      className={`h-12 w-20 shrink-0 rounded-lg border-2 bg-red-100 px-3 text-lg font-bold uppercase text-slate-800 outline-none transition ${formik.touched.captchaCode && formik.errors.captchaCode ? 'border-red-600' : 'border-[#e31a22] focus:border-[#ef1b2d] focus:ring-2 focus:ring-red-200'}`}
+                      placeholder="Mã"
+                      autoComplete="off"
+                      {...formik.getFieldProps('captchaCode')}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        if (formik.errors.captchaCode) formik.setFieldError('captchaCode', undefined);
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={loadCaptcha}
+                      disabled={captchaLoading}
+                      className="flex h-12 w-28 shrink-0 items-center justify-center overflow-hidden rounded bg-white/90 px-1 shadow-inner transition hover:bg-white disabled:opacity-60"
+                      aria-label="Tải lại mã captcha"
+                    >
+                      {captchaImage ? (
+                        <Image
+                          src={captchaImage}
+                          alt="Captcha"
+                          width={110}
+                          height={40}
+                          unoptimized
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs font-bold text-slate-500">{captchaLoading ? '...' : 'Trống'}</span>
+                      )}
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={formik.isSubmitting || captchaLoading}
+                      className="h-12 flex-1 cursor-pointer rounded-lg border border-red-950 bg-linear-to-b from-[#e31a22] to-[#ab1016] px-2 text-base font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_12px_rgba(0,0,0,0.25)] transition hover:from-[#f23842] hover:to-[#e31a22] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {formik.isSubmitting ? '...' : 'Đăng nhập'}
+                    </button>
+                  </div>
+                </div>
+                {formik.touched.captchaCode && formik.errors.captchaCode && <p className="pl-[143px] text-xs font-bold text-red-100">{formik.errors.captchaCode}</p>}
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <footer className="mt-8 rounded-[10px] bg-white px-6 py-5 text-lg font-black text-[#4b4b4b] sm:px-10">
+          Copyright© 2026 APAG.
+        </footer>
+      </div>
+    </main>
   );
 }
