@@ -1,14 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, Printer, X, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { Users, X } from 'lucide-react';
+import { Header } from '@/components/Layout/Header';
 
 const menuItems = [
   { path: '/class_leader', icon: Users, label: 'Danh sách lớp' },
-  { path: '/class_leader/print', icon: Printer, label: 'In danh sách' },
 ];
 
 function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -77,29 +76,7 @@ export default function ClassLeaderLayout({ children }: { children: React.ReactN
     <div className="h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#1A1B1E] overflow-hidden">
       <ClassLeaderSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-col h-full lg:pl-[220px]">
-        {/* Simple Header */}
-        <header className="sticky top-0 z-30 h-16 border-b border-[#E9ECEF] bg-white/95 shadow-[0_1px_3px_rgba(0,0,0,0.08)] backdrop-blur-sm">
-          <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6">
-            <button
-              type="button"
-              aria-label="Mở menu"
-              onClick={() => setSidebarOpen(true)}
-              className="cursor-pointer text-[#1A1B1E] hover:bg-[#EDF2FF] hover:text-[#3B5BDB] rounded-lg p-2 lg:hidden"
-            >
-              <Menu size={21} />
-            </button>
-            <div className="flex-1" />
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex flex-col items-end text-right">
-                <span className="text-sm font-semibold text-gray-900">Lớp trưởng</span>
-                <span className="text-xs text-gray-500 font-medium">CSMTS</span>
-              </div>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#104E92] text-sm font-bold text-white shadow-sm">
-                LT
-              </div>
-            </div>
-          </div>
-        </header>
+        <Header onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="flex-1 flex flex-col bg-[#F8F9FA] overflow-x-hidden max-w-full overflow-y-auto min-h-0">
           {children}

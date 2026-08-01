@@ -28,6 +28,9 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
       admin: '/admin',
       student: '/student',
       class_council: '/class_council',
+      class_leader: '/class_leader',
+      faculty: '/faculty',
+      training_department: '/training_department',
     };
 
     setIsAuthorized(false);

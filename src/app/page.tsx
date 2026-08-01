@@ -24,6 +24,12 @@ export default function RootPage() {
         router.replace('/admin');
       } else if (user?.role === 'class_council') {
         router.replace('/class_council');
+      } else if (user?.role === 'class_leader') {
+        router.replace('/class_leader');
+      } else if (user?.role === 'faculty') {
+        router.replace('/faculty');
+      } else if (user?.role === 'training_department') {
+        router.replace('/training_department');
       } else {
         router.replace('/student');
       }
