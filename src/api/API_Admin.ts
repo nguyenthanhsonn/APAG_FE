@@ -9,6 +9,7 @@ import type {
   AdminMajor,
   AdminSemester,
   AdminStudentListQuery,
+  AdminTreeListQuery,
   AdminUser,
   BulkFinalizeEvaluationsPayload,
   ConfirmImportPayload,
@@ -239,6 +240,13 @@ async function getMajorById(id: string) {
   return get<AdminMajor>(`/admin/majors/${id}`);
 }
 
+/** Lấy danh sách ngành thuộc một khoa để dựng cây Khoa -> Ngành. */
+async function getFacultyMajors(facultyId: string, query?: AdminTreeListQuery) {
+  return get<PaginatedResponse<AdminMajor> | AdminMajor[]>(`/admin/faculties/${facultyId}/majors`, {
+    params: buildQueryParams(query),
+  });
+}
+
 /** Tạo ngành mới. */
 async function createMajor(payload: MajorPayload) {
   return post<AdminMajor>('/admin/majors', payload);
@@ -288,6 +296,13 @@ async function confirmImportMajors(payload: ConfirmImportPayload) {
 /** Lấy danh sách lớp. */
 async function getClasses() {
   return get<AdminClass[]>('/admin/classes');
+}
+
+/** Lấy danh sách lớp thuộc một ngành để dựng cây Ngành -> Lớp. */
+async function getMajorClasses(majorId: string, query?: AdminTreeListQuery) {
+  return get<PaginatedResponse<AdminClass> | AdminClass[]>(`/admin/majors/${majorId}/classes`, {
+    params: buildQueryParams(query),
+  });
 }
 
 /** Lấy chi tiết lớp. */
@@ -484,6 +499,7 @@ export const API_Admin = {
   confirmImportFaculties,
   getMajors,
   getMajorById,
+  getFacultyMajors,
   createMajor,
   updateMajor,
   updateMajorStatus,
@@ -492,6 +508,7 @@ export const API_Admin = {
   importMajors,
   confirmImportMajors,
   getClasses,
+  getMajorClasses,
   getClassById,
   getAdvisorClassById,
   updateClassAdvisors,

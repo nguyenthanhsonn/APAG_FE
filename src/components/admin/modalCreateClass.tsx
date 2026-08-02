@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { X, Hash, BookOpen, Building2, GraduationCap, Download } from 'lucide-react';
-import type { ClassFormValues, ModalCreateClassProps } from '../../types';
+import { API_Admin } from '../../api/API_Admin';
+import { getUserFriendlyError, toArray } from '../../utils/adminData';
+import type { ClassFormValues, Major, ModalCreateClassProps } from '../../types';
 
 const validationSchema = Yup.object({
   code: Yup.string()
@@ -33,6 +35,9 @@ export default function ModalCreateClass({
   majors = [],
 }: ModalCreateClassProps) {
   const isEdit = !!editData;
+  const [majorOptions, setMajorOptions] = useState<Major[]>([]);
+  const [majorLoading, setMajorLoading] = useState(false);
+  const [majorError, setMajorError] = useState('');
 
   const formik = useFormik<ClassFormValues>({
     initialValues: editData
@@ -48,24 +53,59 @@ export default function ModalCreateClass({
     },
   });
 
+  const { resetForm } = formik;
+  const selectedFacultyId = formik.values.facultyId;
+
   useEffect(() => {
     if (isOpen) {
-      formik.resetForm({
+      resetForm({
         values: editData
           ? { code: editData.code, name: editData.name, facultyId: editData.facultyId, majorId: editData.majorId }
           : defaultValues,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, editData]);
+  }, [isOpen, editData, resetForm]);
 
-  const filteredMajors = majors.filter(
-    (m) => m.facultyId === formik.values.facultyId && m.isActive
-  );
+  useEffect(() => {
+    const loadMajorsByFaculty = async () => {
+      if (!isOpen || !selectedFacultyId) {
+        setMajorOptions([]);
+        return;
+      }
+
+      try {
+        setMajorLoading(true);
+        setMajorError('');
+        const data = await API_Admin.getFacultyMajors(selectedFacultyId, { page: 1, limit: 1000, isActive: true, includeDeleted: false });
+        const nextMajors = toArray(data as any).map((m: any) => ({
+          id: m.id || m._id || '',
+          code: m.code || '',
+          name: m.name || '',
+          facultyId: m.facultyId || m.faculty_id || m.faculty?.id || m.faculty?._id || '',
+          faculty: m.faculty,
+          isActive: m.isActive ?? true,
+        }));
+        setMajorOptions(nextMajors);
+      } catch (err) {
+        setMajorOptions([]);
+        setMajorError(getUserFriendlyError(err, 'Không thể tải danh sách ngành trong khoa.'));
+      } finally {
+        setMajorLoading(false);
+      }
+    };
+
+    loadMajorsByFaculty();
+  }, [isOpen, selectedFacultyId]);
+
+  const filteredMajors = majorOptions.length > 0
+    ? majorOptions
+    : majors.filter((m) => m.facultyId === selectedFacultyId && m.isActive);
 
   const handleFacultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     formik.setFieldValue('facultyId', e.target.value);
     formik.setFieldValue('majorId', '');
+    setMajorOptions([]);
+    setMajorError('');
   };
 
   if (!isOpen) return null;
@@ -175,11 +215,11 @@ export default function ModalCreateClass({
               </label>
               <select
                 className={inputCls('majorId')}
-                disabled={!formik.values.facultyId}
+                disabled={!selectedFacultyId || majorLoading}
                 {...formik.getFieldProps('majorId')}
               >
                 <option value="">
-                  {formik.values.facultyId ? '-- Chọn ngành --' : '-- Chọn khoa trước --'}
+                  {!selectedFacultyId ? '-- Chọn khoa trước --' : majorLoading ? 'Đang tải ngành...' : '-- Chọn ngành --'}
                 </option>
                 {filteredMajors.map((m) => (
                   <option key={m.id} value={m.id}>{m.name}</option>
@@ -188,7 +228,10 @@ export default function ModalCreateClass({
               {formik.errors.majorId && (
                 <p className="mt-1 text-xs text-[#C92A2A]">{formik.errors.majorId}</p>
               )}
-              {formik.values.facultyId && filteredMajors.length === 0 && (
+              {majorError && (
+                <p className="mt-1 text-xs text-[#C92A2A]">{majorError}</p>
+              )}
+              {formik.values.facultyId && !majorLoading && !majorError && filteredMajors.length === 0 && (
                 <p className="mt-1 text-xs text-[#E67700]">
                   Khoa này chưa có ngành nào. Vui lòng tạo ngành trước.
                 </p>
@@ -209,7 +252,7 @@ export default function ModalCreateClass({
                 </div>
                 {formik.values.majorId && (
                   <p className="mt-1 text-xs text-[#868E96]">
-                    Ngành: {majors.find((m) => m.id === formik.values.majorId)?.name} &nbsp;|&nbsp;
+                    Ngành: {filteredMajors.find((m) => m.id === formik.values.majorId)?.name} &nbsp;|&nbsp;
                     Khoa: {faculties.find((f) => f.id === formik.values.facultyId)?.name}
                   </p>
                 )}

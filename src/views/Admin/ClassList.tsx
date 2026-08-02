@@ -11,6 +11,50 @@ import ModalAddStudent from '../../components/admin/modalAddStudent';
 import { getUserFriendlyError, toArray } from '../../utils/adminData';
 import { useAdminUrlState } from '../../utils/adminUrlState';
 
+const normalizeFaculty = (f: any): Faculty => ({
+  id: f.id || f._id || '',
+  code: f.code || '',
+  name: f.name || '',
+  isActive: f.isActive ?? true,
+});
+
+const normalizeMajor = (m: any): Major => ({
+  id: m.id || m._id || '',
+  code: m.code || '',
+  name: m.name || '',
+  facultyId: m.facultyId || m.faculty_id || m.faculty?.id || m.faculty?._id || '',
+  faculty: m.faculty,
+  isActive: m.isActive ?? true,
+});
+
+const normalizeClass = (c: any): Class => {
+  const majorId = c.majorId || c.major_id || c.major?.id || c.major?._id || '';
+  const facultyId =
+    c.facultyId ||
+    c.faculty_id ||
+    c.faculty?.id ||
+    c.faculty?._id ||
+    c.major?.facultyId ||
+    c.major?.faculty_id ||
+    c.major?.faculty?.id ||
+    c.major?.faculty?._id ||
+    '';
+
+  return {
+    id: c.id || c._id || '',
+    code: c.code || '',
+    name: c.name || '',
+    facultyId,
+    majorId,
+    major: c.major,
+    faculty: c.faculty || c.major?.faculty,
+    enrollmentYear: c.enrollmentYear,
+    studentCount: c.studentCount,
+    advisors: c.advisors || [],
+    isActive: c.isActive ?? true,
+  };
+};
+
 export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListProps) => {
   const { getPage, getValue, setQuery } = useAdminUrlState();
   const [selectedFaculty, setSelectedFaculty] = useState(() => getValue('facultyId'));
@@ -36,83 +80,64 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteStudent, setPendingDeleteStudent] = useState<ClassListStudentItem | null>(null);
 
-  // Sync selectedClass, selectedMajor, and selectedFaculty with preSelectedClassId once classes are loaded
+  // Chỉ tải danh sách khoa ban đầu; ngành/lớp được tải theo API cây khi người dùng chọn.
   useEffect(() => {
-    if (preSelectedClassId && classes.length > 0) {
-      const cls = classes.find((c) => c.id === preSelectedClassId);
-      if (cls) {
-        setSelectedFaculty(cls.facultyId || '');
-        setSelectedMajor(cls.majorId || '');
-        setSelectedClass(preSelectedClassId);
-      }
-    }
-  }, [preSelectedClassId, classes]);
-
-  // Load all metadata lists on mount
-  useEffect(() => {
-    const loadMetadata = async () => {
+    const loadFaculties = async () => {
       try {
         setLoading(true);
         setErrorMsg('');
-
-        const [facs, majs, clss] = await Promise.all([
-          API_Admin.getFaculties(),
-          API_Admin.getMajors(),
-          API_Admin.getClasses(),
-        ]);
-
-        const normalizedFaculties = toArray(facs as any).map((f: any) => ({
-          id: f.id || f._id || '',
-          code: f.code || '',
-          name: f.name || '',
-          isActive: f.isActive ?? true,
-        }));
-
-        const normalizedMajors = toArray(majs as any).map((m: any) => ({
-          id: m.id || m._id || '',
-          code: m.code || '',
-          name: m.name || '',
-          facultyId: m.facultyId || m.faculty_id || m.faculty?.id || m.faculty?._id || '',
-          isActive: m.isActive ?? true,
-        }));
-
-        const normalizedClasses = toArray(clss as any).map((c: any) => {
-          const majorId = c.majorId || c.major_id || c.major?.id || c.major?._id || '';
-          const facultyId =
-            c.facultyId ||
-            c.faculty_id ||
-            c.faculty?.id ||
-            c.faculty?._id ||
-            c.major?.facultyId ||
-            c.major?.faculty_id ||
-            c.major?.faculty?.id ||
-            c.major?.faculty?._id ||
-            normalizedMajors.find((m) => m.id === majorId)?.facultyId ||
-            '';
-
-          return {
-            id: c.id || c._id || '',
-            code: c.code || '',
-            name: c.name || '',
-            facultyId,
-            majorId,
-            major: c.major,
-            enrollmentYear: c.enrollmentYear,
-            isActive: c.isActive ?? true,
-          };
-        });
-
-        setFaculties(normalizedFaculties);
-        setMajors(normalizedMajors);
-        setClasses(normalizedClasses);
+        const facs = await API_Admin.getFaculties();
+        setFaculties(toArray(facs as any).map(normalizeFaculty));
       } catch (err: any) {
         setErrorMsg(getUserFriendlyError(err, 'Không thể tải thông tin danh mục. Vui lòng thử lại sau.'));
       } finally {
         setLoading(false);
       }
     };
-    loadMetadata();
+
+    loadFaculties();
   }, []);
+
+  useEffect(() => {
+    const loadMajorsByFaculty = async () => {
+      if (!selectedFaculty) {
+        setMajors([]);
+        setClasses([]);
+        return;
+      }
+
+      try {
+        setErrorMsg('');
+        const data = await API_Admin.getFacultyMajors(selectedFaculty, { page: 1, limit: 1000, isActive: true, includeDeleted: false });
+        setMajors(toArray(data as any).map(normalizeMajor));
+      } catch (err) {
+        setMajors([]);
+        setErrorMsg(getUserFriendlyError(err, 'Không thể tải danh sách ngành trong khoa. Vui lòng thử lại sau.'));
+      }
+    };
+
+    loadMajorsByFaculty();
+  }, [selectedFaculty]);
+
+  useEffect(() => {
+    const loadClassesByMajor = async () => {
+      if (!selectedMajor) {
+        setClasses([]);
+        return;
+      }
+
+      try {
+        setErrorMsg('');
+        const data = await API_Admin.getMajorClasses(selectedMajor, { page: 1, limit: 1000, isActive: true, includeDeleted: false });
+        setClasses(toArray(data as any).map(normalizeClass));
+      } catch (err) {
+        setClasses([]);
+        setErrorMsg(getUserFriendlyError(err, 'Không thể tải danh sách lớp trong ngành. Vui lòng thử lại sau.'));
+      }
+    };
+
+    loadClassesByMajor();
+  }, [selectedMajor]);
 
   const loadStudents = async (classId: string) => {
     if (!classId) {
@@ -147,37 +172,13 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
 
     try {
       const data = await API_Admin.getClassById(classId);
-      const detail = data as any;
-      const majorId = detail.majorId || detail.major_id || detail.major?.id || '';
-      const facultyId =
-        detail.facultyId ||
-        detail.faculty_id ||
-        detail.faculty?.id ||
-        detail.major?.facultyId ||
-        detail.major?.faculty?.id ||
-        majors.find((m) => m.id === majorId)?.facultyId ||
-        '';
-
-      setClassDetail({
-        id: detail.id || '',
-        code: detail.code || '',
-        name: detail.name || '',
-        majorId,
-        facultyId,
-        major: detail.major,
-        faculty: detail.faculty || detail.major?.faculty,
-        enrollmentYear: detail.enrollmentYear,
-        createdAt: detail.createdAt,
-        deletedAt: detail.deletedAt,
-        studentCount: detail.studentCount,
-        advisors: detail.advisors || [],
-        isActive: detail.isActive ?? true,
-      });
+      const detail = normalizeClass(data as any);
+      setClassDetail(detail);
     } catch (err: any) {
       setClassDetail(null);
       setErrorMsg(getUserFriendlyError(err, 'Không thể tải chi tiết lớp. Vui lòng thử lại sau.'));
     }
-  }, [majors]);
+  }, []);
 
   useEffect(() => {
     loadStudents(selectedClass);
@@ -281,8 +282,6 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
     },
   ];
 
-  const filteredMajors = majors.filter((m) => m.isActive && m.facultyId === selectedFaculty);
-  const filteredClasses = classes.filter((c) => c.isActive && c.majorId === selectedMajor);
   const activeClassDetails = classes.find((c) => c.id === selectedClass);
   const displayedClass = classDetail || activeClassDetails || null;
   const displayedMajor = displayedClass?.major?.name || majors.find((m) => m.id === displayedClass?.majorId)?.name || '—';
@@ -426,8 +425,8 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                     disabled={!selectedFaculty}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer bg-white disabled:cursor-not-allowed disabled:bg-gray-100"
                   >
-                    <option value="">-- Chọn ngành --</option>
-                    {filteredMajors.map((m) => (
+                    <option value="">{selectedFaculty ? '-- Chọn ngành --' : '-- Chọn khoa trước --'}</option>
+                    {majors.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
                   </select>
@@ -440,8 +439,8 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                     disabled={!selectedMajor}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer bg-white disabled:cursor-not-allowed disabled:bg-gray-100"
                   >
-                    <option value="">-- Chọn lớp --</option>
-                    {filteredClasses.map((c) => (
+                    <option value="">{selectedMajor ? '-- Chọn lớp --' : '-- Chọn ngành trước --'}</option>
+                    {classes.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
