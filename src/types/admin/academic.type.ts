@@ -28,20 +28,9 @@ export interface Class {
   major?: Major;
   faculty?: Faculty;
   advisors?: ClassAdvisor[];
-  councils?: ClassCouncil[];
 }
 
 export interface ClassAdvisor {
-  id: string;
-  userId: string;
-  username: string;
-  fullName: string;
-  email: string;
-  isActive: boolean;
-  assignedAt?: string;
-}
-
-export interface ClassCouncil {
   id: string;
   userId: string;
   username: string;
