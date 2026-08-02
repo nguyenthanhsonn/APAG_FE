@@ -61,6 +61,11 @@ async function updateProfile(_accessTokenOrPayload: string | Record<string, unkn
   return patch<User>('/profile', data);
 }
 
+/** Gửi yêu cầu quên mật khẩu (nhập email/username để gửi OTP). */
+async function forgotPassword(identifier: string) {
+  return post<{ email?: string; message?: string }>('/auth/forgot-password', { identifier }, { skipAuth: true, skipAuthRefresh: true } as any);
+}
+
 export const API_Auth = {
   getCaptcha,
   login,
@@ -70,4 +75,5 @@ export const API_Auth = {
   refreshToken,
   logout,
   changePassword,
+  forgotPassword,
 };

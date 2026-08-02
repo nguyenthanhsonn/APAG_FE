@@ -13,6 +13,7 @@ import {
 import { API_Admin } from '@/api/API_Admin';
 import type { AdminEvaluationItem } from '@/types';
 import { toArray } from '@/utils/facultyEvaluationData';
+import { getUserFriendlyError } from '@/utils/errorHelper';
 
 type FacultyStat = {
   id: string;
@@ -76,7 +77,7 @@ export function TrainingDeptDashboard() {
       setEvaluations(toArray<AdminEvaluationItem>(result));
     } catch (err: any) {
       setEvaluations([]);
-      setErrorMessage(err?.userMessage || err?.message || 'Không tải được dữ liệu Phòng Đào tạo từ API.');
+      setErrorMessage(getUserFriendlyError(err, 'Không tải được dữ liệu Phòng Đào tạo.'));
     } finally {
       setLoading(false);
     }

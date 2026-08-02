@@ -38,8 +38,15 @@ const DISCIPLINE_VIOLATION_CODES = [
   'EXAM_VIOLATION_WARNING',
   'EXAM_VIOLATION_SUSPENSION',
 ] as const;
-const DISCIPLINE_DEDUCTION_WEIGHTS = [10, 3, 5, 5, 5, 5, 5, 10, 20];
 
+const getDisplayName = (value: unknown) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && 'name' in value) {
+    return String((value as { name?: unknown }).name || '');
+  }
+  return '';
+};
 export const EvaluationFormQD4185 = () => {
   const { user } = useAuthStore();
   const toast = useToast();
@@ -50,7 +57,7 @@ export const EvaluationFormQD4185 = () => {
 	  const [isLocked, setIsLocked] = useState(false);
 	  const [alreadyEvaluated, setAlreadyEvaluated] = useState(false);
   const [evaluationId, setEvaluationId] = useState<string | null>(null);
-  const [, setEvaluationWorkflow] = useState<any>(null);
+  const [_evaluationWorkflow, setEvaluationWorkflow] = useState<any>(null);
   const [note, setNote] = useState<string>('');
 
   // Simulating user role switcher for testing purposes
@@ -75,6 +82,11 @@ export const EvaluationFormQD4185 = () => {
   const [academicYear, setAcademicYear] = useState<string>('');
   const [selectedSemesterId, setSelectedSemesterId] = useState('');
   const [availableSemesters, setAvailableSemesters] = useState<any[]>([]);
+  const userProfile = user as any;
+  const majorDisplayName = getDisplayName(userProfile?.major) || userProfile?.majorName || 'Chưa cập nhật';
+  const admissionYearDisplay =
+    userProfile?.admissionYear || userProfile?.class?.enrollmentYear || userProfile?.enrollmentYear || 'Chưa cập nhật';
+  const facultyDisplayName = getDisplayName(userProfile?.faculty) || userProfile?.facultyName || 'Chưa cập nhật';
 
   // File Upload State
 	  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedEvidenceFile[]>>({});
@@ -338,31 +350,31 @@ export const EvaluationFormQD4185 = () => {
   };
 
   // Score states for SV (Student) — all sv values also written to store via batchSet
-  const [svStudyAttitude, setSvStudyAttitude] = useState<string>('none');
+  const [svStudyAttitude, setSvStudyAttitude] = useState<string>('');
   const [svNckh, setSvNckh] = useState(false);
   const [svOlympic, setSvOlympic] = useState(false);
   const [svCreative, setSvCreative] = useState(false);
-  const [svAcademicRank, setSvAcademicRank] = useState<string>('none');
+  const [svAcademicRank, setSvAcademicRank] = useState<string>('');
 
   const [svNoViolationScore, setSvNoViolationScore] = useState<number>(0);
   const [svDeductions, setSvDeductions] = useState<number[]>([0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
   const [svActivity1, setSvActivity1] = useState<string>('ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED');
-  const [svActivity2, setSvActivity2] = useState<string>('none');
-  const [svActivity3, setSvActivity3] = useState<string>('none');
-  const [svActivity4, setSvActivity4] = useState<string>('none');
+  const [svActivity2, setSvActivity2] = useState<string>('NOT_PARTICIPATED');
+  const [svActivity3, setSvActivity3] = useState<string>('NOT_PARTICIPATED');
+  const [svActivity4, setSvActivity4] = useState<string>('REMINDED_VIOLATION');
   const [svRewardPoints, setSvRewardPoints] = useState<number>(0);
 
   const [svPolicy, setSvPolicy] = useState<string>('VIOLATED');
-  const [svSolidarity, setSvSolidarity] = useState<string>('none');
+  const [svSolidarity, setSvSolidarity] = useState<string>('NOT_PARTICIPATED');
   const [svLocality, setSvLocality] = useState<string>('TWO_WARNINGS');
 
-  const [svRoleType, setSvRoleType] = useState<'cadre' | 'student'>('student');
-  const [svCadrePosition, setSvCadrePosition] = useState<'a1' | 'a2'>('a2');
-  const [svCadrePerformance, setSvCadrePerformance] = useState<string>('unsatisfactory');
-  const [svManagementLevel, setSvManagementLevel] = useState<string>('none');
+  const [svRoleType, setSvRoleType] = useState<string>('NORMAL_STUDENT');
+  const [svCadrePosition, setSvCadrePosition] = useState<string>('MEMBER_GROUP');
+  const [svCadrePerformance, setSvCadrePerformance] = useState<string>('POOR');
+  const [svManagementLevel, setSvManagementLevel] = useState<string>('');
   const [svClassParticipation, setSvClassParticipation] = useState<number>(0);
-  const [svSpecialAchievement, setSvSpecialAchievement] = useState<string>('none');
+  const [svSpecialAchievement, setSvSpecialAchievement] = useState<string>('NONE');
 
   // Class (Monitor) score states are NOT kept locally — they are written directly to store
   // by the auto-propagate effect below and managed there by EvaluationTableGrid.
@@ -470,26 +482,34 @@ export const EvaluationFormQD4185 = () => {
       average: 'FROM_4_TO_UNDER_5',
       poor: 'FROM_1_TO_UNDER_4',
     };
-    return dict[val as keyof typeof dict] || undefined;
+    return dict[val as keyof typeof dict] || val || undefined;
   };
 
   const reverseMapStudyAttitude = (val: string) => {
     const dict = {
-      GTE_9: 'very_good',
-      FROM_7_TO_UNDER_9: 'good',
-      FROM_5_TO_UNDER_7: 'fair',
-      FROM_4_TO_UNDER_5: 'average',
-      FROM_1_TO_UNDER_4: 'poor',
+      very_good: 'GTE_9',
+      good: 'FROM_7_TO_UNDER_9',
+      fair: 'FROM_5_TO_UNDER_7',
+      average: 'FROM_4_TO_UNDER_5',
+      poor: 'FROM_1_TO_UNDER_4',
     };
-    return dict[val as keyof typeof dict] || 'none';
+    return dict[val as keyof typeof dict] || val || '';
   };
 
   const mapAcademicRank = (val: string) => {
-    return val.toUpperCase();
+    const dict = {
+      weak_no_warn: 'WEAK_NO_WARNING',
+      weak_warn: 'WEAK_WARNING_FIRST',
+    };
+    return dict[val as keyof typeof dict] || val || undefined;
   };
 
   const reverseMapAcademicRank = (val: string) => {
-    return val.toLowerCase();
+    const dict = {
+      weak_no_warn: 'WEAK_NO_WARNING',
+      weak_warn: 'WEAK_WARNING_FIRST',
+    };
+    return dict[val as keyof typeof dict] || val || '';
   };
 
   const mapActivity1 = (val: string) => {
@@ -503,7 +523,7 @@ export const EvaluationFormQD4185 = () => {
       excused: 'ABSENT_TWICE',
       unexcused: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
     };
-    return dict[val as keyof typeof dict] || 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED';
+    return dict[val as keyof typeof dict] || val || 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED';
   };
 
   const reverseMapActivity1 = (val: string) => {
@@ -516,7 +536,7 @@ export const EvaluationFormQD4185 = () => {
       LOW_PARTICIPATION: 'ABSENT_TWICE',
       NO_PARTICIPATION: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
     };
-    return dict[val as keyof typeof dict] || 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED';
+    return dict[val as keyof typeof dict] || val || 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED';
   };
 
   const mapActivity2 = (val: string) => {
@@ -527,18 +547,18 @@ export const EvaluationFormQD4185 = () => {
       full: 'ABSENT_OVER_HALF',
       none: 'NOT_PARTICIPATED',
     };
-    return dict[val as keyof typeof dict] || 'NOT_PARTICIPATED';
+    return dict[val as keyof typeof dict] || val || 'NOT_PARTICIPATED';
   };
 
   const reverseMapActivity2 = (val: string) => {
     const dict = {
-      FULL_EFFECTIVE_PARTICIPATION: 'many',
-      EFFECTIVE_PARTICIPATION_FROM_HALF: 'some',
-      ENCOURAGED_OTHERS: 'active',
-      ABSENT_OVER_HALF: 'full',
-      NOT_PARTICIPATED: 'none',
+      many: 'FULL_EFFECTIVE_PARTICIPATION',
+      some: 'EFFECTIVE_PARTICIPATION_FROM_HALF',
+      active: 'ENCOURAGED_OTHERS',
+      full: 'ABSENT_OVER_HALF',
+      none: 'NOT_PARTICIPATED',
     };
-    return dict[val as keyof typeof dict] || 'none';
+    return dict[val as keyof typeof dict] || val || 'NOT_PARTICIPATED';
   };
 
   const mapActivity3 = (val: string) => {
@@ -549,18 +569,18 @@ export const EvaluationFormQD4185 = () => {
       full: 'ABSENT_OVER_HALF',
       none: 'NOT_PARTICIPATED',
     };
-    return dict[val as keyof typeof dict] || 'NOT_PARTICIPATED';
+    return dict[val as keyof typeof dict] || val || 'NOT_PARTICIPATED';
   };
 
   const reverseMapActivity3 = (val: string) => {
     const dict = {
-      FULL_EFFECTIVE_PARTICIPATION: 'prize_or_org',
-      ACTIVE_ONE_OR_MORE: 'active',
-      ACTIVE_SUPPORTER: 'some',
-      ABSENT_OVER_HALF: 'full',
-      NOT_PARTICIPATED: 'none',
+      prize_or_org: 'FULL_EFFECTIVE_PARTICIPATION',
+      active: 'ACTIVE_ONE_OR_MORE',
+      some: 'ACTIVE_SUPPORTER',
+      full: 'ABSENT_OVER_HALF',
+      none: 'NOT_PARTICIPATED',
     };
-    return dict[val as keyof typeof dict] || 'none';
+    return dict[val as keyof typeof dict] || val || 'NOT_PARTICIPATED';
   };
 
   const mapActivity4 = (val: string) => {
@@ -570,17 +590,17 @@ export const EvaluationFormQD4185 = () => {
       some: 'AWARENESS_OR_SUPPORT',
       none: 'REMINDED_VIOLATION',
     };
-    return dict[val as keyof typeof dict] || 'REMINDED_VIOLATION';
+    return dict[val as keyof typeof dict] || val || 'REMINDED_VIOLATION';
   };
 
   const reverseMapActivity4 = (val: string) => {
     const dict = {
-      MULTIPLE_ACTIVITIES_OR_REPORTING: 'active',
-      ONE_EFFECTIVE_ACTIVITY: 'full',
-      AWARENESS_OR_SUPPORT: 'some',
-      REMINDED_VIOLATION: 'none',
+      active: 'MULTIPLE_ACTIVITIES_OR_REPORTING',
+      full: 'ONE_EFFECTIVE_ACTIVITY',
+      some: 'AWARENESS_OR_SUPPORT',
+      none: 'REMINDED_VIOLATION',
     };
-    return dict[val as keyof typeof dict] || 'none';
+    return dict[val as keyof typeof dict] || val || 'REMINDED_VIOLATION';
   };
 
   const mapPolicy = (val: string) => {
@@ -594,7 +614,7 @@ export const EvaluationFormQD4185 = () => {
       minor_violation: 'AVERAGE',
       none: 'VIOLATED',
     };
-    return dict[val as keyof typeof dict] || 'VIOLATED';
+    return dict[val as keyof typeof dict] || val || 'VIOLATED';
   };
 
   const reverseMapPolicy = (val: string) => {
@@ -607,7 +627,7 @@ export const EvaluationFormQD4185 = () => {
       FAIR: 'AVERAGE',
       POOR: 'VIOLATED',
     };
-    return dict[val as keyof typeof dict] || 'VIOLATED';
+    return dict[val as keyof typeof dict] || val || 'VIOLATED';
   };
 
   const mapSolidarity = (val: string) => {
@@ -617,17 +637,17 @@ export const EvaluationFormQD4185 = () => {
       some: 'PARTICIPATED',
       none: 'NOT_PARTICIPATED',
     };
-    return dict[val as keyof typeof dict] || 'NOT_PARTICIPATED';
+    return dict[val as keyof typeof dict] || val || 'NOT_PARTICIPATED';
   };
 
   const reverseMapSolidarity = (val: string) => {
     const dict = {
-      ACTIVE_WITH_REWARD: 'excellent_achievements',
-      ACTIVE: 'regular',
-      PARTICIPATED: 'some',
-      NOT_PARTICIPATED: 'none',
+      excellent_achievements: 'ACTIVE_WITH_REWARD',
+      regular: 'ACTIVE',
+      some: 'PARTICIPATED',
+      none: 'NOT_PARTICIPATED',
     };
-    return dict[val as keyof typeof dict] || 'none';
+    return dict[val as keyof typeof dict] || val || 'NOT_PARTICIPATED';
   };
 
   const mapLocality = (val: string) => {
@@ -639,7 +659,7 @@ export const EvaluationFormQD4185 = () => {
       rewarded: 'ONE_WARNING',
       warned: 'TWO_WARNINGS',
     };
-    return dict[val as keyof typeof dict] || 'TWO_WARNINGS';
+    return dict[val as keyof typeof dict] || val || 'TWO_WARNINGS';
   };
 
   const reverseMapLocality = (val: string) => {
@@ -650,7 +670,7 @@ export const EvaluationFormQD4185 = () => {
       FAIR: 'ONE_WARNING',
       POOR: 'TWO_WARNINGS',
     };
-    return dict[val as keyof typeof dict] || 'TWO_WARNINGS';
+    return dict[val as keyof typeof dict] || val || 'TWO_WARNINGS';
   };
 
   const mapCadrePerformance = (val: string) => {
@@ -660,17 +680,17 @@ export const EvaluationFormQD4185 = () => {
       average: 'FAIR',
       unsatisfactory: 'POOR',
     };
-    return dict[val as keyof typeof dict] || 'POOR';
+    return dict[val as keyof typeof dict] || val || 'POOR';
   };
 
   const reverseMapCadrePerformance = (val: string) => {
     const dict = {
-      EXCELLENT: 'excellent',
-      GOOD: 'good',
-      FAIR: 'average',
-      POOR: 'unsatisfactory',
+      excellent: 'EXCELLENT',
+      good: 'GOOD',
+      average: 'FAIR',
+      unsatisfactory: 'POOR',
     };
-    return dict[val as keyof typeof dict] || 'unsatisfactory';
+    return dict[val as keyof typeof dict] || val || 'POOR';
   };
 
   const mapManagementLevel = (val: string) => {
@@ -679,16 +699,16 @@ export const EvaluationFormQD4185 = () => {
       deputy: 'DEPUTY_POSITION',
       member: 'MEMBER_POSITION',
     };
-    return dict[val as keyof typeof dict] || undefined;
+    return dict[val as keyof typeof dict] || val || undefined;
   };
 
   const reverseMapManagementLevel = (val: string) => {
     const dict = {
-      HEAD_POSITION: 'head',
-      DEPUTY_POSITION: 'deputy',
-      MEMBER_POSITION: 'member',
+      head: 'HEAD_POSITION',
+      deputy: 'DEPUTY_POSITION',
+      member: 'MEMBER_POSITION',
     };
-    return dict[val as keyof typeof dict] || 'none';
+    return dict[val as keyof typeof dict] || val || '';
   };
 
   const mapSpecialAchievement = (val: string) => {
@@ -697,65 +717,65 @@ export const EvaluationFormQD4185 = () => {
       provincial: 'PROVINCIAL_LEVEL',
       none: 'NONE',
     };
-    return dict[val as keyof typeof dict] || 'NONE';
+    return dict[val as keyof typeof dict] || val || 'NONE';
   };
 
   const reverseMapSpecialAchievement = (val: string) => {
     const dict = {
-      NATIONAL_OR_INTL: 'national_intl',
-      PROVINCIAL_LEVEL: 'provincial',
-      NONE: 'none',
+      national_intl: 'NATIONAL_OR_INTL',
+      provincial: 'PROVINCIAL_LEVEL',
+      none: 'NONE',
     };
-    return dict[val as keyof typeof dict] || 'none';
+    return dict[val as keyof typeof dict] || val || 'NONE';
   };
 
   // Reset fields function for fresh evaluations
   const resetFormFields = () => {
-    setSvStudyAttitude('none');
+    setSvStudyAttitude('');
     setSvNckh(false);
     setSvOlympic(false);
     setSvCreative(false);
-    setSvAcademicRank('none');
+    setSvAcademicRank('');
     setSvNoViolationScore(0);
     setSvDeductions([0, 0, 0, 0, 0, 0, 0, 0, 0]);
     setSvActivity1('ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED');
-    setSvActivity2('none');
-    setSvActivity3('none');
-    setSvActivity4('none');
+    setSvActivity2('NOT_PARTICIPATED');
+    setSvActivity3('NOT_PARTICIPATED');
+    setSvActivity4('REMINDED_VIOLATION');
     setSvRewardPoints(0);
     setSvPolicy('VIOLATED');
-    setSvSolidarity('none');
+    setSvSolidarity('NOT_PARTICIPATED');
     setSvLocality('TWO_WARNINGS');
-    setSvRoleType('student');
-    setSvCadrePosition('a2');
-    setSvCadrePerformance('unsatisfactory');
-    setSvManagementLevel('none');
+    setSvRoleType('NORMAL_STUDENT');
+    setSvCadrePosition('MEMBER_GROUP');
+    setSvCadrePerformance('POOR');
+    setSvManagementLevel('');
     setSvClassParticipation(0);
-    setSvSpecialAchievement('none');
+    setSvSpecialAchievement('NONE');
 
     // Reset class columns directly in store (no local class state)
     store.getState().batchSet({
-      classStudyAttitude: 'none',
+      classStudyAttitude: '',
       classNckh: false,
       classOlympic: false,
       classCreative: false,
-      classAcademicRank: 'none',
+      classAcademicRank: '',
       classNoViolationScore: 0,
       classDeductions: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       classActivity1: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
-      classActivity2: 'none',
-      classActivity3: 'none',
-      classActivity4: 'none',
+      classActivity2: 'NOT_PARTICIPATED',
+      classActivity3: 'NOT_PARTICIPATED',
+      classActivity4: 'REMINDED_VIOLATION',
       classRewardPoints: 0,
       classPolicy: 'VIOLATED',
-      classSolidarity: 'none',
+      classSolidarity: 'NOT_PARTICIPATED',
       classLocality: 'TWO_WARNINGS',
-      classRoleType: 'student',
-      classCadrePosition: 'a2',
-      classCadrePerformance: 'unsatisfactory',
-      classManagementLevel: 'none',
+      classRoleType: 'NORMAL_STUDENT',
+      classCadrePosition: 'MEMBER_GROUP',
+      classCadrePerformance: 'POOR',
+      classManagementLevel: '',
       classClassParticipation: 0,
-      classSpecialAchievement: 'none',
+      classSpecialAchievement: 'NONE',
       isClassViolationSec1: false,
       isClassViolationSec2: false,
       isClassViolationSec3: false,
@@ -856,8 +876,8 @@ export const EvaluationFormQD4185 = () => {
       if (commData.volunteerActivityLevel) setSvSolidarity(reverseMapSolidarity(commData.volunteerActivityLevel));
       if (commData.communityRelationshipLevel) setSvLocality(reverseMapLocality(commData.communityRelationshipLevel));
 
-      if (roleData.studentRoleType) setSvRoleType(roleData.studentRoleType === 'CLASS_OFFICER' ? 'cadre' : 'student');
-      if (roleData.positionGroup) setSvCadrePosition(roleData.positionGroup === 'LEADER_GROUP' ? 'a1' : 'a2');
+      if (roleData.studentRoleType) setSvRoleType(roleData.studentRoleType);
+      if (roleData.positionGroup) setSvCadrePosition(roleData.positionGroup);
       if (roleData.taskCompletionLevel) setSvCadrePerformance(reverseMapCadrePerformance(roleData.taskCompletionLevel));
       if (roleData.managementSkillLevel) setSvManagementLevel(reverseMapManagementLevel(roleData.managementSkillLevel));
       if (roleData.normalStudentActivityScore !== undefined) setSvClassParticipation(roleData.normalStudentActivityScore);
@@ -866,25 +886,25 @@ export const EvaluationFormQD4185 = () => {
       // Push all loaded values into the Zustand store at once
       // (state setters above are async; we read latest values directly from the API response)
       store.getState().batchSet({
-        svStudyAttitude: studyData.regularScoreLevel ? reverseMapStudyAttitude(studyData.regularScoreLevel) : 'none',
+        svStudyAttitude: studyData.regularScoreLevel ? reverseMapStudyAttitude(studyData.regularScoreLevel) : '',
         svNckh: studyData.activities?.some((a: any) => a.code === 'ACADEMIC_EVENT_PARTICIPATION') ?? false,
         svOlympic: studyData.activities?.some((a: any) => a.code === 'SCIENTIFIC_PUBLICATION_OR_CONTEST') ?? false,
         svCreative: studyData.activities?.some((a: any) => a.code === 'SCIENTIFIC_AWARD') ?? false,
-        svAcademicRank: studyData.academicRank ? reverseMapAcademicRank(studyData.academicRank) : 'none',
+        svAcademicRank: studyData.academicRank ? reverseMapAcademicRank(studyData.academicRank) : '',
         svActivity1: actData.politicalActivityLevel ? reverseMapActivity1(actData.politicalActivityLevel) : 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
-        svActivity2: actData.cultureSportLevel ? reverseMapActivity2(actData.cultureSportLevel) : 'none',
-        svActivity3: actData.clubActivityLevel ? reverseMapActivity3(actData.clubActivityLevel) : 'none',
-        svActivity4: actData.socialPreventionLevel ? reverseMapActivity4(actData.socialPreventionLevel) : 'none',
+        svActivity2: actData.cultureSportLevel ? reverseMapActivity2(actData.cultureSportLevel) : 'NOT_PARTICIPATED',
+        svActivity3: actData.clubActivityLevel ? reverseMapActivity3(actData.clubActivityLevel) : 'NOT_PARTICIPATED',
+        svActivity4: actData.socialPreventionLevel ? reverseMapActivity4(actData.socialPreventionLevel) : 'REMINDED_VIOLATION',
         svRewardPoints: actData.rewardScore ?? 0,
         svPolicy: commData.lawComplianceLevel ? reverseMapPolicy(commData.lawComplianceLevel) : 'VIOLATED',
-        svSolidarity: commData.volunteerActivityLevel ? reverseMapSolidarity(commData.volunteerActivityLevel) : 'none',
+        svSolidarity: commData.volunteerActivityLevel ? reverseMapSolidarity(commData.volunteerActivityLevel) : 'NOT_PARTICIPATED',
         svLocality: commData.communityRelationshipLevel ? reverseMapLocality(commData.communityRelationshipLevel) : 'TWO_WARNINGS',
-        svRoleType: roleData.studentRoleType === 'CLASS_OFFICER' ? 'cadre' : 'student',
-        svCadrePosition: roleData.positionGroup === 'LEADER_GROUP' ? 'a1' : 'a2',
-        svCadrePerformance: roleData.taskCompletionLevel ? reverseMapCadrePerformance(roleData.taskCompletionLevel) : 'unsatisfactory',
-        svManagementLevel: roleData.managementSkillLevel ? reverseMapManagementLevel(roleData.managementSkillLevel) : 'none',
+        svRoleType: roleData.studentRoleType || 'NORMAL_STUDENT',
+        svCadrePosition: roleData.positionGroup || 'MEMBER_GROUP',
+        svCadrePerformance: roleData.taskCompletionLevel ? reverseMapCadrePerformance(roleData.taskCompletionLevel) : 'POOR',
+        svManagementLevel: roleData.managementSkillLevel ? reverseMapManagementLevel(roleData.managementSkillLevel) : '',
         svClassParticipation: roleData.normalStudentActivityScore ?? 0,
-        svSpecialAchievement: roleData.specialAchievementLevel ? reverseMapSpecialAchievement(roleData.specialAchievementLevel) : 'none',
+        svSpecialAchievement: roleData.specialAchievementLevel ? reverseMapSpecialAchievement(roleData.specialAchievementLevel) : 'NONE',
         isReadOnly: !canEditEvaluation(detail),
         currentUserRole,
       });
@@ -1216,17 +1236,17 @@ export const EvaluationFormQD4185 = () => {
     if (svPolicy === 'GOOD_WITH_REWARD' && (!uploadedFiles['sv_policy'] || uploadedFiles['sv_policy'].length === 0)) {
       return { field: 'svPolicy', message: 'Vui lòng tải minh chứng cho việc Tuyên truyền chính sách pháp luật đạt xuất sắc.' };
     }
-    if (svSolidarity === 'excellent_achievements' && (!uploadedFiles['sv_solidarity'] || uploadedFiles['sv_solidarity'].length === 0)) {
+    if (svSolidarity === 'ACTIVE_WITH_REWARD' && (!uploadedFiles['sv_solidarity'] || uploadedFiles['sv_solidarity'].length === 0)) {
       return { field: 'svSolidarity', message: 'Vui lòng tải minh chứng cho các thành tích đoàn kết giúp đỡ bạn bè đặc biệt.' };
     }
 
-    if (svRoleType === 'cadre' && svCadrePerformance === 'excellent') {
+    if (svCadrePerformance === 'EXCELLENT') {
       const key = 'sv_cadre_perf';
       if (!uploadedFiles[key] || uploadedFiles[key].length === 0) {
         return { field: 'svCadrePerformance', message: 'Vui lòng tải minh chứng Hoàn thành xuất sắc nhiệm vụ của Lớp trưởng/Bí thư.' };
       }
     }
-    if (svRoleType === 'student' && (svSpecialAchievement === 'national_intl' || svSpecialAchievement === 'provincial')) {
+    if (svSpecialAchievement === 'NATIONAL_OR_INTL' || svSpecialAchievement === 'PROVINCIAL_LEVEL') {
       if (!uploadedFiles['sv_special_ach'] || uploadedFiles['sv_special_ach'].length === 0) {
         return { field: 'svSpecialAchievement', message: 'Vui lòng tải minh chứng cho giải thưởng/thành tích đặc biệt.' };
       }
@@ -1270,30 +1290,27 @@ export const EvaluationFormQD4185 = () => {
         regularScoreLevel: mapStudyAttitude(s.svStudyAttitude),
         academicRank: mapAcademicRank(s.svAcademicRank),
         activities: [
-          { code: 'ACADEMIC_EVENT_PARTICIPATION', checked: s.svNckh, score: 2 },
-          { code: 'SCIENTIFIC_PUBLICATION_OR_CONTEST', checked: s.svOlympic, score: 2 },
-          { code: 'SCIENTIFIC_AWARD', checked: s.svCreative, score: 2 },
+          { code: 'ACADEMIC_EVENT_PARTICIPATION', checked: s.svNckh },
+          { code: 'SCIENTIFIC_PUBLICATION_OR_CONTEST', checked: s.svOlympic },
+          { code: 'SCIENTIFIC_AWARD', checked: s.svCreative },
         ].filter((activity) => activity.checked),
       });
-      const rolePayload =
-        s.svRoleType === 'cadre'
-          ? compactPayload({
-              studentRoleType: 'CLASS_OFFICER',
-              positionGroup: s.svCadrePosition === 'a1' ? 'LEADER_GROUP' : 'MEMBER_GROUP',
-              taskCompletionLevel: mapCadrePerformance(s.svCadrePerformance),
-              managementSkillLevel: mapManagementLevel(s.svManagementLevel),
-              specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement),
-            })
-          : compactPayload({
-              studentRoleType: 'NORMAL_STUDENT',
-              normalStudentActivityScore: s.svClassParticipation,
-              specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement),
-            });
+      const hasRolePart1 =
+        s.svRoleType === 'CLASS_OFFICER' ||
+        !['', 'POOR', 'unsatisfactory'].includes(s.svCadrePerformance) ||
+        !['', 'none'].includes(s.svManagementLevel);
+      const rolePayload = compactPayload({
+        studentRoleType: hasRolePart1 ? 'CLASS_OFFICER' : 'NORMAL_STUDENT',
+        positionGroup: hasRolePart1 ? s.svCadrePosition || null : null,
+        taskCompletionLevel: hasRolePart1 ? mapCadrePerformance(s.svCadrePerformance) : null,
+        managementSkillLevel: hasRolePart1 ? mapManagementLevel(s.svManagementLevel) || null : null,
+        normalStudentActivityScore: Number(s.svClassParticipation) || 0,
+        specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement) || null,
+      });
       const disciplineViolations = s.svDeductions.map((count, idx) => ({
         code: DISCIPLINE_VIOLATION_CODES[idx],
-        count,
-        deductScore: DISCIPLINE_DEDUCTION_WEIGHTS[idx],
-      })).filter((violation) => violation.count > 0);
+        count: Number(count) || 0,
+      }));
 
       // Save detailed score sections
       const saveRequests: Array<Promise<unknown>> = [
@@ -1350,6 +1367,88 @@ export const EvaluationFormQD4185 = () => {
     }
   };
 
+  const buildScorePayloads = () => {
+    const s = store.getState();
+    const compactPayload = (payload: Record<string, unknown>) =>
+      Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+    const disciplineViolations = s.svDeductions.map((count, idx) => ({
+      code: DISCIPLINE_VIOLATION_CODES[idx],
+      count: Number(count) || 0,
+    }));
+    const hasRolePart1 =
+      s.svRoleType === 'CLASS_OFFICER' ||
+      !['', 'POOR', 'unsatisfactory'].includes(s.svCadrePerformance) ||
+      !['', 'none'].includes(s.svManagementLevel);
+    const rolePayload = compactPayload({
+      studentRoleType: hasRolePart1 ? 'CLASS_OFFICER' : 'NORMAL_STUDENT',
+      positionGroup: hasRolePart1 ? s.svCadrePosition || null : null,
+      taskCompletionLevel: hasRolePart1 ? mapCadrePerformance(s.svCadrePerformance) : null,
+      managementSkillLevel: hasRolePart1 ? mapManagementLevel(s.svManagementLevel) || null : null,
+      normalStudentActivityScore: Number(s.svClassParticipation) || 0,
+      specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement) || null,
+    });
+
+    return {
+      study: compactPayload({
+        regularScoreLevel: mapStudyAttitude(s.svStudyAttitude),
+        academicRank: mapAcademicRank(s.svAcademicRank),
+        activities: [
+          { code: 'ACADEMIC_EVENT_PARTICIPATION', checked: s.svNckh },
+          { code: 'SCIENTIFIC_PUBLICATION_OR_CONTEST', checked: s.svOlympic },
+          { code: 'SCIENTIFIC_AWARD', checked: s.svCreative },
+        ],
+      }),
+      discipline: {
+        baseScore: Math.min(25, Math.max(0, Number(s.svNoViolationScore) || 0)),
+        violations: disciplineViolations,
+      },
+      activity: {
+        politicalActivityLevel: mapActivity1(s.svActivity1),
+        cultureSportLevel: mapActivity2(s.svActivity2),
+        clubActivityLevel: mapActivity3(s.svActivity3),
+        socialPreventionLevel: mapActivity4(s.svActivity4),
+        rewardScore: Number(s.svRewardPoints) || 0,
+      },
+      community: {
+        lawComplianceLevel: mapPolicy(s.svPolicy),
+        volunteerActivityLevel: mapSolidarity(s.svSolidarity),
+        communityRelationshipLevel: mapLocality(s.svLocality),
+      },
+      role: rolePayload,
+    };
+  };
+
+  const persistScoreSection = async (section: 'study' | 'discipline' | 'activity' | 'community' | 'role') => {
+    if (!evaluationId || isReadOnly || isLocked || alreadyEvaluated) return;
+
+    try {
+      const payloads = buildScorePayloads();
+      if (section === 'study') {
+        const studyPayload = payloads.study as Record<string, unknown>;
+        if (!studyPayload.regularScoreLevel || !studyPayload.academicRank) return;
+        await API_Student.updateStudyScore(evaluationId, studyPayload);
+      } else if (section === 'discipline') {
+        await API_Student.updateDisciplineScore(evaluationId, payloads.discipline);
+      } else if (section === 'activity') {
+        await API_Student.updateActivityScore(evaluationId, payloads.activity);
+      } else if (section === 'community') {
+        await API_Student.updateCommunityScore(evaluationId, payloads.community);
+      } else {
+        await API_Student.updateRoleScore(evaluationId, payloads.role);
+      }
+    } catch (err: any) {
+      const message = getUserFriendlyError(err, 'Không thể lưu thay đổi. Vui lòng kiểm tra lại dữ liệu.');
+      const apiFieldErrors = mapApiErrorsToFields(err.errors);
+      setFieldErrors(apiFieldErrors);
+      if (err.statusCode === 409 || message.includes('khóa') || message.includes('locked')) {
+        setIsReadOnly(true);
+        setIsLocked(true);
+        setAlreadyEvaluated(true);
+      }
+      toast.error(message);
+    }
+  };
+
 
   // ── Inject file callbacks into store ──────────────────────────────────────
   // The actual upload logic lives here in the page controller (Cloudinary, toast, etc.)
@@ -1359,9 +1458,10 @@ export const EvaluationFormQD4185 = () => {
     store.getState().batchSet({
       handleFileUploadAction: handleFileUpload,
       removeFileAction: removeFile,
+      persistSectionAction: persistScoreSection,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store]); // store ref is stable; handlers close over stable setters
+  }, [store, evaluationId, isReadOnly, isLocked, alreadyEvaluated]); // store ref is stable; handlers close over latest edit gates
 
   // ── Sync fieldErrors into store when validation runs ─────────────────────
   useEffect(() => {
@@ -1448,9 +1548,106 @@ export const EvaluationFormQD4185 = () => {
         </div>
       ) : (
         /* Step 2: Form chi tiết */
-        <div className="space-y-6 transition-all duration-300 transform ease-in animate-fade-in">
-          
+        <div className="space-y-6 transition-all duration-300 transform ease-in animate-fade-in print:space-y-4">
+         
 
+          {/* ── HEADER PHIẾU CHÍNH THỨC (hiển thị khi in) ── */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 print:rounded-none print:border-0 print:shadow-none print:p-0">
+            {/* Dòng trên cùng: tên trường (trái) + ĐCSVN (phải) */}
+            <div className="flex justify-between items-start mb-2 text-center">
+              <div className="text-[11px] leading-snug text-gray-700 font-semibold max-w-[40%]">
+                <p className="uppercase font-black">HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
+                <p className="text-[10px] font-semibold">PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
+                <p className="text-[10px] font-semibold">TẠI TỈNH QUẢNG NAM</p>
+                <p className="text-[10px] mt-1">──────</p>
+              </div>
+              <div className="text-[11px] leading-snug text-gray-700 font-semibold max-w-[40%] text-center">
+                <p className="uppercase font-black">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+                <p className="font-semibold">Độc lập – Tự do – Hạnh phúc</p>
+                <p className="text-[10px] mt-1">──────</p>
+              </div>
+            </div>
+
+            {/* Tiêu đề chính giữa */}
+            <div className="text-center my-4">
+              <h1 className="text-base font-black uppercase tracking-wide text-gray-900 print:text-sm">
+                PHIẾU ĐÁNH GIÁ KẾT QUẢ RÈN LUYỆN CỦA SINH VIÊN
+              </h1>
+              <p className="text-[11px] text-gray-500 mt-1 italic">
+                (Kèm theo Quyết định số 4185/QĐ-HCQG ngày 08 tháng 9 năm 2023 của Giám đốc Học viện Hành chính Quốc gia)
+              </p>
+            </div>
+
+            {/* Đánh giá kết quả rèn luyện học kỳ */}
+            <div className="text-center mb-4">
+              <p className="text-sm font-bold text-gray-800">
+                Đánh giá kết quả rèn luyện học kỳ&nbsp;
+                <span className="text-[#000000]">{semester === 'HK1' ? 'I' : semester === 'HK2' ? 'II' : 'Hè'}</span>
+                &nbsp;— năm học&nbsp;
+                <span className="text-[#000000]">{academicYear}</span>
+              </p>
+            </div>
+
+            {/* Thông tin sinh viên — 2 cột */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-800 border border-gray-200 rounded-lg p-4 bg-gray-50/50 print:border print:rounded-none print:bg-white">
+              <p className="flex items-center gap-2">
+                <span className="shrink-0 font-bold">Họ và tên:</span>
+                <span className="font-semibold text-gray-700">
+                  {(user as any)?.fullName || 'Chưa cập nhật'}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="shrink-0 font-bold">Mã sinh viên:</span>
+                <span className="font-semibold text-gray-700">
+                  {(user as any)?.studentCode || 'Chưa cập nhật'}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="shrink-0 font-bold">Ngày sinh:</span>
+                <span className="font-semibold text-gray-700">
+                  {(user as any)?.dateOfBirth || 'Chưa cập nhật'}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="shrink-0 font-bold">Lớp:</span>
+                <span className="font-semibold text-gray-700">
+                  {(user as any)?.className || 'Chưa cập nhật'}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="shrink-0 font-bold">Ngành / Chuyên ngành:</span>
+                <span className="font-semibold text-gray-700">
+                  {majorDisplayName}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="shrink-0 font-bold">Năm trúng tuyển:</span>
+                <span className="font-semibold text-gray-700">
+                  {admissionYearDisplay}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="font-bold shrink-0">Số điện thoại:</span>{' '}
+                {isReadOnly ? (
+                  <span className="font-semibold text-gray-700">{phoneNumber || 'Chưa cập nhật'}</span>
+                ) : (
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={e => setPhoneNumber(e.target.value)}
+                    className="ml-2 flex-1 bg-transparent text-sm font-semibold outline-none focus:ring-0 border-0 p-0"
+                    placeholder="Nhập số điện thoại"
+                  />
+                )}
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="shrink-0 font-bold">Khoa (đơn vị quản lý):</span>
+                <span className="font-semibold text-gray-700">
+                  {facultyDisplayName.toUpperCase()}
+                </span>
+              </p>
+            </div>
+          </div>
 
           {/* Validation Message */}
           {validationError && (
@@ -1524,70 +1721,6 @@ export const EvaluationFormQD4185 = () => {
             </div>
           )}
 
-          {/* Styled details card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {/* Top Red Tab & Breadcrumbs flow */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between bg-gray-50 border-b border-gray-200">
-              {/* Left Red Tab */}
-              <div className="bg-[#D93A3C] text-white px-5 py-2.5 flex items-center gap-2 font-bold text-xs sm:text-sm shrink-0 rounded-r-3xl shadow-sm">
-                <span className="text-xs">👤</span>
-                <span>{(user as any)?.fullName || 'Nguyễn Thanh Sơn'}</span>
-              </div>
-              {/* Right Steps Indicator */}
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-gray-500 px-4 py-2.5 md:py-0 select-none">
-                <button
-                  type="button"
-                  onClick={handleGoBackToStep1}
-                  className="text-gray-400 hover:text-[#D93A3C] transition cursor-pointer underline decoration-dotted decoration-gray-300 font-extrabold"
-                >
-                  📅 Chọn Học kỳ
-                </button>
-                <span className="text-gray-300">/</span>
-                <span className="text-gray-400">📝 Đánh giá Kết quả Rèn luyện</span>
-                <span className="text-gray-300">/</span>
-                <div className="flex items-center gap-1.5 bg-[#D93A3C] text-white px-3 py-1 rounded-full relative">
-                  <span>📄 Phiếu Đánh giá</span>
-                  <span className="bg-red-600 border border-white text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">50</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 space-y-4">
-              {/* Title with Spreadsheet icon */}
-              <div className="flex items-start gap-3 border-b border-gray-100 pb-3">
-                <div className="text-2xl mt-0.5 select-none">📊</div>
-                <div>
-                  <h2 className="text-sm sm:text-base font-black text-gray-800 leading-snug">
-                    BẢNG ĐÁNH GIÁ KẾT QUẢ RÈN LUYỆN CỦA SINH VIÊN:{' '}
-                    <span className="text-[#D93A3C]">
-                      HỌC KỲ {semester === 'HK1' ? 'I' : semester === 'HK2' ? 'II' : 'HÈ'} - NĂM HỌC {academicYear}
-                    </span>
-                  </h2>
-                </div>
-              </div>
-
-              {/* Information Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-12 text-xs sm:text-sm text-gray-700">
-                <div className="space-y-1.5">
-                  <p className="font-semibold">
-                    <span className="font-bold text-gray-800">Họ tên:</span> {(user as any)?.fullName || 'Nguyễn Thanh Sơn'}
-                  </p>
-                  <p className="font-semibold">
-                    <span className="font-bold text-gray-800">MSSV:</span> {(user as any)?.studentCode || '29211162749'}
-                  </p>
-                  <p className="font-semibold uppercase">
-                    <span className="font-bold text-gray-800">Khoa:</span> {((user as any)?.facultyName || (user as any)?.majorName || 'Trường Đào tạo Quốc tế').toUpperCase()}
-                  </p>
-                </div>
-                <div className="space-y-1.5 md:text-right">
-                  <p className="font-semibold">
-                    <span className="font-bold text-gray-800">Hạn Đánh giá:</span> Từ 09/06/2026 đến 30/06/2026
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
 	          {alreadyEvaluated && (
 	            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-amber-800">
 	              <Info className="shrink-0 mt-0.5 text-amber-600" />
@@ -1600,10 +1733,83 @@ export const EvaluationFormQD4185 = () => {
 	            <EvaluationTableGrid />
 	          </EvaluationFormStoreContext.Provider>
 
+          {/* ── GHI CHÚ + XẾP LOẠI ── */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4 print:rounded-none print:border-0 print:shadow-none print:p-0">
+            {/* Bảng xếp loại */}
+            <div>
+              <h3 className="text-xs font-black uppercase text-gray-700 mb-2">Bảng xếp loại kết quả rèn luyện</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-xs border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100 text-gray-700 font-bold text-center">
+                      <th className="border border-gray-300 px-3 py-2">Xếp loại</th>
+                      <th className="border border-gray-300 px-3 py-2">Xuất sắc</th>
+                      <th className="border border-gray-300 px-3 py-2">Tốt</th>
+                      <th className="border border-gray-300 px-3 py-2">Khá</th>
+                      <th className="border border-gray-300 px-3 py-2">Trung bình</th>
+                      <th className="border border-gray-300 px-3 py-2">Yếu</th>
+                      <th className="border border-gray-300 px-3 py-2">Kém</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="text-center text-gray-700">
+                      <td className="border border-gray-300 px-3 py-2 font-semibold">Điểm</td>
+                      <td className="border border-gray-300 px-3 py-2">Từ 90 đến 100</td>
+                      <td className="border border-gray-300 px-3 py-2">Từ 80 đến cận 90</td>
+                      <td className="border border-gray-300 px-3 py-2">Từ 65 đến cận 80</td>
+                      <td className="border border-gray-300 px-3 py-2">Từ 50 đến cận 65</td>
+                      <td className="border border-gray-300 px-3 py-2">Từ 35 đến cận 50</td>
+                      <td className="border border-gray-300 px-3 py-2">Dưới 35</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Ghi chú */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Ghi chú</label>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                disabled={isReadOnly}
+                rows={3}
+                placeholder={isReadOnly ? '' : 'Nhập ghi chú, lý do (nếu có)...'}
+                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 resize-none outline-none focus:ring-2 focus:ring-blue-400 bg-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            {/* Ô chữ ký 4 cột */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-gray-200 mt-2">
+              {[
+                { title: 'SINH VIÊN TỰ ĐÁNH GIÁ', sub: '(Ký, ghi rõ họ tên)' },
+                { title: 'LỚP ĐÁNH GIÁ', sub: '(Ký, ghi rõ họ tên)' },
+                { title: 'GIÁO VIÊN CHỦ NHIỆM', sub: '(Xác nhận, ký tên)' },
+                { title: 'TRƯỞNG KHOA', sub: '(Ký, ghi rõ họ tên)' },
+              ].map(col => (
+                <div key={col.title} className="text-center space-y-12">
+                  <div>
+                    <p className="text-[11px] font-black uppercase text-gray-800">{col.title}</p>
+                    <p className="text-[10px] text-gray-500 italic">{col.sub}</p>
+                  </div>
+                  {/* Chỗ ký tên trống */}
+                  <div className="text-[10px] text-gray-400 italic">Họ và tên</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
 
           {/* Action Buttons */}
-          {!isReadOnly && (
-            <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 mt-6 bg-white p-5 rounded-xl shadow-sm">
+          <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 mt-6 bg-white p-5 rounded-xl shadow-sm print:hidden">
+            <button
+              type="button"
+              onClick={handleGoBackToStep1}
+              className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition cursor-pointer text-xs font-bold min-h-[44px]"
+            >
+              Quay lại
+            </button>
+            {!isReadOnly && (
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
@@ -1621,8 +1827,8 @@ export const EvaluationFormQD4185 = () => {
                   </>
                 )}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>

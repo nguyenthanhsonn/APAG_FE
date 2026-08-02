@@ -132,15 +132,13 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   };
 
   const displayName = user
-    ? 'fullName' in user && typeof user.fullName === 'string'
-      ? user.fullName
-      : user.username
+    ? (user as any).fullName || (user as any).name || (user as any).username || (user as any).email || 'Lớp trưởng'
     : undefined;
 
   // Fix initials to ignore parentheses / brackets.
   const cleanName = displayName ? displayName.replace(/\s*\([^)]*\)/g, '').trim() : '';
   const initials = cleanName
-    ? cleanName.split(' ').slice(-2).map((n) => n[0]).join('').toUpperCase()
+    ? cleanName.split(' ').filter(Boolean).slice(-2).map((n: string) => n[0]).join('').toUpperCase()
     : 'U';
 
   const profileHref = user?.role === 'advisor'
@@ -149,8 +147,10 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const changePasswordHref = user?.role === 'admin'
     ? '/admin/change-password'
     : user?.role === 'advisor'
-      ? '/advisor/change-password'
-      : '/student/change-password';
+    ? '/advisor/change-password'
+    : user?.role === 'class_leader'
+    ? '/class_leader/change-password'
+    : '/student/change-password';
   const roleLabel = user?.role === 'admin'
     ? 'Quản trị viên'
     : user?.role === 'advisor'
@@ -163,7 +163,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     ? 'Phòng Đào Tạo'
     : 'Sinh viên';
 
-  const dropdownItems = (user?.role === 'admin' || user?.role === 'class_leader' || user?.role === 'faculty' || user?.role === 'training_department')
+  const dropdownItems = (user?.role === 'admin' || user?.role === 'faculty' || user?.role === 'training_department')
     ? []
     : [
         { label: 'Thông tin cá nhân', href: profileHref, icon: User },

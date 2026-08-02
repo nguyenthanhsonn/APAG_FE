@@ -6,6 +6,7 @@ import { EvidenceGuidelines } from '../../components/student/EvidenceGuidelines'
 import { EvidenceGroupCard } from '../../components/student/EvidenceGroupCard';
 import { API_Student } from '../../api/API_Student';
 import { uploadEvidenceFile } from '../../services/cloudinaryUpload';
+import { getUserFriendlyError } from '../../utils/errorHelper';
 
 export const StudentEvidence = () => {
   const [evidences, setEvidences] = useState<EvidenceFile[]>([]);
@@ -30,7 +31,7 @@ export const StudentEvidence = () => {
       const data = await API_Student.getMyEvidences();
       setEvidences((data || []).map(mapEvidence));
     } catch (err: any) {
-      setError(err.message || 'Không thể tải danh sách minh chứng.');
+      setError(getUserFriendlyError(err, 'Không thể tải danh sách minh chứng.'));
     } finally {
       setLoading(false);
     }
@@ -81,7 +82,7 @@ export const StudentEvidence = () => {
       // Reload danh sách từ server để đảm bảo đồng bộ
       await loadEvidences();
     } catch (err: any) {
-      setError(err.message || 'Không thể tải minh chứng. Vui lòng thử lại.');
+      setError(getUserFriendlyError(err, 'Không thể tải minh chứng. Vui lòng thử lại.'));
     } finally {
       setUploadingGroup(null);
       e.target.value = '';
@@ -95,7 +96,7 @@ export const StudentEvidence = () => {
         await API_Student.deleteEvidence(id);
         setEvidences((prev) => prev.filter((e) => e.id !== id));
       } catch (err: any) {
-        setError(err.message || 'Không thể xóa minh chứng.');
+        setError(getUserFriendlyError(err, 'Không thể xóa minh chứng.'));
       }
     }
   };
