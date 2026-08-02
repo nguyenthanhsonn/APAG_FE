@@ -179,7 +179,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             type="button"
             aria-label="Mở menu"
             onClick={onMenuClick}
-            className="ui-icon-button cursor-pointer text-[#1A1B1E] hover:bg-[#EDF2FF] hover:text-[#3B5BDB] lg:hidden"
+            className="ui-icon-button cursor-pointer text-[#1A1B1E] hover:bg-red-50 hover:text-brand-primary lg:hidden"
           >
             <Menu size={21} />
           </button>
@@ -213,7 +213,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                       {unreadCount > 0 && (
                         <button
                           onClick={handleMarkAllRead}
-                          className="text-[10px] font-bold text-[#0B3A82] hover:underline cursor-pointer"
+                          className="cursor-pointer text-[10px] font-bold text-brand-secondary hover:underline"
                         >
                           Đọc tất cả
                         </button>
@@ -265,7 +265,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                     {roleLabel}
                   </span>
                 </div>
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#104E92] text-sm font-bold text-white shadow-sm">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white shadow-sm">
                   {initials}
                 </div>
               </button>
@@ -291,7 +291,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                         key={item.href}
                         href={item.href}
                         onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-700 transition hover:bg-[#EDF2FF]/80 hover:text-[#3B5BDB] active:scale-[0.98]"
+                        className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-700 transition hover:bg-red-50 hover:text-brand-primary active:scale-[0.98]"
                       >
                         <Icon size={16} strokeWidth={2} className="shrink-0 text-gray-500" />
                         <span>{item.label}</span>
@@ -305,7 +305,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                   <Link
                     href={changePasswordHref}
                     onClick={() => setDropdownOpen(false)}
-                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-700 transition hover:bg-[#EDF2FF]/80 hover:text-[#3B5BDB] active:scale-[0.98]"
+                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-700 transition hover:bg-red-50 hover:text-brand-primary active:scale-[0.98]"
                   >
                     <LockKeyhole size={16} strokeWidth={2} className="shrink-0 text-gray-500" />
                     <span>Đổi mật khẩu</span>

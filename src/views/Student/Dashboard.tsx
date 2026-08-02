@@ -48,17 +48,17 @@ export const StudentDashboard = () => {
       icon: FileText,
       label: 'Phiếu chờ nộp',
       value: draftCount,
-      bg: 'bg-amber-50',
-      iconColor: 'text-[#F59E0B]',
+      bg: 'bg-red-50',
+      iconColor: 'text-brand-primary',
       trend: 'Xem chi tiết thông báo trên thanh tiêu đề',
-      trendColor: 'text-[#F59E0B]',
+      trendColor: 'text-brand-primary',
     },
     {
       icon: Clock,
       label: 'Đang xét duyệt',
       value: submittedCount - approvedCount,
-      bg: 'bg-blue-50',
-      iconColor: 'text-[#3B82F6]',
+      bg: 'bg-brand-secondary/10',
+      iconColor: 'text-brand-secondary',
       trend: 'Không có',
       trendColor: 'text-gray-400',
     },
@@ -75,8 +75,8 @@ export const StudentDashboard = () => {
       icon: Award,
       label: 'Điểm TB',
       value: averageScore,
-      bg: 'bg-purple-50',
-      iconColor: 'text-[#8B5CF6]',
+      bg: 'bg-brand-secondary/10',
+      iconColor: 'text-brand-secondary',
       trend: history.length ? 'Tính từ dữ liệu hiện có' : 'Chưa có dữ liệu',
       trendColor: 'text-[#10B981]',
     },
@@ -117,7 +117,7 @@ export const StudentDashboard = () => {
       return { bg: 'bg-emerald-50', text: 'text-[#10B981]' };
     }
     if (normalizedStatus === 'submitted') {
-      return { bg: 'bg-blue-50', text: 'text-[#3B82F6]' };
+      return { bg: 'bg-brand-secondary/10', text: 'text-brand-secondary' };
     }
     if (normalizedStatus === 'class_approved') {
       return { bg: 'bg-yellow-50', text: 'text-[#F59E0B]' };
@@ -135,10 +135,10 @@ export const StudentDashboard = () => {
       return { bg: 'bg-emerald-50', text: 'text-[#10B981]' };
     }
     if (r === 'GOOD' || r === 'TỐT') {
-      return { bg: 'bg-blue-50', text: 'text-[#3B82F6]' };
+      return { bg: 'bg-brand-secondary/10', text: 'text-brand-secondary' };
     }
     if (r === 'FAIR' || r === 'KHÁ') {
-      return { bg: 'bg-purple-50', text: 'text-[#8B5CF6]' };
+      return { bg: 'bg-brand-secondary/10', text: 'text-brand-secondary' };
     }
     return { bg: 'bg-amber-50', text: 'text-[#F59E0B]' };
   };
@@ -197,7 +197,7 @@ export const StudentDashboard = () => {
               <select
                 value={semesterFilter}
                 onChange={(e) => setSemesterFilter(e.target.value)}
-                className="text-[10px] sm:text-xs border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer h-7"
+                className="h-7 cursor-pointer rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary sm:text-xs"
               >
                 <option value="all">Tất cả kỳ</option>
                 <option value="HK1">Học kỳ I</option>
@@ -207,7 +207,7 @@ export const StudentDashboard = () => {
               <select
                 value={yearFilter}
                 onChange={(e) => setYearFilter(e.target.value)}
-                className="text-[10px] sm:text-xs border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer h-7"
+                className="h-7 cursor-pointer rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary sm:text-xs"
               >
                 <option value="all">Tất cả năm</option>
                 {uniqueYears.map(yr => (
@@ -217,7 +217,7 @@ export const StudentDashboard = () => {
 
               <Link
                 href="/student/history"
-                className="flex items-center gap-0.5 text-xs font-bold text-[#3B5BDB] transition-colors hover:text-[#4C6EF5] ml-1 whitespace-nowrap"
+                className="ml-1 flex items-center gap-0.5 whitespace-nowrap text-xs font-bold text-brand-secondary transition-colors hover:text-brand-primary"
               >
                 Xem tất cả <ArrowRightIcon size={12} />
               </Link>

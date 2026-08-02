@@ -55,7 +55,7 @@ export function ReportChart({ data }: ReportChartProps) {
         <p className="mt-0.5 text-xs text-[#868E96]">Tỉ lệ hoàn thành và điểm trung bình mỗi khoa</p>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="border-b border-[#E9ECEF] bg-[#F8F9FA]">
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#868E96]">Khoa</th>

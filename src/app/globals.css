@@ -1,9 +1,17 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-primary: #ED1C24;
+  --color-brand-secondary: #2B2E7F;
+}
+
 :root {
-  --color-primary: #3b5bdb;
-  --color-primary-light: #4c6ef5;
-  --color-primary-bg: #edf2ff;
+  --color-primary: #ED1C24;
+  --color-primary-light: #c81018;
+  --color-primary-bg: #fff1f2;
+  --color-brand-primary: #ED1C24;
+  --color-brand-secondary: #2B2E7F;
+  --color-brand-secondary-bg: rgba(43, 46, 127, 0.08);
   --color-success: #2f9e44;
   --color-warning: #e67700;
   --color-danger: #c92a2a;
@@ -13,7 +21,7 @@
   --color-border: #e9ecef;
   --color-text-primary: #1a1b1e;
   --color-text-secondary: #868e96;
-  --color-sidebar-bg: #1a1b2e;
+  --color-sidebar-bg: #2B2E7F;
 }
 
 html {
@@ -66,8 +74,8 @@ body {
   }
 
   .ui-input:focus {
-    border-color: var(--color-primary-light);
-    box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.16);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(237, 28, 36, 0.16);
   }
 
   .ui-primary-button {
@@ -86,7 +94,7 @@ body {
 
   .ui-primary-button:hover {
     background: var(--color-primary-light);
-    box-shadow: 0 4px 12px rgba(59, 91, 219, 0.22);
+    box-shadow: 0 4px 12px rgba(237, 28, 36, 0.22);
   }
 
   .ui-icon-button {
@@ -139,8 +147,8 @@ body {
   main input:focus,
   main select:focus,
   main textarea:focus {
-    border-color: var(--color-primary-light);
-    box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.16);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(237, 28, 36, 0.16);
   }
 
   main table {
@@ -171,7 +179,23 @@ body {
     background: var(--color-primary);
   }
 
+  main .bg-indigo-600,
+  main .bg-teal-600,
+  main .bg-purple-600,
+  main .bg-\[\#0B3A82\],
+  main .bg-\[\#3B5BDB\] {
+    background: var(--color-primary);
+  }
+
   main .hover\:bg-blue-700:hover {
+    background: var(--color-primary-light);
+  }
+
+  main .hover\:bg-indigo-700:hover,
+  main .hover\:bg-teal-700:hover,
+  main .hover\:bg-purple-700:hover,
+  main .hover\:bg-\[\#104E92\]:hover,
+  main .hover\:bg-\[\#4C6EF5\]:hover {
     background: var(--color-primary-light);
   }
 
@@ -179,8 +203,33 @@ body {
     color: var(--color-primary);
   }
 
+  main .text-indigo-600,
+  main .text-teal-600,
+  main .text-purple-600,
+  main .text-\[\#3B5BDB\],
+  main .text-\[\#0B3A82\] {
+    color: var(--color-brand-secondary);
+  }
+
   main .bg-blue-50 {
-    background: var(--color-primary-bg);
+    background: var(--color-brand-secondary-bg);
+  }
+
+  main .bg-indigo-50,
+  main .bg-teal-50,
+  main .bg-purple-50,
+  main .bg-\[\#EDF2FF\] {
+    background: var(--color-brand-secondary-bg);
+  }
+
+  main .border-blue-100,
+  main .border-blue-200,
+  main .border-indigo-100,
+  main .border-indigo-200,
+  main .border-teal-100,
+  main .border-teal-200,
+  main .border-\[\#EDF2FF\] {
+    border-color: rgba(43, 46, 127, 0.16);
   }
 }
 

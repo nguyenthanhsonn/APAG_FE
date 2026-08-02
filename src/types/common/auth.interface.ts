@@ -79,6 +79,8 @@ export interface AuthState {
   hydrateAuth: () => void;
   login: (username: string, password: string, captchaId: string, captchaCode: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  /** Mock: set user directly without API — dev/test only */
+  setUser: (user: any) => void;
   refreshProfile: () => Promise<void>;
   updateProfile: (data: Partial<Student | Admin>) => Promise<void>;
 }

@@ -38,7 +38,7 @@ export function StudentConfirmTable({
             type="button"
             disabled={confirming}
             onClick={onConfirmAll}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#3B5BDB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#4C6EF5] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CheckCircle2 size={15} />
             Xác nhận tất cả ({pendingCount})
@@ -48,7 +48,7 @@ export function StudentConfirmTable({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="border-b border-[#E9ECEF] bg-[#F8F9FA]">
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#868E96]">STT</th>
@@ -77,7 +77,7 @@ export function StudentConfirmTable({
                     <td className="px-4 py-3 font-semibold text-[#1A1B1E]">{student.fullName}</td>
                     <td className="px-4 py-3 text-center">
                       {student.selfScore !== null ? (
-                        <span className="font-bold text-[#3B5BDB]">{student.selfScore}</span>
+                        <span className="font-bold text-brand-secondary">{student.selfScore}</span>
                       ) : (
                         <span className="text-[#ADB5BD]">—</span>
                       )}

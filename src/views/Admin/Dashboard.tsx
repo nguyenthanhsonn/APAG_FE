@@ -85,54 +85,54 @@ export const AdminDashboard = () => {
       icon: Users,
       label: 'Tổng số tài khoản',
       value: formatNumber(statsData.totalUsers),
-      borderColor: 'border-t-[#3B5BDB]',
-      iconBg: 'bg-[#EDF2FF]',
-      iconColor: 'text-[#3B5BDB]',
+      borderColor: 'border-t-brand-secondary',
+      iconBg: 'bg-brand-secondary/10',
+      iconColor: 'text-brand-secondary',
       sub: 'Toàn hệ thống',
     },
     {
       icon: GraduationCap,
       label: 'Sinh viên',
       value: formatNumber(statsData.totalStudents),
-      borderColor: 'border-t-[#2F9E44]',
-      iconBg: 'bg-[#EBFBEE]',
-      iconColor: 'text-[#2F9E44]',
+      borderColor: 'border-t-brand-secondary',
+      iconBg: 'bg-brand-secondary/10',
+      iconColor: 'text-brand-secondary',
       sub: 'Đang theo học',
     },
     {
       icon: UserCog,
       label: 'Quản trị viên',
       value: formatNumber(statsData.totalAdmins),
-      borderColor: 'border-t-[#6741D9]',
-      iconBg: 'bg-[#F3F0FF]',
-      iconColor: 'text-[#6741D9]',
+      borderColor: 'border-t-brand-primary',
+      iconBg: 'bg-red-50',
+      iconColor: 'text-brand-primary',
       sub: 'Tài khoản admin',
     },
     {
       icon: Building2,
       label: 'Khoa',
       value: formatNumber(statsData.totalFaculties),
-      borderColor: 'border-t-[#E67700]',
-      iconBg: 'bg-[#FFF9DB]',
-      iconColor: 'text-[#E67700]',
+      borderColor: 'border-t-brand-secondary',
+      iconBg: 'bg-brand-secondary/10',
+      iconColor: 'text-brand-secondary',
       sub: 'Đang hoạt động',
     },
     {
       icon: BookOpen,
       label: 'Ngành học',
       value: formatNumber(statsData.totalMajors),
-      borderColor: 'border-t-[#F06595]',
-      iconBg: 'bg-[#FFF0F6]',
-      iconColor: 'text-[#D6336C]',
+      borderColor: 'border-t-brand-secondary',
+      iconBg: 'bg-brand-secondary/10',
+      iconColor: 'text-brand-secondary',
       sub: 'Chuyên ngành',
     },
     {
       icon: School,
       label: 'Lớp',
       value: formatNumber(statsData.totalClasses),
-      borderColor: 'border-t-[#20C997]',
-      iconBg: 'bg-[#E6FCF5]',
-      iconColor: 'text-[#0CA678]',
+      borderColor: 'border-t-brand-secondary',
+      iconBg: 'bg-brand-secondary/10',
+      iconColor: 'text-brand-secondary',
       sub: 'Lớp học phần',
     },
   ];
@@ -168,7 +168,7 @@ export const AdminDashboard = () => {
 
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-2.5 bg-white border rounded-xl p-6 shadow-sm">
-          <Loader2 className="animate-spin text-blue-600" size={36} />
+          <Loader2 className="animate-spin text-brand-primary" size={36} />
           <p className="text-xs text-gray-500 font-semibold">Đang tải số liệu hệ thống...</p>
         </div>
       ) : (

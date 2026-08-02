@@ -50,7 +50,7 @@ export function ClassListView() {
 
       {loadingProfile ? (
         <div className="flex min-h-[360px] flex-col items-center justify-center gap-2.5 rounded-xl border border-[#E9ECEF] bg-white p-6 shadow-sm">
-          <Loader2 className="animate-spin text-[#3B5BDB]" size={34} />
+          <Loader2 className="animate-spin text-brand-primary" size={34} />
           <p className="text-sm font-semibold text-[#868E96]">Đang tải danh sách lớp phụ trách...</p>
         </div>
       ) : classes.length === 0 ? (
