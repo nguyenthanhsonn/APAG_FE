@@ -32,6 +32,7 @@ export type {
   ReviewStudent,
   Faculty,
   Major,
+  ClassLeader,
   ClassAdvisor,
   ClassTableRow,
   StudentManagementItem,

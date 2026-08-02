@@ -40,6 +40,42 @@ const STATUS_LABEL: Record<string, string> = {
   NOT_SUBMITTED: 'Chưa nộp',
 };
 
+function normalizeKey(value: unknown) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getStudentIdentityKeys(student: any) {
+  return [
+    student.studentId,
+    student.id,
+    student.userId,
+    student.email,
+    student.studentCode,
+    student.code,
+    student.fullName,
+    student.name,
+  ]
+    .map(normalizeKey)
+    .filter(Boolean);
+}
+
+function getEvaluationIdentityKeys(evaluation: any) {
+  return [
+    evaluation.studentId,
+    evaluation.student?.id,
+    evaluation.student?.userId,
+    evaluation.userId,
+    evaluation.student?.email,
+    evaluation.email,
+    evaluation.studentCode,
+    evaluation.student?.studentCode,
+    evaluation.studentName,
+    evaluation.student?.fullName,
+  ]
+    .map(normalizeKey)
+    .filter(Boolean);
+}
+
 export function FacultyClassDetailView({ classId }: Props) {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -124,7 +160,7 @@ export function FacultyClassDetailView({ classId }: Props) {
       };
 
       setClassInfo(selectedClass);
-      setStudents(selectedClass?.evaluations ?? []);
+      setStudents(mappedStudents);
     } catch (err: any) {
       setClassInfo(null);
       setStudents([]);

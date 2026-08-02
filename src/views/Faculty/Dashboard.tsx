@@ -87,7 +87,7 @@ export function FacultyDashboard() {
       );
     } catch (err: any) {
       setClasses([]);
-      setErrorMessage(getUserFriendlyError(err, 'Không tải được danh sách phiếu của khoa.'));
+      setErrorMessage(getUserFriendlyError(err, 'Không tải được danh sách lớp của khoa.'));
     } finally {
       setLoading(false);
     }
@@ -264,7 +264,7 @@ export function FacultyDashboard() {
               ) : !facultyId ? (
                 <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Tài khoản này chưa được gán khoa phụ trách.</td></tr>
               ) : filteredClasses.length === 0 ? (
-                <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Không có dữ liệu phiếu đánh giá từ API.</td></tr>
+                <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Không có dữ liệu lớp từ API.</td></tr>
               ) : filteredClasses.map((c) => (
                 <tr key={c.id} className="transition-colors hover:bg-brand-secondary/5">
                   <td className="py-3.5 px-4 font-bold text-gray-900">{c.className}</td>

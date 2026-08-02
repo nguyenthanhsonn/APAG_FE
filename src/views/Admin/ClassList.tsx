@@ -50,6 +50,7 @@ const normalizeClass = (c: any): Class => {
     faculty: c.faculty || c.major?.faculty,
     enrollmentYear: c.enrollmentYear,
     studentCount: c.studentCount,
+    classLeaders: c.classLeaders || [],
     advisors: c.advisors || [],
     isActive: c.isActive ?? true,
   };
@@ -144,13 +145,19 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
     try {
       setStudentsLoading(true);
       setErrorMsg('');
-      const data = await API_Admin.getClassStudents(classId);
+      const data = await API_Admin.getClassStudents(classId, { page: 1, limit: 1000 });
       const normalized: ClassListStudentItem[] = toArray(data as any).map((s: any) => ({
-        id: s.id,
+        id: s.studentId || s.userId || s.id,
         studentCode: s.studentCode || '',
         fullName: s.fullName || '',
         dateOfBirth: s.dateOfBirth ? s.dateOfBirth.split('T')[0] : '',
         phoneNumber: s.phone || s.phoneNumber || '',
+        email: s.email,
+        role: s.role || 'student',
+        isActive: s.isActive ?? true,
+        isClassLeader: !!s.isClassLeader,
+        classLeaderAssignment: s.classLeaderAssignment || null,
+        enrolledAt: s.enrolledAt,
       }));
       setStudents(normalized);
     } catch (err: any) {
@@ -419,6 +426,14 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                     <div>
                       <p className="text-xs font-semibold uppercase text-gray-500">Số sinh viên</p>
                       <p className="mt-1 text-sm text-gray-700">{displayedClass.studentCount ?? students.length}</p>
+                    </div>
+                    <div className="sm:col-span-2 xl:col-span-1">
+                      <p className="text-xs font-semibold uppercase text-gray-500">Lớp trưởng</p>
+                      <p className="mt-1 truncate text-sm text-gray-700">
+                        {displayedClassLeaders.length > 0
+                          ? displayedClassLeaders.map((item) => item.fullName || item.username).join(', ')
+                          : students.find((item) => item.isClassLeader)?.fullName || '—'}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold uppercase text-gray-500">Trạng thái</p>

@@ -249,7 +249,7 @@ async function getMajorById(id: string) {
 
 /** Lấy danh sách ngành thuộc một khoa để dựng cây Khoa -> Ngành. */
 async function getFacultyMajors(facultyId: string, query?: AdminTreeListQuery) {
-  return get<PaginatedResponse<AdminMajor> | AdminMajor[]>(`/admin/faculties/${facultyId}/majors`, {
+  return get<PaginatedResponse<AdminMajor> | AdminMajor[]>(`/faculties/${facultyId}/majors`, {
     params: buildQueryParams(query),
   });
 }
@@ -309,19 +309,19 @@ async function getClasses(query?: AdminTreeListQuery) {
 
 /** Lấy danh sách lớp thuộc một ngành để dựng cây Ngành -> Lớp. */
 async function getMajorClasses(majorId: string, query?: AdminTreeListQuery) {
-  return get<PaginatedResponse<AdminClass> | AdminClass[]>(`/admin/majors/${majorId}/classes`, {
+  return get<PaginatedResponse<AdminClass> | AdminClass[]>(`/majors/${majorId}/classes`, {
     params: buildQueryParams(query),
   });
 }
 
 /** Lấy chi tiết lớp. */
 async function getClassById(id: string) {
-  return get<AdminClass>(`/admin/classes/${id}`);
+  return get<AdminClass>(`/classes/${id}`);
 }
 
 /** Lấy chi tiết lớp mà cố vấn học tập được phân công phụ trách. */
 async function getAdvisorClassById(id: string) {
-  return get<AdminClass>(`/advisor/classes/${id}`);
+  return getClassById(id);
 }
 
 /** Gán lại toàn bộ danh sách cố vấn học tập phụ trách lớp. */
@@ -365,9 +365,11 @@ async function approveTrainingDepartmentEvaluation(id: string) {
   return patch<AdminEvaluationItem>(`/training-department/evaluations/${id}/approve`);
 }
 
-/** Lấy sinh viên trong lớp. */
-async function getClassStudents(classId: string) {
-  return get<AdminUser[]>(`/admin/classes/${classId}/students`);
+/** Lấy sinh viên trong lớp bằng route chung cho admin/CVHT/lớp trưởng/khoa. */
+async function getClassStudents(classId: string, query?: AdminTreeListQuery) {
+  return get<PaginatedResponse<AdminUser> | AdminUser[]>(`/classes/${classId}/students`, {
+    params: buildQueryParams(query),
+  });
 }
 
 /** Thêm sinh viên vào lớp. */
