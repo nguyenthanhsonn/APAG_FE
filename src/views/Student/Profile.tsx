@@ -5,6 +5,7 @@ import type { Class, Faculty, Major, Student, ProfileUser } from '../../types';
 import { API_Student } from '../../api/API_Student';
 import { CustomSelect } from '../../components/common/CustomSelect';
 import { useToast } from '../../components/common/ToastProvider';
+import { getUserFriendlyError } from '../../utils/errorHelper';
 
 export const StudentProfile = () => {
   const user = useAuthStore((state) => state.user) as ProfileUser | null;
@@ -94,7 +95,7 @@ export const StudentProfile = () => {
         const data = await API_Student.getFaculties();
         setFacultiesList(data || []);
       } catch (err: any) {
-        setMetadataError(err.message || 'Không thể tải danh mục khoa.');
+        setMetadataError(getUserFriendlyError(err, 'Không thể tải danh mục khoa.'));
       } finally {
         setMetadataLoading(false);
       }
@@ -118,7 +119,7 @@ export const StudentProfile = () => {
           setMajorId(data[0].id);
         }
       } catch (err: any) {
-        setMetadataError(err.message || 'Không thể tải danh mục ngành.');
+        setMetadataError(getUserFriendlyError(err, 'Không thể tải danh mục ngành.'));
       }
     };
 
@@ -140,7 +141,7 @@ export const StudentProfile = () => {
           setClassId(data[0].id);
         }
       } catch (err: any) {
-        setMetadataError(err.message || 'Không thể tải danh mục lớp.');
+        setMetadataError(getUserFriendlyError(err, 'Không thể tải danh mục lớp.'));
       }
     };
 
@@ -174,7 +175,7 @@ export const StudentProfile = () => {
       toast.success('Đã lưu thông tin thành công');
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Lỗi cập nhật thông tin liên hệ');
+      setErrorMsg(getUserFriendlyError(err, 'Không thể cập nhật thông tin liên hệ.'));
     }
   };
 

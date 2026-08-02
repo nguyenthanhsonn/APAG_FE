@@ -3,7 +3,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  allowedDevOrigins: ['192.168.100.17'],
+  allowedDevOrigins: ['192.168.100.17', '192.168.1.47', '10.36.120.223'],
 
   async rewrites() {
     const backendUrl = process.env.BACKEND_API_URL || 'http://10.36.120.154:5050/api/v1';

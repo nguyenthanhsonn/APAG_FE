@@ -4,6 +4,7 @@ import { useState, ChangeEvent } from 'react';
 import { Upload, FileSpreadsheet, FileText, CheckCircle, XCircle, Download, Loader2, Send } from 'lucide-react';
 import { API_Admin } from '../../api/API_Admin';
 import type { ImportStudentsResult } from '../../types';
+import { getUserFriendlyError } from '../../utils/errorHelper';
 
 export const AdminImport = () => {
   const [importResult, setImportResult] = useState<ImportStudentsResult | null>(null);
@@ -26,7 +27,7 @@ export const AdminImport = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể tải file mẫu Excel.');
+      setErrorMsg(getUserFriendlyError(err, 'Không thể tải file mẫu Excel.'));
     } finally {
       setLoading(false);
     }
@@ -45,7 +46,7 @@ export const AdminImport = () => {
       const res = await API_Admin.importStudents({ file });
       setImportResult(res);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể import danh sách sinh viên.');
+      setErrorMsg(getUserFriendlyError(err, 'Không thể import danh sách sinh viên.'));
     } finally {
       setLoading(false);
       e.target.value = '';
@@ -65,7 +66,7 @@ export const AdminImport = () => {
       setImportResult(res);
       setConfirmed(true);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Không thể xác nhận import sinh viên.');
+      setErrorMsg(getUserFriendlyError(err, 'Không thể xác nhận import sinh viên.'));
     } finally {
       setConfirming(false);
     }

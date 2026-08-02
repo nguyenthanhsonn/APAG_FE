@@ -22,10 +22,18 @@ export const ChangePasswordPage = () => {
   const [success, setSuccess] = useState('');
 
   const passwordRules = [
-    { label: 'Ít nhất 8 ký tự', passed: newPassword.length >= 8 },
-    { label: 'Một chữ cái viết hoa', passed: /[A-ZÀ-Ỵ]/.test(newPassword) },
-    { label: 'Một chữ số', passed: /\d/.test(newPassword) },
+    { label: 'Ít nhất 6 ký tự', passed: newPassword.length >= 6 },
+    { label: 'Có ít nhất 1 chữ cái', passed: /[a-zA-ZÀ-ỹ]/.test(newPassword) },
+    { label: 'Có ít nhất 1 chữ số', passed: /\d/.test(newPassword) },
   ];
+  const isPassAllRules = passwordRules.every((rule) => rule.passed);
+  const isFormValid =
+    Boolean(currentPassword) &&
+    isPassAllRules &&
+    newPassword !== currentPassword &&
+    confirmPassword === newPassword &&
+    Boolean(confirmPassword);
+
   const strengthCount = passwordRules.filter((rule) => rule.passed).length;
   const strengthLabel = !newPassword
     ? 'Chưa nhập'
@@ -60,6 +68,8 @@ export const ChangePasswordPage = () => {
 
     setLoading(true);
     try {
+      // TODO: Đang chờ USER xác nhận khả năng A hay B để gọi đúng API!
+      // Hiện tại vẫn dùng API changePassword với accessToken để giữ nguyên hoạt động
       const accessToken = localStorage.getItem('accessToken');
       if (!accessToken) {
         setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
@@ -145,16 +155,23 @@ export const ChangePasswordPage = () => {
               ))}
             </div>
           </div>
-          <PasswordField
-            label="Xác nhận mật khẩu mới"
-            value={confirmPassword}
-            onChange={setConfirmPassword}
-            visible={showConfirm}
-            onToggleVisible={() => setShowConfirm((value) => !value)}
-            disabled={loading}
-            placeholder="Nhập lại mật khẩu mới"
-            inputClass={inputClass}
-          />
+          <div>
+            <PasswordField
+              label="Xác nhận mật khẩu mới"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              visible={showConfirm}
+              onToggleVisible={() => setShowConfirm((value) => !value)}
+              disabled={loading}
+              placeholder="Nhập lại mật khẩu mới"
+              inputClass={inputClass}
+            />
+            {Boolean(confirmPassword) && confirmPassword !== newPassword && (
+              <p className="mt-1 text-xs font-semibold text-rose-500">
+                Mật khẩu xác nhận không khớp
+              </p>
+            )}
+          </div>
 
           <div className="rounded-lg border border-blue-100 bg-blue-50/80 px-3.5 py-2.5 text-xs text-slate-700">
             <p className="mb-2 font-bold text-slate-900">Yêu cầu mật khẩu:</p>
@@ -164,7 +181,7 @@ export const ChangePasswordPage = () => {
                   {rule.passed ? (
                     <CheckCircle size={14} className="shrink-0 text-blue-700" />
                   ) : (
-                    <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-slate-400 bg-white" />
+                    <span className="h-3.5 w-3.5 shrink-0 rounded border border-slate-300 bg-white" />
                   )}
                   <span className={rule.passed ? 'font-semibold text-slate-900' : 'text-slate-600'}>
                     {rule.label}
@@ -177,7 +194,7 @@ export const ChangePasswordPage = () => {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isFormValid}
               className="inline-flex min-h-10 min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-blue-700/20 transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading && <Loader2 size={18} className="animate-spin" />}

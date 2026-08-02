@@ -5,6 +5,7 @@ import { Users, GraduationCap, Building2, School, UserCog, BookOpen, Loader2, Al
 import { API_Admin } from '../../api/API_Admin';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid';
 import { AdminFacultyStatsCard } from '../../components/admin/AdminFacultyStatsCard';
+import { getUserFriendlyError } from '../../utils/errorHelper';
 
 const toArray = <T,>(value: any): T[] => {
   if (Array.isArray(value)) return value;
@@ -71,7 +72,7 @@ export const AdminDashboard = () => {
         });
         setFacultyStats(computedFacs);
       } catch (err: any) {
-        setErrorMsg(err.message || 'Không thể tải dữ liệu dashboard.');
+        setErrorMsg(getUserFriendlyError(err, 'Không thể tải dữ liệu tổng quan.'));
       } finally {
         setLoading(false);
       }

@@ -25,6 +25,7 @@ import {
   resolveFacultyId,
   toArray,
 } from '@/utils/facultyEvaluationData';
+import { getUserFriendlyError } from '@/utils/errorHelper';
 
 interface Props {
   classId: string;
@@ -68,7 +69,7 @@ export function FacultyClassDetailView({ classId }: Props) {
     } catch (err: any) {
       setClassInfo(null);
       setStudents([]);
-      setErrorMessage(err?.userMessage || err?.message || 'Không tải được dữ liệu lớp từ API.');
+      setErrorMessage(getUserFriendlyError(err, 'Không tải được dữ liệu lớp.'));
     } finally {
       setLoading(false);
     }
@@ -109,7 +110,7 @@ export function FacultyClassDetailView({ classId }: Props) {
       );
       await loadClassDetail();
     } catch (err: any) {
-      setErrorMessage(err?.userMessage || err?.message || 'Không duyệt được phiếu của lớp.');
+      setErrorMessage(getUserFriendlyError(err, 'Không duyệt được phiếu của lớp.'));
       setLoading(false);
     }
   };

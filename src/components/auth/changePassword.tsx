@@ -21,6 +21,35 @@ export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProp
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const passwordRules = [
+    { label: 'Ít nhất 6 ký tự', passed: newPassword.length >= 6 },
+    { label: 'Có ít nhất 1 chữ cái', passed: /[a-zA-ZÀ-ỹ]/.test(newPassword) },
+    { label: 'Có ít nhất 1 chữ số', passed: /\d/.test(newPassword) },
+  ];
+  const isPassAllRules = passwordRules.every((rule) => rule.passed);
+  const isFormValid =
+    Boolean(currentPassword) &&
+    isPassAllRules &&
+    newPassword !== currentPassword &&
+    confirmPassword === newPassword &&
+    Boolean(confirmPassword);
+
+  const strengthCount = passwordRules.filter((rule) => rule.passed).length;
+  const strengthLabel = !newPassword
+    ? 'Chưa nhập'
+    : strengthCount <= 1
+    ? 'Yếu'
+    : strengthCount === 2
+    ? 'Trung bình'
+    : 'Mạnh';
+  const strengthColor = !newPassword
+    ? 'bg-slate-300'
+    : strengthCount <= 1
+    ? 'bg-red-400'
+    : strengthCount === 2
+    ? 'bg-amber-400'
+    : 'bg-emerald-500';
+
   const handleClose = useCallback(() => {
     setCurrentPassword('');
     setNewPassword('');
@@ -75,6 +104,7 @@ export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProp
 
     setLoading(true);
     try {
+      // TODO: Đang chờ USER xác nhận khả năng A hay B để gọi đúng API!
       const accessToken = localStorage.getItem('accessToken');
 
       if (!accessToken) {
@@ -204,6 +234,20 @@ export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProp
             </div>
           </div>
 
+          <div className="-mt-1">
+            <p className="mb-1 text-xs text-slate-500">
+              Độ mạnh: <span className="font-bold text-slate-800">{strengthLabel}</span>
+            </p>
+            <div className="grid grid-cols-3 gap-1">
+              {[0, 1, 2].map((item) => (
+                <div
+                  key={item}
+                  className={`h-1.5 rounded-full transition-colors ${item < strengthCount ? strengthColor : 'bg-slate-200'}`}
+                />
+              ))}
+            </div>
+          </div>
+
           {/* Field: Confirm Password */}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
@@ -230,6 +274,29 @@ export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProp
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {Boolean(confirmPassword) && confirmPassword !== newPassword && (
+              <p className="mt-1 text-xs font-semibold text-rose-500">
+                Mật khẩu xác nhận không khớp
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-blue-100 bg-blue-50/80 px-3.5 py-2.5 text-xs text-slate-700">
+            <p className="mb-2 font-bold text-slate-900">Yêu cầu mật khẩu:</p>
+            <div className="space-y-1">
+              {passwordRules.map((rule) => (
+                <div key={rule.label} className="flex items-center gap-2">
+                  {rule.passed ? (
+                    <CheckCircle size={14} className="shrink-0 text-blue-700" />
+                  ) : (
+                    <span className="h-3.5 w-3.5 shrink-0 rounded border border-slate-300 bg-white" />
+                  )}
+                  <span className={rule.passed ? 'font-semibold text-slate-900' : 'text-slate-600'}>
+                    {rule.label}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Footer Action Buttons */}
@@ -244,7 +311,7 @@ export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProp
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isFormValid}
               className="flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm font-bold text-white bg-linear-to-r from-[#3B5BDB] to-[#6741D9] hover:from-[#2B49C4] hover:to-[#5532C0] rounded-xl shadow-lg shadow-[#3B5BDB]/20 hover:shadow-xl hover:shadow-[#3B5BDB]/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[42px]"
             >
               {loading && <Loader2 size={16} className="animate-spin" />}

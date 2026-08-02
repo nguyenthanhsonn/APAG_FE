@@ -2,21 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Users,
-  CheckCircle2,
   Clock,
   AlertCircle,
   Search,
   Filter,
   Check,
   FileCheck,
-  BookOpen,
 } from 'lucide-react';
 import { PrintButton } from '@/components/common/PrintButton';
 import { API_Admin } from '@/api/API_Admin';
 import { useAuthStore } from '@/store/authStore';
 import type { AdminEvaluationItem } from '@/types';
 import { FacultyStudentRecord, mapEvaluationToFacultyStudent, toArray } from '@/utils/facultyEvaluationData';
+import { getUserFriendlyError } from '@/utils/errorHelper';
 
 function resolveClassId(user: any): string {
   const firstClass = user?.managedClasses?.[0];
@@ -52,7 +50,7 @@ export function ClassLeaderDashboard() {
       setStudents(evaluations.map(mapEvaluationToFacultyStudent));
     } catch (err: any) {
       setStudents([]);
-      setErrorMessage(err?.userMessage || err?.message || 'Không tải được danh sách phiếu của lớp.');
+      setErrorMessage(getUserFriendlyError(err, 'Không tải được danh sách phiếu của lớp.'));
     } finally {
       setLoading(false);
     }
@@ -69,7 +67,7 @@ export function ClassLeaderDashboard() {
       await API_Admin.approveClassLeaderEvaluation(student.evaluationId, student.score);
       await loadStudents();
     } catch (err: any) {
-      setErrorMessage(err?.userMessage || err?.message || 'Không duyệt được phiếu.');
+      setErrorMessage(getUserFriendlyError(err, 'Không duyệt được phiếu.'));
       setLoading(false);
     }
   };
@@ -80,31 +78,9 @@ export function ClassLeaderDashboard() {
     return matchesSearch && matchesStatus;
   }), [students, searchTerm, statusFilter]);
 
-  const totalCount = students.length;
-  const approvedCount = students.filter((s) => s.status === 'APPROVED').length;
-  const waitingCount = students.filter((s) => s.rawStatus === 'submitted').length;
-  const notSubmittedCount = students.filter((s) => s.status === 'NOT_SUBMITTED').length;
-
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-2xl border border-gray-100 shadow-xs">
-        <div>
-          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-brand-secondary">
-            <BookOpen size={16} /> {className}
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý & Duyệt điểm rèn luyện cấp Lớp</h1>
-          <p className="text-sm text-gray-500 mt-1">Dữ liệu được lấy trực tiếp từ API theo lớp trưởng đang đăng nhập.</p>
-        </div>
-      </div>
-
       {errorMessage && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{errorMessage}</div>}
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4"><div className="p-3 bg-brand-secondary/10 text-brand-secondary rounded-xl"><Users size={22} /></div><div><p className="text-xs text-gray-500 font-medium">Số phiếu</p><p className="text-xl font-bold text-gray-900">{totalCount} Phiếu</p></div></div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4"><div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle2 size={22} /></div><div><p className="text-xs text-gray-500 font-medium">Đã duyệt</p><p className="text-xl font-bold text-emerald-600">{approvedCount} Phiếu</p></div></div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4"><div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><Clock size={22} /></div><div><p className="text-xs text-gray-500 font-medium">Chờ Lớp duyệt</p><p className="text-xl font-bold text-amber-600">{waitingCount} Phiếu</p></div></div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4"><div className="p-3 bg-rose-50 text-rose-600 rounded-xl"><AlertCircle size={22} /></div><div><p className="text-xs text-gray-500 font-medium">Chưa nộp phiếu</p><p className="text-xl font-bold text-rose-600">{notSubmittedCount} Phiếu</p></div></div>
-      </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 justify-between items-center bg-gray-50/50">

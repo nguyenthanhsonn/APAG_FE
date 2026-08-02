@@ -5,6 +5,7 @@ import { Calendar, GraduationCap, Lock, Mail, Phone, School, User, X } from 'luc
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import type { CreateStudentPayload, ModalCreateManualStudentProps, CreateManualStudentFieldProps as FieldProps } from '../../types';
+import { getUserFriendlyError } from '../../utils/errorHelper';
 
 function Field({ label, icon: Icon, required, error, children }: FieldProps) {
   const normalizedError = Array.isArray(error) ? error[0] : error;
@@ -91,7 +92,7 @@ export default function ModalCreateManualStudent({
         resetForm();
         onClose();
       } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : 'Không thể tạo sinh viên. Vui lòng kiểm tra lại thông tin.');
+        setSubmitError(getUserFriendlyError(err, 'Không thể tạo sinh viên. Vui lòng kiểm tra lại thông tin.'));
       } finally {
         setSubmitting(false);
       }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Users, X } from 'lucide-react';
 import { Header } from '@/components/Layout/Header';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const menuItems = [
   { path: '/class_leader', icon: Users, label: 'Danh sách lớp' },
@@ -74,21 +75,23 @@ export default function ClassLeaderLayout({ children }: { children: React.ReactN
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#1A1B1E] overflow-hidden">
-      <ClassLeaderSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex flex-col h-full lg:pl-[220px]">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+    <ProtectedRoute requiredRole="class_leader">
+      <div className="h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#1A1B1E] overflow-hidden">
+        <ClassLeaderSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex flex-col h-full lg:pl-[220px]">
+          <Header onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="flex-1 flex flex-col bg-[#F8F9FA] overflow-x-hidden max-w-full overflow-y-auto min-h-0">
-          {children}
-        </main>
+          <main className="flex-1 flex flex-col bg-[#F8F9FA] overflow-x-hidden max-w-full overflow-y-auto min-h-0">
+            {children}
+          </main>
 
-        <footer className="shrink-0 border-t border-[#E9ECEF] bg-white px-6 py-3 lg:pl-0">
-          <p className="text-center text-[11px] text-[#ADB5BD]">
-            © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
-          </p>
-        </footer>
+          <footer className="shrink-0 border-t border-[#E9ECEF] bg-white px-6 py-3 lg:pl-0">
+            <p className="text-center text-[11px] text-[#ADB5BD]">
+              © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
+            </p>
+          </footer>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

@@ -22,6 +22,7 @@ import {
   resolveFacultyId,
   toArray,
 } from '@/utils/facultyEvaluationData';
+import { getUserFriendlyError } from '@/utils/errorHelper';
 
 export function FacultyDashboard() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export function FacultyDashboard() {
       setClasses(groupFacultyEvaluationsByClass(evaluations));
     } catch (err: any) {
       setClasses([]);
-      setErrorMessage(err?.userMessage || err?.message || 'Không tải được danh sách phiếu của khoa.');
+      setErrorMessage(getUserFriendlyError(err, 'Không tải được danh sách phiếu của khoa.'));
     } finally {
       setLoading(false);
     }
@@ -72,7 +73,7 @@ export function FacultyDashboard() {
       );
       await loadClasses();
     } catch (err: any) {
-      setErrorMessage(err?.userMessage || err?.message || 'Không duyệt được phiếu của lớp.');
+      setErrorMessage(getUserFriendlyError(err, 'Không duyệt được phiếu của lớp.'));
       setLoading(false);
     }
   };
