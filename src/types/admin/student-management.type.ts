@@ -35,4 +35,13 @@ export interface ClassListStudentItem {
   fullName: string;
   dateOfBirth: string;
   phoneNumber: string;
+  email?: string;
+  role?: 'student' | InternalUserRole;
+  isActive?: boolean;
+  isClassLeader?: boolean;
+  classLeaderAssignment?: {
+    id?: string;
+    assignedAt?: string;
+  } | null;
+  enrolledAt?: string;
 }

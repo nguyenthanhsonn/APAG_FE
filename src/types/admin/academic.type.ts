@@ -27,7 +27,18 @@ export interface Class {
   studentCount?: number;
   major?: Major;
   faculty?: Faculty;
+  classLeaders?: ClassLeader[];
   advisors?: ClassAdvisor[];
+}
+
+export interface ClassLeader {
+  id: string;
+  userId: string;
+  username: string;
+  fullName: string;
+  email: string;
+  isActive: boolean;
+  assignedAt?: string;
 }
 
 export interface ClassAdvisor {

@@ -21,7 +21,7 @@ import type { AdminEvaluationItem } from '@/types';
 import {
   FacultyClassRecord,
   FacultyStudentRecord,
-  groupFacultyEvaluationsByClass,
+  mapEvaluationToFacultyStudent,
   resolveFacultyId,
   toArray,
 } from '@/utils/facultyEvaluationData';
@@ -37,6 +37,42 @@ const STATUS_LABEL: Record<string, string> = {
   REJECTED: 'Trả về',
   NOT_SUBMITTED: 'Chưa nộp',
 };
+
+function normalizeKey(value: unknown) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getStudentIdentityKeys(student: any) {
+  return [
+    student.studentId,
+    student.id,
+    student.userId,
+    student.email,
+    student.studentCode,
+    student.code,
+    student.fullName,
+    student.name,
+  ]
+    .map(normalizeKey)
+    .filter(Boolean);
+}
+
+function getEvaluationIdentityKeys(evaluation: any) {
+  return [
+    evaluation.studentId,
+    evaluation.student?.id,
+    evaluation.student?.userId,
+    evaluation.userId,
+    evaluation.student?.email,
+    evaluation.email,
+    evaluation.studentCode,
+    evaluation.student?.studentCode,
+    evaluation.studentName,
+    evaluation.student?.fullName,
+  ]
+    .map(normalizeKey)
+    .filter(Boolean);
+}
 
 export function FacultyClassDetailView({ classId }: Props) {
   const router = useRouter();
@@ -59,13 +95,70 @@ export function FacultyClassDetailView({ classId }: Props) {
     setLoading(true);
     setErrorMessage('');
     try {
-      const result = await API_Admin.getFacultyEvaluations(facultyId, { limit: 200 });
-      const evaluations = toArray<AdminEvaluationItem>(result);
-      const grouped = groupFacultyEvaluationsByClass(evaluations);
-      const selectedClass = grouped.find((item) => item.id === classId) || null;
+      const [classDetailResult, studentsResult, evaluationsResult] = await Promise.all([
+        API_Admin.getClassById(classId),
+        API_Admin.getClassStudents(classId, { page: 1, limit: 1000 }),
+        API_Admin.getFacultyEvaluations(facultyId, { classId, limit: 1000 }),
+      ]);
+
+      const classDetail = classDetailResult as any;
+      const classStudents = toArray<any>(studentsResult);
+      const evaluations = toArray<AdminEvaluationItem>(evaluationsResult);
+      const evaluationsByKey = new Map<string, AdminEvaluationItem>();
+
+      evaluations.forEach((evaluation) => {
+        getEvaluationIdentityKeys(evaluation).forEach((key) => {
+          evaluationsByKey.set(key, evaluation);
+        });
+      });
+
+      const mappedStudents = classStudents.map((student): FacultyStudentRecord => {
+        const evaluation = getStudentIdentityKeys(student)
+          .map((key) => evaluationsByKey.get(key))
+          .find(Boolean);
+
+        if (evaluation) {
+          return mapEvaluationToFacultyStudent(evaluation);
+        }
+
+        const studentId = student.studentId || student.userId || student.id || '';
+        return {
+          id: studentId,
+          evaluationId: '',
+          code: student.studentCode || student.code || '—',
+          name: student.fullName || student.name || 'Sinh viên chưa xác định',
+          score: 0,
+          rank: '-',
+          status: 'NOT_SUBMITTED',
+          rawStatus: 'not_submitted',
+          date: '-',
+        };
+      });
+
+      const approvedCount = mappedStudents.filter((item) => item.status === 'APPROVED').length;
+      const pendingCount = mappedStudents.filter((item) =>
+        ['advisor_approved', 'faculty_rejected'].includes(item.rawStatus),
+      ).length;
+      const totalStudents = classDetail.studentCount ?? mappedStudents.length;
+      const selectedClass: FacultyClassRecord = {
+        id: classDetail.id || classId,
+        className: classDetail.name || classDetail.code || 'Lớp chưa xác định',
+        leader: classDetail.classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') || '—',
+        totalStudents,
+        submittedCount: mappedStudents.filter((item) => item.status !== 'NOT_SUBMITTED').length,
+        approvedCount,
+        status:
+          pendingCount > 0
+            ? 'PENDING_FACULTY'
+            : totalStudents > 0 && approvedCount === totalStudents
+              ? 'FACULTY_APPROVED'
+              : 'IN_PROGRESS',
+        date: '-',
+        evaluations: mappedStudents,
+      };
 
       setClassInfo(selectedClass);
-      setStudents(selectedClass?.evaluations ?? []);
+      setStudents(mappedStudents);
     } catch (err: any) {
       setClassInfo(null);
       setStudents([]);
