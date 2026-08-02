@@ -4,10 +4,10 @@ import { CheckCircle2, Clock3, FileText, Users } from 'lucide-react';
 import type { ClassStatsWidgetProps } from '@/types/admin';
 
 const statMeta = [
-  { key: 'total', label: 'Tổng SV', icon: Users, border: 'border-t-[#3B5BDB]', bg: 'bg-[#EDF2FF]', color: 'text-[#3B5BDB]' },
+  { key: 'total', label: 'Tổng SV', icon: Users, border: 'border-t-brand-secondary', bg: 'bg-brand-secondary/10', color: 'text-brand-secondary' },
   { key: 'submitted', label: 'Đã nộp', icon: FileText, border: 'border-t-[#E67700]', bg: 'bg-[#FFF9DB]', color: 'text-[#E67700]' },
   { key: 'approved', label: 'Đã duyệt', icon: CheckCircle2, border: 'border-t-[#2F9E44]', bg: 'bg-[#EBFBEE]', color: 'text-[#2F9E44]' },
-  { key: 'notSubmitted', label: 'Chưa nộp', icon: Clock3, border: 'border-t-[#868E96]', bg: 'bg-[#F1F3F5]', color: 'text-[#495057]' },
+  { key: 'notSubmitted', label: 'Chưa nộp', icon: Clock3, border: 'border-t-brand-primary', bg: 'bg-red-50', color: 'text-brand-primary' },
 ] as const;
 
 export default function ClassStatsWidget({ total, submitted, approved, notSubmitted }: ClassStatsWidgetProps) {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Users, X } from 'lucide-react';
@@ -22,30 +23,30 @@ function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => v
         onClick={onClose}
       />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col bg-[#104E92] shadow-2xl transition-transform duration-300 ease-in-out lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col bg-brand-secondary shadow-2xl transition-transform duration-300 ease-in-out lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="relative flex h-16 items-center justify-between border-b border-white/10 px-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-lg">
-              <span className="text-xs font-black text-[#104E92]">LT</span>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-lg">
+              <Image src="/apag-logo.png" alt="APAG Logo" width={38} height={38} className="object-contain" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-bold leading-tight text-white">Lớp trưởng</p>
-              <p className="text-[10px] font-medium text-[#D0E2FF] truncate">CSMTS</p>
+              <p className="truncate text-[10px] font-medium text-white/70">CSMTS</p>
             </div>
           </div>
-          <button type="button" aria-label="Đóng menu" onClick={onClose} className="cursor-pointer text-[#D0E2FF] hover:text-white lg:hidden p-1">
+          <button type="button" aria-label="Đóng menu" onClick={onClose} className="cursor-pointer p-1 text-white/70 hover:text-white lg:hidden">
             <X size={18} />
           </button>
         </div>
 
         <div className="border-b border-white/10 px-4 py-3">
-          <p className="text-[11px] font-semibold text-[#D0E2FF]">Tài khoản lớp trưởng</p>
-          <p className="text-[10px] text-[#D0E2FF]/60">Dữ liệu theo phiên đăng nhập</p>
+          <p className="text-[11px] font-semibold text-white/80">Tài khoản lớp trưởng</p>
+          <p className="text-[10px] text-white/55">Dữ liệu theo phiên đăng nhập</p>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-[#D0E2FF]/60">LỚP TRƯỞNG</p>
+          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-white/55">LỚP TRƯỞNG</p>
           <div className="space-y-0.5">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -55,9 +56,9 @@ function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => v
                   key={item.path}
                   href={item.path}
                   onClick={onClose}
-                  className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? 'bg-[#0B346E] text-white shadow-sm' : 'text-[#D0E2FF] hover:bg-white/8 hover:text-white'}`}
+                  className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? 'bg-brand-primary text-white shadow-sm' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
                 >
-                  <Icon size={17} className={`shrink-0 ${isActive ? 'text-white' : 'text-[#D0E2FF]/70 group-hover:text-white'}`} />
+                  <Icon size={17} className={`shrink-0 ${isActive ? 'text-white' : 'text-white/60 group-hover:text-white'}`} />
                   <span className="whitespace-normal break-words leading-tight flex-1">{item.label}</span>
                 </Link>
               );

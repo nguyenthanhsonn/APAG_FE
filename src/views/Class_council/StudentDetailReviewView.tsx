@@ -505,7 +505,7 @@ export function StudentDetailReviewView() {
           <button
             type="button"
             onClick={() => router.push(`/class_council/${classId}`)}
-            className="mb-2 inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-[#3B5BDB] hover:text-[#4C6EF5]"
+            className="mb-2 inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-brand-secondary hover:text-brand-primary"
           >
             <ArrowLeft size={16} />
             Quay lại danh sách sinh viên
@@ -521,7 +521,7 @@ export function StudentDetailReviewView() {
             </div>
             <div className="rounded-xl border border-[#E9ECEF] bg-white p-4">
               <p className="text-xs font-semibold text-[#868E96]">Lớp/GVCN</p>
-              <p className="mt-1 text-2xl font-bold text-[#3B5BDB]">{classScores.total.toFixed(2)}</p>
+              <p className="mt-1 text-2xl font-bold text-brand-secondary">{classScores.total.toFixed(2)}</p>
             </div>
           </div>
         )}
@@ -529,7 +529,7 @@ export function StudentDetailReviewView() {
 
       {loading ? (
         <div className="flex min-h-[420px] flex-col items-center justify-center gap-2.5 rounded-xl border border-[#E9ECEF] bg-white p-6 shadow-sm">
-          <Loader2 className="animate-spin text-[#3B5BDB]" size={34} />
+          <Loader2 className="animate-spin text-brand-primary" size={34} />
           <p className="text-sm font-semibold text-[#868E96]">Đang tải phiếu đánh giá...</p>
         </div>
       ) : !student || !hasEvaluation ? (
@@ -557,7 +557,7 @@ export function StudentDetailReviewView() {
             <button
               type="button"
               onClick={() => setEvidenceModalOpen(true)}
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#DEE2E6] bg-white px-4 py-2.5 text-sm font-semibold text-[#3B5BDB] transition hover:bg-[#EDF2FF]"
+              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-brand-secondary/20 bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary transition hover:bg-brand-secondary/10"
             >
               <Paperclip size={16} />
               Xem minh chứng đính kèm

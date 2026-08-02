@@ -62,7 +62,7 @@ export function PrintButton<T>({
       <button
         type="button"
         onClick={handlePrint}
-        className="no-print inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98] shadow-sm"
+        className="no-print inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-[0.98]"
       >
         <Printer size={16} />
         <span>{label}</span>

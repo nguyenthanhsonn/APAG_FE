@@ -98,6 +98,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem('refreshToken');
     }
   },
+  /** Mock: set user directly without API — dev/test only */
+  setUser: (user: any) => {
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('accessToken', 'mock-token');
+    localStorage.setItem('refreshToken', 'mock-refresh-token');
+    set({ user, isAuthenticated: true, isHydrated: true });
+  },
   refreshProfile: async () => {
     const accessToken = localStorage.getItem('accessToken');
 

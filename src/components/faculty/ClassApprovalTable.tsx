@@ -38,7 +38,7 @@ export function ClassApprovalTable({
             type="button"
             disabled={approving}
             onClick={onApproveAll}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#3B5BDB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#4C6EF5] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CheckCheck size={15} />
             Duyệt tất cả ({pendingCount})
@@ -48,7 +48,7 @@ export function ClassApprovalTable({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-[#E9ECEF] bg-[#F8F9FA]">
               <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#868E96]">Lớp</th>
@@ -100,7 +100,7 @@ export function ClassApprovalTable({
                           type="button"
                           disabled={approving}
                           onClick={() => onApprove(cls.id)}
-                          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#3B5BDB] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#4C6EF5] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-brand-primary px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <CheckCircle2 size={13} />
                           Duyệt

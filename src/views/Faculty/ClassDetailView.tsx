@@ -120,7 +120,7 @@ export function FacultyClassDetailView({ classId }: Props) {
         <div className="text-center">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Tài khoản chưa được gán khoa</h2>
           <p className="text-sm text-gray-500 mb-6">Không thể tải dữ liệu thật khi tài khoản chưa có faculty assignment.</p>
-          <button onClick={() => router.push('/faculty')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-semibold text-sm transition cursor-pointer">
+          <button onClick={() => router.push('/faculty')} className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700">
             <ArrowLeft size={16} /> Quay lại danh sách lớp
           </button>
         </div>
@@ -137,7 +137,7 @@ export function FacultyClassDetailView({ classId }: Props) {
             Lớp với mã <strong>{classId}</strong> không có trong dữ liệu API của khoa đang đăng nhập.
           </p>
           {errorMessage && <p className="text-sm font-medium text-rose-600 mb-4">{errorMessage}</p>}
-          <button onClick={() => router.push('/faculty')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-semibold text-sm transition cursor-pointer">
+          <button onClick={() => router.push('/faculty')} className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700">
             <ArrowLeft size={16} /> Quay lại danh sách lớp
           </button>
         </div>
@@ -151,7 +151,7 @@ export function FacultyClassDetailView({ classId }: Props) {
         <button
           type="button"
           onClick={() => router.push('/faculty')}
-          className="self-start inline-flex items-center gap-2 text-sm text-gray-500 hover:text-teal-600 font-medium transition cursor-pointer group"
+          className="group inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-gray-500 transition hover:text-brand-primary"
         >
           <ArrowLeft size={16} className="transition group-hover:-translate-x-0.5" />
           Quay lại danh sách lớp
@@ -159,7 +159,7 @@ export function FacultyClassDetailView({ classId }: Props) {
 
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-teal-600 font-semibold text-sm mb-1">
+            <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-brand-secondary">
               <Building2 size={16} />
               {managedFacultyName}
             </div>
@@ -175,7 +175,7 @@ export function FacultyClassDetailView({ classId }: Props) {
               type="button"
               disabled={loading}
               onClick={handleFacultyApproveClass}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-semibold text-sm transition cursor-pointer shadow-sm shrink-0 disabled:opacity-50"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
             >
               <FileCheck size={16} />
               Duyệt toàn lớp
@@ -198,7 +198,7 @@ export function FacultyClassDetailView({ classId }: Props) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-teal-50 text-teal-600 rounded-xl"><Users size={22} /></div>
+          <div className="p-3 bg-brand-secondary/10 text-brand-secondary rounded-xl"><Users size={22} /></div>
           <div><p className="text-xs text-gray-500 font-medium">Số phiếu</p><p className="text-xl font-bold text-gray-900">{totalCount} Phiếu</p></div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
@@ -225,7 +225,7 @@ export function FacultyClassDetailView({ classId }: Props) {
                 placeholder="Tìm theo tên hoặc mã SV..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
 
@@ -234,7 +234,7 @@ export function FacultyClassDetailView({ classId }: Props) {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-teal-500"
+                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
               >
                 <option value="ALL">Tất cả trạng thái</option>
                 <option value="APPROVED">Đã duyệt</option>
@@ -271,7 +271,7 @@ export function FacultyClassDetailView({ classId }: Props) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
+          <table className="w-full min-w-[860px] border-collapse text-left text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs font-semibold uppercase">
                 <th className="py-3.5 px-4">Mã SV</th>
@@ -288,10 +288,10 @@ export function FacultyClassDetailView({ classId }: Props) {
               ) : filteredStudents.length === 0 ? (
                 <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">Không có dữ liệu sinh viên từ API.</td></tr>
               ) : filteredStudents.map((st) => (
-                <tr key={st.evaluationId} className="hover:bg-teal-50/30 transition-colors">
+                <tr key={st.evaluationId} className="transition-colors hover:bg-brand-secondary/5">
                   <td className="py-3.5 px-4 font-mono font-semibold text-gray-700">{st.code}</td>
                   <td className="py-3.5 px-4 font-medium text-gray-900">{st.name}</td>
-                  <td className="py-3.5 px-4 text-center font-bold text-teal-600">{st.score > 0 ? st.score : '-'}</td>
+                  <td className="py-3.5 px-4 text-center font-bold text-brand-secondary">{st.score > 0 ? st.score : '-'}</td>
                   <td className="py-3.5 px-4 text-center">
                     {st.rank !== '-' ? <span className="inline-block px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-md">{st.rank}</span> : <span className="text-gray-400">-</span>}
                   </td>
