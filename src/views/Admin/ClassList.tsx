@@ -278,8 +278,8 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   const displayedFaculty =
     displayedClass?.faculty?.name ||
     displayedClass?.major?.faculty?.name ||
-    faculties.find((f) => f.id === displayedClass?.facultyId)?.name ||
     '—';
+  const displayedClassLeaders = (displayedClass as any)?.classLeaders || [];
 
 
   const handleFacultyChange = (value: string) => {
@@ -431,7 +431,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                       <p className="text-xs font-semibold uppercase text-gray-500">Lớp trưởng</p>
                       <p className="mt-1 truncate text-sm text-gray-700">
                         {displayedClassLeaders.length > 0
-                          ? displayedClassLeaders.map((item) => item.fullName || item.username).join(', ')
+                          ? displayedClassLeaders.map((item: any) => item.fullName || item.username || item.name).filter(Boolean).join(', ')
                           : students.find((item) => item.isClassLeader)?.fullName || '—'}
                       </p>
                     </div>
