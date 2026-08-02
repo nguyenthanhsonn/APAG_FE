@@ -59,6 +59,12 @@ export interface UserListQuery extends PaginationQuery {
 }
 
 /** Điều kiện xem danh sách sinh viên. */
+export interface AdminTreeListQuery extends PaginationQuery {
+  search?: string;
+  isActive?: boolean;
+  includeDeleted?: boolean;
+}
+
 export interface AdminStudentListQuery extends PaginationQuery {
   keyword?: string;
   classId?: string;

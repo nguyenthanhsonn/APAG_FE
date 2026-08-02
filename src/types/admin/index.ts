@@ -6,6 +6,7 @@ export type {
   AddStudentToClassPayload,
   AdminSemester,
   AdminStudentListQuery,
+  AdminTreeListQuery,
   AdminClass,
   AdminEvaluationItem,
   AdminEvaluationListQuery,

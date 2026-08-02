@@ -5,6 +5,7 @@ export type {
   AddStudentToClassPayload,
   AdminSemester,
   AdminStudentListQuery,
+  AdminTreeListQuery,
   AdminEvaluationListQuery,
   InternalUserRole,
   AssignCouncilPayload,
