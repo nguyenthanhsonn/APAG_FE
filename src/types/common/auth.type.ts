@@ -13,7 +13,7 @@ export type {
 export type UserRole =
   | 'student'
   | 'admin'
-  | 'class_council'
+  | 'advisor'
   | 'class_leader'
   | 'faculty'
   | 'training_department';

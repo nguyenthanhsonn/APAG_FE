@@ -31,7 +31,7 @@ const ROLES: RoleCard[] = [
     cardColor: 'hover:border-emerald-400',
   },
   {
-    role: 'class_council',
+    role: 'advisor',
     label: 'Cố vấn học tập (CVHT)',
     description: 'Xem phiếu điểm toàn lớp, chốt điểm hoặc trả phiếu về cho sinh viên.',
     href: '/login',

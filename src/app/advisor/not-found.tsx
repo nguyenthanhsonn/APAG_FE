@@ -2,7 +2,7 @@
 
 import { NotFoundContent } from '@/components/common/NotFoundContent';
 
-export default function ClassCouncilNotFound() {
+export default function AdvisorNotFound() {
   return (
     <NotFoundContent
       homeLink="/advisor"

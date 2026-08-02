@@ -11,6 +11,9 @@ import ModalAddStudent from '../../components/admin/modalAddStudent';
 import { getUserFriendlyError, toArray } from '../../utils/adminData';
 import { useAdminUrlState } from '../../utils/adminUrlState';
 
+// BE mới trả field advisors; councils là fallback cho dữ liệu/response cũ trong lúc đổi role.
+const normalizeClassAdvisors = (detail: any) => detail.advisors || detail.councils || [];
+
 export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListProps) => {
   const { getPage, getValue, setQuery } = useAdminUrlState();
   const [selectedFaculty, setSelectedFaculty] = useState(() => getValue('facultyId'));
@@ -25,9 +28,9 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   const [classes, setClasses] = useState<Class[]>([]);
   const [classDetail, setClassDetail] = useState<Class | null>(null);
   const [students, setStudents] = useState<ClassListStudentItem[]>([]);
-  const [councils, setCouncils] = useState<StudentManagementItem[]>([]);
-  const [selectedCouncilId, setSelectedCouncilId] = useState('');
-  const [councilsSaving, setCouncilsSaving] = useState(false);
+  const [advisors, setAdvisors] = useState<StudentManagementItem[]>([]);
+  const [selectedAdvisorId, setSelectedAdvisorId] = useState('');
+  const [advisorsSaving, setAdvisorsSaving] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(false);
@@ -170,7 +173,8 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
         createdAt: detail.createdAt,
         deletedAt: detail.deletedAt,
         studentCount: detail.studentCount,
-        councils: detail.councils || [],
+        advisors: normalizeClassAdvisors(detail),
+        councils: normalizeClassAdvisors(detail),
         isActive: detail.isActive ?? true,
       });
     } catch (err: any) {
@@ -185,16 +189,16 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   }, [loadClassDetail, selectedClass]);
 
   useEffect(() => {
-    const loadCouncils = async () => {
+    const loadAdvisors = async () => {
       try {
         const data = await API_Admin.getUsers({ role: 'advisor', page: 1, limit: 100, includeDeleted: false });
-        setCouncils(toArray(data as any));
+        setAdvisors(toArray(data as any));
       } catch {
-        setCouncils([]);
+        setAdvisors([]);
       }
     };
 
-    loadCouncils();
+    loadAdvisors();
   }, []);
 
   const filteredStudents = students.filter((s) =>
@@ -291,16 +295,16 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
     displayedClass?.major?.faculty?.name ||
     faculties.find((f) => f.id === displayedClass?.facultyId)?.name ||
     '—';
-  const assignedCouncilUserIds = new Set((displayedClass?.councils || []).map((item) => item.userId));
-  const availableCouncils = councils.filter((item) => item.isActive && !assignedCouncilUserIds.has(item.id));
+  const assignedAdvisorUserIds = new Set((displayedClass?.advisors || []).map((item) => item.userId));
+  const availableAdvisors = advisors.filter((item) => item.isActive && !assignedAdvisorUserIds.has(item.id));
 
-  const updateCouncilUsers = async (userIds: string[]) => {
+  const updateAdvisorUsers = async (userIds: string[]) => {
     if (!selectedClass) return;
 
     try {
-      setCouncilsSaving(true);
+      setAdvisorsSaving(true);
       setErrorMsg('');
-      const updatedClass = await API_Admin.updateClassCouncils(selectedClass, { userIds });
+      const updatedClass = await API_Admin.updateClassAdvisors(selectedClass, { userIds });
       const detail = updatedClass as any;
       setClassDetail((prev) => ({
         ...(prev || {
@@ -312,26 +316,27 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
           isActive: detail.isActive ?? true,
         }),
         ...detail,
-        councils: detail.councils || [],
+        advisors: normalizeClassAdvisors(detail),
+        councils: normalizeClassAdvisors(detail),
       }));
     } catch (err) {
-      setErrorMsg(getUserFriendlyError(err, 'Không thể cập nhật cố vấn phụ trách. Vui lòng thử lại sau.'));
+      setErrorMsg(getUserFriendlyError(err, 'Không thể cập nhật cố vấn học tập phụ trách. Vui lòng thử lại sau.'));
     } finally {
-      setCouncilsSaving(false);
+      setAdvisorsSaving(false);
     }
   };
 
-  const handleAssignCouncil = async () => {
-    if (!selectedCouncilId) return;
+  const handleAssignAdvisor = async () => {
+    if (!selectedAdvisorId) return;
 
-    const currentIds = (displayedClass?.councils || []).map((item) => item.userId);
-    await updateCouncilUsers([...currentIds, selectedCouncilId]);
-    setSelectedCouncilId('');
+    const currentIds = (displayedClass?.advisors || []).map((item) => item.userId);
+    await updateAdvisorUsers([...currentIds, selectedAdvisorId]);
+    setSelectedAdvisorId('');
   };
 
-  const handleRemoveCouncil = async (userId: string) => {
-    const nextIds = (displayedClass?.councils || []).map((item) => item.userId).filter((id) => id !== userId);
-    await updateCouncilUsers(nextIds);
+  const handleRemoveAdvisor = async (userId: string) => {
+    const nextIds = (displayedClass?.advisors || []).map((item) => item.userId).filter((id) => id !== userId);
+    await updateAdvisorUsers(nextIds);
   };
 
   const handleFacultyChange = (value: string) => {
@@ -493,21 +498,21 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                 <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
                   <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <h2 className="text-sm font-bold text-gray-900">Cố vấn phụ trách</h2>
+                      <h2 className="text-sm font-bold text-gray-900">Cố vấn học tập phụ trách</h2>
                       <p className="mt-0.5 text-xs font-medium text-gray-500">
-                        Gán cố vấn cho lớp tại đây. Hồ sơ cố vấn chỉ hiển thị danh sách này ở chế độ xem.
+                        Gán cố vấn học tập cho lớp tại đây. Danh sách này dùng cho quyền CVHT xem và duyệt lớp phụ trách.
                       </p>
                     </div>
 
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <select
-                        value={selectedCouncilId}
-                        onChange={(e) => setSelectedCouncilId(e.target.value)}
-                        disabled={councilsSaving || availableCouncils.length === 0}
+                        value={selectedAdvisorId}
+                        onChange={(e) => setSelectedAdvisorId(e.target.value)}
+                        disabled={advisorsSaving || availableAdvisors.length === 0}
                         className="h-10 min-w-[240px] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
                       >
-                        <option value="">-- Chọn cố vấn --</option>
-                        {availableCouncils.map((item) => (
+                        <option value="">-- Chọn CVHT --</option>
+                        {availableAdvisors.map((item) => (
                           <option key={item.id} value={item.id}>
                             {[item.fullName, item.username].filter(Boolean).join(' - ')}
                           </option>
@@ -515,19 +520,19 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                       </select>
                       <button
                         type="button"
-                        onClick={handleAssignCouncil}
-                        disabled={!selectedCouncilId || councilsSaving}
+                        onClick={handleAssignAdvisor}
+                        disabled={!selectedAdvisorId || advisorsSaving}
                         className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0B3A82] px-4 text-sm font-semibold text-white transition hover:bg-[#104E92] disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {councilsSaving ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
-                        Gán cố vấn
+                        {advisorsSaving ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+                        Gán CVHT
                       </button>
                     </div>
                   </div>
 
-                  {(displayedClass.councils || []).length > 0 ? (
+                  {(displayedClass.advisors || []).length > 0 ? (
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-                      {displayedClass.councils?.map((item) => (
+                      {displayedClass.advisors?.map((item) => (
                         <div
                           key={item.id || item.userId}
                           className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2"
@@ -538,8 +543,8 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleRemoveCouncil(item.userId)}
-                            disabled={councilsSaving}
+                            onClick={() => handleRemoveAdvisor(item.userId)}
+                            disabled={advisorsSaving}
                             className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                             title="Gỡ cố vấn"
                           >
@@ -550,7 +555,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                     </div>
                   ) : (
                     <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">
-                      Lớp này chưa có cố vấn phụ trách.
+                      Lớp này chưa có cố vấn học tập phụ trách.
                     </p>
                   )}
                 </div>

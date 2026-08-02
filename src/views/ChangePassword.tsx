@@ -43,8 +43,8 @@ export const ChangePasswordPage = () => {
     : 'bg-emerald-500';
   const homeHref = user?.role === 'admin'
     ? '/admin'
-    : user?.role === 'class_council'
-    ? '/class_council'
+    : user?.role === 'advisor'
+    ? '/advisor'
     : '/student';
 
   const handleSubmit = async (e: React.FormEvent) => {

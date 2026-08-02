@@ -36,8 +36,8 @@ const adminMenuItems = [
   { path: '/admin/evaluations', icon: ClipboardCheck, label: 'Duyệt đánh giá rèn luyện' },
 ];
 
-const classCouncilMenuItems = [
-  { path: '/class_council', icon: Users, label: 'Lớp phụ trách' },
+const advisorMenuItems = [
+  { path: '/advisor', icon: Users, label: 'Lớp phụ trách' },
 ];
 
 export const Sidebar = ({ open, onClose }: SidebarProps) => {
@@ -46,18 +46,18 @@ export const Sidebar = ({ open, onClose }: SidebarProps) => {
 
   const menuItems = user?.role === 'admin'
     ? adminMenuItems
-    : user?.role === 'class_council'
-    ? classCouncilMenuItems
+    : user?.role === 'advisor'
+    ? advisorMenuItems
     : studentMenuItems;
   const sectionLabel = user?.role === 'admin'
     ? 'QUẢN TRỊ'
-    : user?.role === 'class_council'
-    ? 'HỘI ĐỒNG LỚP'
+    : user?.role === 'advisor'
+    ? 'CỐ VẤN HỌC TẬP'
     : 'SINH VIÊN';
   const homePath = user?.role === 'admin'
     ? '/admin'
-    : user?.role === 'class_council'
-    ? '/class_council'
+    : user?.role === 'advisor'
+    ? '/advisor'
     : '/student';
 
   return (
