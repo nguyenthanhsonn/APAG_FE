@@ -65,7 +65,7 @@ export function ClassListView() {
             <ClassCard
               key={classItem.id}
               classItem={classItem}
-              onOpen={(classId) => router.push(`/class_council/${classId}`)}
+              onOpen={(classId) => router.push(`/advisor/${classId}`)}
             />
           ))}
         </div>

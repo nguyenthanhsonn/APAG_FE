@@ -92,7 +92,7 @@ export default function Login() {
   const getRoleHome = (role: UserRole) => {
     switch (role) {
       case 'admin':               return '/admin';
-      case 'class_council':       return '/class_council';
+      case 'advisor':            return '/advisor';
       case 'class_leader':        return '/class_leader';
       case 'faculty':             return '/faculty';
       case 'training_department': return '/training_department';

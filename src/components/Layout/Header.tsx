@@ -143,18 +143,18 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     ? cleanName.split(' ').slice(-2).map((n) => n[0]).join('').toUpperCase()
     : 'U';
 
-  const profileHref = user?.role === 'class_council'
-    ? '/class_council/profile'
+  const profileHref = user?.role === 'advisor'
+    ? '/advisor/profile'
     : '/student/profile';
   const changePasswordHref = user?.role === 'admin'
     ? '/admin/change-password'
-    : user?.role === 'class_council'
-      ? '/class_council/change-password'
+    : user?.role === 'advisor'
+      ? '/advisor/change-password'
       : '/student/change-password';
   const roleLabel = user?.role === 'admin'
     ? 'Quản trị viên'
-    : user?.role === 'class_council'
-    ? 'Hội đồng lớp'
+    : user?.role === 'advisor'
+    ? 'Cố vấn học tập'
     : user?.role === 'class_leader'
     ? 'Lớp trưởng'
     : user?.role === 'faculty'

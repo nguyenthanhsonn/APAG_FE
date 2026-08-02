@@ -27,7 +27,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     const roleHome: Record<string, string> = {
       admin: '/admin',
       student: '/student',
-      class_council: '/class_council',
+      advisor: '/advisor',
       class_leader: '/class_leader',
       faculty: '/faculty',
       training_department: '/training_department',

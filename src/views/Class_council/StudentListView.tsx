@@ -201,7 +201,7 @@ export function StudentListView() {
         <div>
           <button
             type="button"
-            onClick={() => router.push('/class_council')}
+            onClick={() => router.push('/advisor')}
             className="mb-2 inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-brand-secondary hover:text-brand-primary"
           >
             <ArrowLeft size={16} />
@@ -245,7 +245,7 @@ export function StudentListView() {
           />
           <StudentReviewTable
             students={filteredStudents}
-            onReview={(studentId) => router.push(`/class_council/${classId}/${studentId}`)}
+            onReview={(studentId) => router.push(`/advisor/${classId}/${studentId}`)}
           />
         </>
       )}
