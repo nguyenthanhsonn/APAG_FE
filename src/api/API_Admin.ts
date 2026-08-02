@@ -300,16 +300,10 @@ async function getAdvisorClassById(id: string) {
   return get<AdminClass>(`/advisor/classes/${id}`);
 }
 
-/** Backward-compatible alias cho các màn hình CVHT cũ đang dùng tên class council. */
-const getClassCouncilClassById = getAdvisorClassById;
-
 /** Gán lại toàn bộ danh sách cố vấn học tập phụ trách lớp. */
 async function updateClassAdvisors(classId: string, payload: { userIds: string[] }) {
   return patch<AdminClass>(`/admin/classes/${classId}/advisors`, payload);
 }
-
-/** Backward-compatible alias để không làm vỡ màn hình cũ trong lúc đổi role. */
-const updateClassCouncils = updateClassAdvisors;
 
 /** Khoa lấy danh sách phiếu trong phạm vi khoa được phân công. */
 async function getFacultyEvaluations(facultyId: string, query?: AdminEvaluationListQuery) {
@@ -500,9 +494,7 @@ export const API_Admin = {
   getClasses,
   getClassById,
   getAdvisorClassById,
-  getClassCouncilClassById,
   updateClassAdvisors,
-  updateClassCouncils,
   getFacultyEvaluations,
   approveFacultyEvaluation,
   rejectFacultyEvaluation,

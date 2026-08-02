@@ -11,9 +11,6 @@ import ModalAddStudent from '../../components/admin/modalAddStudent';
 import { getUserFriendlyError, toArray } from '../../utils/adminData';
 import { useAdminUrlState } from '../../utils/adminUrlState';
 
-// BE mới trả field advisors; councils là fallback cho dữ liệu/response cũ trong lúc đổi role.
-const normalizeClassAdvisors = (detail: any) => detail.advisors || detail.councils || [];
-
 export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListProps) => {
   const { getPage, getValue, setQuery } = useAdminUrlState();
   const [selectedFaculty, setSelectedFaculty] = useState(() => getValue('facultyId'));
@@ -173,8 +170,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
         createdAt: detail.createdAt,
         deletedAt: detail.deletedAt,
         studentCount: detail.studentCount,
-        advisors: normalizeClassAdvisors(detail),
-        councils: normalizeClassAdvisors(detail),
+        advisors: detail.advisors || [],
         isActive: detail.isActive ?? true,
       });
     } catch (err: any) {
@@ -316,8 +312,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
           isActive: detail.isActive ?? true,
         }),
         ...detail,
-        advisors: normalizeClassAdvisors(detail),
-        councils: normalizeClassAdvisors(detail),
+        advisors: detail.advisors || [],
       }));
     } catch (err) {
       setErrorMsg(getUserFriendlyError(err, 'Không thể cập nhật cố vấn học tập phụ trách. Vui lòng thử lại sau.'));

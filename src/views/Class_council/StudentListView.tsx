@@ -102,7 +102,7 @@ export function StudentListView() {
       try {
         setLoading(true);
         const [classDetailResult, studentsResult] = await Promise.all([
-          API_Admin.getClassCouncilClassById(classId),
+          API_Admin.getAdvisorClassById(classId),
           API_Admin.getClassStudents(classId),
         ]);
 

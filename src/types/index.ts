@@ -32,7 +32,7 @@ export type {
   ReviewStudent,
   Faculty,
   Major,
-  ClassCouncil,
+  ClassAdvisor,
   ClassTableRow,
   StudentManagementItem,
   ClassListStudentItem,
