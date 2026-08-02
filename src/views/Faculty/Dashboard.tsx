@@ -15,7 +15,7 @@ import {
 import { PrintButton } from '@/components/common/PrintButton';
 import { API_Admin } from '@/api/API_Admin';
 import { useAuthStore } from '@/store/authStore';
-import type { AdminEvaluationItem } from '@/types';
+import type { AdminClass, AdminEvaluationItem, AdminMajor } from '@/types';
 import {
   FacultyClassRecord,
   groupFacultyEvaluationsByClass,
@@ -43,9 +43,48 @@ export function FacultyDashboard() {
     setLoading(true);
     setErrorMessage('');
     try {
-      const result = await API_Admin.getFacultyEvaluations(facultyId, { limit: 200 });
-      const evaluations = toArray<AdminEvaluationItem>(result);
-      setClasses(groupFacultyEvaluationsByClass(evaluations));
+      const [majorsResult, evaluationsResult] = await Promise.all([
+        API_Admin.getFacultyMajors(facultyId, { page: 1, limit: 100, isActive: true, includeDeleted: false }),
+        API_Admin.getFacultyEvaluations(facultyId, { limit: 100 }),
+      ]);
+      const majors = toArray<AdminMajor>(majorsResult);
+      const classesByMajor = await Promise.all(
+        majors.map((major) =>
+          API_Admin.getMajorClasses(major.id, { page: 1, limit: 100, isActive: true, includeDeleted: false }),
+        ),
+      );
+      const facultyClasses = classesByMajor.flatMap((result) => toArray<AdminClass>(result));
+      const evaluations = toArray<AdminEvaluationItem>(evaluationsResult);
+      const recordsByClassId = new Map(groupFacultyEvaluationsByClass(evaluations).map((record) => [record.id, record]));
+
+      setClasses(
+        facultyClasses.map((classItem) => {
+          const record = recordsByClassId.get(classItem.id);
+          if (record) {
+            return {
+              ...record,
+              className: classItem.name || classItem.code || record.className,
+              leader:
+                (classItem as any).classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') ||
+                record.leader,
+              totalStudents: classItem.studentCount ?? record.totalStudents,
+            };
+          }
+
+          return {
+            id: classItem.id,
+            className: classItem.name || classItem.code || 'Lớp chưa xác định',
+            leader:
+              (classItem as any).classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') || '—',
+            totalStudents: classItem.studentCount ?? 0,
+            submittedCount: 0,
+            approvedCount: 0,
+            status: 'IN_PROGRESS',
+            date: '-',
+            evaluations: [],
+          };
+        }),
+      );
     } catch (err: any) {
       setClasses([]);
       setErrorMessage(getUserFriendlyError(err, 'Không tải được danh sách phiếu của khoa.'));
@@ -89,7 +128,11 @@ export function FacultyDashboard() {
   const totalClasses = classes.length;
   const approvedClasses = classes.filter((c) => c.status === 'FACULTY_APPROVED').length;
   const pendingClasses = classes.filter((c) => c.status === 'PENDING_FACULTY').length;
-  const managedFacultyName = (user as any)?.managedFaculties?.[0]?.facultyName || (user as any)?.faculty?.name || 'Khoa được phân công';
+  const managedFaculty =
+    (user as any)?.managedFaculty ||
+    (user as any)?.managedFaculties?.[0] ||
+    (user as any)?.faculty;
+  const managedFacultyName = managedFaculty?.facultyName || managedFaculty?.name || 'Khoa được phân công';
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">

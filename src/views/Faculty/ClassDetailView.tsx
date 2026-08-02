@@ -21,7 +21,9 @@ import type { AdminEvaluationItem } from '@/types';
 import {
   FacultyClassRecord,
   FacultyStudentRecord,
-  groupFacultyEvaluationsByClass,
+  getEvaluationIdentityKeys,
+  getStudentIdentityKeys,
+  mapEvaluationToFacultyStudent,
   resolveFacultyId,
   toArray,
 } from '@/utils/facultyEvaluationData';
@@ -59,10 +61,67 @@ export function FacultyClassDetailView({ classId }: Props) {
     setLoading(true);
     setErrorMessage('');
     try {
-      const result = await API_Admin.getFacultyEvaluations(facultyId, { limit: 200 });
-      const evaluations = toArray<AdminEvaluationItem>(result);
-      const grouped = groupFacultyEvaluationsByClass(evaluations);
-      const selectedClass = grouped.find((item) => item.id === classId) || null;
+      const [classDetailResult, studentsResult, evaluationsResult] = await Promise.all([
+        API_Admin.getClassById(classId),
+        API_Admin.getClassStudents(classId),
+        API_Admin.getFacultyEvaluations(facultyId, { classId, limit: 100 }),
+      ]);
+
+      const classDetail = classDetailResult as any;
+      const classStudents = toArray<any>(studentsResult);
+      const evaluations = toArray<AdminEvaluationItem>(evaluationsResult);
+      const evaluationsByKey = new Map<string, AdminEvaluationItem>();
+
+      evaluations.forEach((evaluation) => {
+        getEvaluationIdentityKeys(evaluation).forEach((key) => {
+          evaluationsByKey.set(key, evaluation);
+        });
+      });
+
+      const mappedStudents = classStudents.map((student): FacultyStudentRecord => {
+        const evaluation = getStudentIdentityKeys(student)
+          .map((key) => evaluationsByKey.get(key))
+          .find(Boolean);
+
+        if (evaluation) {
+          return mapEvaluationToFacultyStudent(evaluation);
+        }
+
+        const studentId = student.studentId || student.userId || student.id || '';
+        return {
+          id: studentId,
+          evaluationId: '',
+          code: student.studentCode || student.code || '—',
+          name: student.fullName || student.name || 'Sinh viên chưa xác định',
+          score: 0,
+          rank: '-',
+          status: 'NOT_SUBMITTED',
+          rawStatus: 'not_submitted',
+          date: '-',
+        };
+      });
+
+      const approvedCount = mappedStudents.filter((item) => item.status === 'APPROVED').length;
+      const pendingCount = mappedStudents.filter((item) =>
+        ['advisor_approved', 'faculty_rejected'].includes(item.rawStatus),
+      ).length;
+      const totalStudents = classDetail.studentCount ?? mappedStudents.length;
+      const selectedClass: FacultyClassRecord = {
+        id: classDetail.id || classId,
+        className: classDetail.name || classDetail.code || 'Lớp chưa xác định',
+        leader: classDetail.classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') || '—',
+        totalStudents,
+        submittedCount: mappedStudents.filter((item) => item.status !== 'NOT_SUBMITTED').length,
+        approvedCount,
+        status:
+          pendingCount > 0
+            ? 'PENDING_FACULTY'
+            : totalStudents > 0 && approvedCount === totalStudents
+              ? 'FACULTY_APPROVED'
+              : 'IN_PROGRESS',
+        date: '-',
+        evaluations: mappedStudents,
+      };
 
       setClassInfo(selectedClass);
       setStudents(selectedClass?.evaluations ?? []);
@@ -93,7 +152,11 @@ export function FacultyClassDetailView({ classId }: Props) {
   const notSubmittedCount = students.filter((s) => s.status === 'NOT_SUBMITTED').length;
   const rejectedCount = students.filter((s) => s.status === 'REJECTED').length;
   const classStatus = classInfo?.status ?? 'IN_PROGRESS';
-  const managedFacultyName = (user as any)?.managedFaculties?.[0]?.facultyName || (user as any)?.faculty?.name || 'Khoa được phân công';
+  const managedFaculty =
+    (user as any)?.managedFaculty ||
+    (user as any)?.managedFaculties?.[0] ||
+    (user as any)?.faculty;
+  const managedFacultyName = managedFaculty?.facultyName || managedFaculty?.name || 'Khoa được phân công';
 
   const handleFacultyApproveClass = async () => {
     const pendingEvaluations = students.filter((item) =>

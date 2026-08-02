@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Loader2, AlertCircle, ArrowLeft, UserPlus, X } from 'lucide-react';
+import { Plus, Trash2, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { API_Admin } from '../../api/API_Admin';
-import { ClassListStudentItem, Class, Faculty, Major, StudentManagementItem, AdminClassListProps } from '../../types';
+import { ClassListStudentItem, Class, Faculty, Major, AdminClassListProps } from '../../types';
 import ModalConfirm from '../../components/common/modalConfirm';
 import SearchFilterBar from '../../components/admin/SearchFilterBar';
 import DataTable, { type Column } from '../../components/admin/DataTable';
@@ -69,10 +69,6 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   const [classes, setClasses] = useState<Class[]>([]);
   const [classDetail, setClassDetail] = useState<Class | null>(null);
   const [students, setStudents] = useState<ClassListStudentItem[]>([]);
-  const [advisors, setAdvisors] = useState<StudentManagementItem[]>([]);
-  const [selectedAdvisorId, setSelectedAdvisorId] = useState('');
-  const [advisorsSaving, setAdvisorsSaving] = useState(false);
-
   const [loading, setLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -86,7 +82,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
       try {
         setLoading(true);
         setErrorMsg('');
-        const facs = await API_Admin.getFaculties();
+        const facs = await API_Admin.getMetadataFaculties();
         setFaculties(toArray(facs as any).map(normalizeFaculty));
       } catch (err: any) {
         setErrorMsg(getUserFriendlyError(err, 'Không thể tải thông tin danh mục. Vui lòng thử lại sau.'));
@@ -108,7 +104,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
 
       try {
         setErrorMsg('');
-        const data = await API_Admin.getFacultyMajors(selectedFaculty, { page: 1, limit: 1000, isActive: true, includeDeleted: false });
+        const data = await API_Admin.getFacultyMajors(selectedFaculty, { page: 1, limit: 100, isActive: true, includeDeleted: false });
         setMajors(toArray(data as any).map(normalizeMajor));
       } catch (err) {
         setMajors([]);
@@ -128,7 +124,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
 
       try {
         setErrorMsg('');
-        const data = await API_Admin.getMajorClasses(selectedMajor, { page: 1, limit: 1000, isActive: true, includeDeleted: false });
+        const data = await API_Admin.getMajorClasses(selectedMajor, { page: 1, limit: 100, isActive: true, includeDeleted: false });
         setClasses(toArray(data as any).map(normalizeClass));
       } catch (err) {
         setClasses([]);
@@ -184,19 +180,6 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
     loadStudents(selectedClass);
     loadClassDetail(selectedClass);
   }, [loadClassDetail, selectedClass]);
-
-  useEffect(() => {
-    const loadAdvisors = async () => {
-      try {
-        const data = await API_Admin.getUsers({ role: 'advisor', page: 1, limit: 100, includeDeleted: false });
-        setAdvisors(toArray(data as any));
-      } catch {
-        setAdvisors([]);
-      }
-    };
-
-    loadAdvisors();
-  }, []);
 
   const filteredStudents = students.filter((s) =>
     s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -290,48 +273,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
     displayedClass?.major?.faculty?.name ||
     faculties.find((f) => f.id === displayedClass?.facultyId)?.name ||
     '—';
-  const assignedAdvisorUserIds = new Set((displayedClass?.advisors || []).map((item) => item.userId));
-  const availableAdvisors = advisors.filter((item) => item.isActive && !assignedAdvisorUserIds.has(item.id));
 
-  const updateAdvisorUsers = async (userIds: string[]) => {
-    if (!selectedClass) return;
-
-    try {
-      setAdvisorsSaving(true);
-      setErrorMsg('');
-      const updatedClass = await API_Admin.updateClassAdvisors(selectedClass, { userIds });
-      const detail = updatedClass as any;
-      setClassDetail((prev) => ({
-        ...(prev || {
-          id: detail.id || selectedClass,
-          code: detail.code || '',
-          name: detail.name || '',
-          facultyId: detail.facultyId || detail.faculty?.id || '',
-          majorId: detail.majorId || detail.major?.id || '',
-          isActive: detail.isActive ?? true,
-        }),
-        ...detail,
-        advisors: detail.advisors || [],
-      }));
-    } catch (err) {
-      setErrorMsg(getUserFriendlyError(err, 'Không thể cập nhật cố vấn học tập phụ trách. Vui lòng thử lại sau.'));
-    } finally {
-      setAdvisorsSaving(false);
-    }
-  };
-
-  const handleAssignAdvisor = async () => {
-    if (!selectedAdvisorId) return;
-
-    const currentIds = (displayedClass?.advisors || []).map((item) => item.userId);
-    await updateAdvisorUsers([...currentIds, selectedAdvisorId]);
-    setSelectedAdvisorId('');
-  };
-
-  const handleRemoveAdvisor = async (userId: string) => {
-    const nextIds = (displayedClass?.advisors || []).map((item) => item.userId).filter((id) => id !== userId);
-    await updateAdvisorUsers(nextIds);
-  };
 
   const handleFacultyChange = (value: string) => {
     setSelectedFaculty(value);
@@ -488,72 +430,6 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                 </div>
               )}
 
-              {displayedClass && (
-                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                  <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <h2 className="text-sm font-bold text-gray-900">Cố vấn học tập phụ trách</h2>
-                      <p className="mt-0.5 text-xs font-medium text-gray-500">
-                        Gán cố vấn học tập cho lớp tại đây. Danh sách này dùng cho quyền CVHT xem và duyệt lớp phụ trách.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <select
-                        value={selectedAdvisorId}
-                        onChange={(e) => setSelectedAdvisorId(e.target.value)}
-                        disabled={advisorsSaving || availableAdvisors.length === 0}
-                        className="h-10 min-w-[240px] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
-                      >
-                        <option value="">-- Chọn CVHT --</option>
-                        {availableAdvisors.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {[item.fullName, item.username].filter(Boolean).join(' - ')}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={handleAssignAdvisor}
-                        disabled={!selectedAdvisorId || advisorsSaving}
-                        className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0B3A82] px-4 text-sm font-semibold text-white transition hover:bg-[#104E92] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {advisorsSaving ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
-                        Gán CVHT
-                      </button>
-                    </div>
-                  </div>
-
-                  {(displayedClass.advisors || []).length > 0 ? (
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-                      {displayedClass.advisors?.map((item) => (
-                        <div
-                          key={item.id || item.userId}
-                          className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-gray-900">{item.fullName || item.username}</p>
-                            <p className="truncate text-xs font-medium text-gray-500">{item.email || item.username}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAdvisor(item.userId)}
-                            disabled={advisorsSaving}
-                            className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            title="Gỡ cố vấn"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">
-                      Lớp này chưa có cố vấn học tập phụ trách.
-                    </p>
-                  )}
-                </div>
-              )}
 
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-800">Danh sách sinh viên</h2>

@@ -39,7 +39,7 @@ export function toArray<T>(result: any): T[] {
 }
 
 export function resolveFacultyId(user: any): string {
-  const firstManagedFaculty = user?.managedFaculties?.[0];
+  const firstManagedFaculty = user?.managedFaculty || user?.managedFaculties?.[0];
   return (
     firstManagedFaculty?.facultyId ||
     firstManagedFaculty?.id ||
@@ -156,4 +156,23 @@ export function groupFacultyEvaluationsByClass(items: AdminEvaluationItem[]): Fa
             : 'IN_PROGRESS',
     };
   });
+}
+
+export function getEvaluationIdentityKeys(item: any): string[] {
+  const keys: string[] = [];
+  if (item.id) keys.push(String(item.id));
+  if (item.studentId) keys.push(String(item.studentId));
+  if (item.studentCode || item.student?.studentCode || item.student?.code) {
+    keys.push(String(item.studentCode || item.student?.studentCode || item.student?.code));
+  }
+  return keys.filter(Boolean);
+}
+
+export function getStudentIdentityKeys(student: any): string[] {
+  const keys: string[] = [];
+  if (student.studentId) keys.push(String(student.studentId));
+  if (student.userId) keys.push(String(student.userId));
+  if (student.id) keys.push(String(student.id));
+  if (student.studentCode || student.code) keys.push(String(student.studentCode || student.code));
+  return keys.filter(Boolean);
 }

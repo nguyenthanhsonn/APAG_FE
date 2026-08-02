@@ -76,7 +76,7 @@ export default function ModalCreateClass({
       try {
         setMajorLoading(true);
         setMajorError('');
-        const data = await API_Admin.getFacultyMajors(selectedFacultyId, { page: 1, limit: 1000, isActive: true, includeDeleted: false });
+        const data = await API_Admin.getFacultyMajors(selectedFacultyId, { page: 1, limit: 100, isActive: true, includeDeleted: false });
         const nextMajors = toArray(data as any).map((m: any) => ({
           id: m.id || m._id || '',
           code: m.code || '',

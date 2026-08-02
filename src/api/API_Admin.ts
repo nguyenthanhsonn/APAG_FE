@@ -178,8 +178,15 @@ async function finalizeEvaluationsByFilter(payload: FinalizeEvaluationsByFilterP
 }
 
 /** Lấy danh sách khoa. */
-async function getFaculties() {
-  return get<AdminFaculty[]>('/admin/faculties');
+async function getFaculties(query?: AdminTreeListQuery) {
+  return get<PaginatedResponse<AdminFaculty> | AdminFaculty[]>('/admin/faculties', {
+    params: buildQueryParams(query),
+  });
+}
+
+/** Lấy danh sách khoa dạng metadata cho dropdown/chọn phân công. */
+async function getMetadataFaculties() {
+  return get<AdminFaculty[]>('/metadata/faculties');
 }
 
 /** Lấy thông tin khoa. */
@@ -294,8 +301,10 @@ async function confirmImportMajors(payload: ConfirmImportPayload) {
 }
 
 /** Lấy danh sách lớp. */
-async function getClasses() {
-  return get<AdminClass[]>('/admin/classes');
+async function getClasses(query?: AdminTreeListQuery) {
+  return get<PaginatedResponse<AdminClass> | AdminClass[]>('/admin/classes', {
+    params: buildQueryParams(query),
+  });
 }
 
 /** Lấy danh sách lớp thuộc một ngành để dựng cây Ngành -> Lớp. */
@@ -338,17 +347,9 @@ async function rejectFacultyEvaluation(id: string, reason: string) {
   return patch<AdminEvaluationItem>(`/faculty/evaluations/${id}/reject`, { reason });
 }
 
-/** Lớp trưởng lấy danh sách phiếu của lớp mình được gán. */
-async function getClassLeaderEvaluations(classId: string, query?: AdminEvaluationListQuery) {
-  return get<PaginatedResponse<AdminEvaluationItem> | AdminEvaluationItem[]>(
-    `/class-leader/classes/${classId}/evaluations`,
-    { params: buildQueryParams(query) },
-  );
-}
-
-/** Lớp trưởng chốt một phiếu đang chờ lớp trưởng. */
+/** Lớp trưởng chốt một phiếu đang chờ xử lý nếu backend cho phép theo luồng hiện tại. */
 async function approveClassLeaderEvaluation(id: string, score: number) {
-  return patch<AdminEvaluationItem>(`/class-leader/evaluations/${id}/approve`, { score });
+  return reviewEvaluation(id, { action: 'approve', classScore: score });
 }
 
 /** Phòng Đào tạo lấy danh sách phiếu toàn trường đang chờ duyệt cuối. */
@@ -489,6 +490,7 @@ export const API_Admin = {
   bulkFinalizeEvaluations,
   finalizeEvaluationsByFilter,
   getFaculties,
+  getMetadataFaculties,
   getFacultyById,
   createFaculty,
   updateFaculty,
@@ -515,7 +517,6 @@ export const API_Admin = {
   getFacultyEvaluations,
   approveFacultyEvaluation,
   rejectFacultyEvaluation,
-  getClassLeaderEvaluations,
   approveClassLeaderEvaluation,
   getTrainingDepartmentEvaluations,
   approveTrainingDepartmentEvaluation,

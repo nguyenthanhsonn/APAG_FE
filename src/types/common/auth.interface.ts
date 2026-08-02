@@ -12,6 +12,30 @@ export interface User {
   fullName?: string;
   phone?: string | null;
   dateOfBirth?: string | null;
+  facultyId?: string;
+  faculty?: string | {
+    id?: string;
+    code?: string;
+    name?: string;
+  };
+  managedFaculty?: {
+    id?: string;
+    facultyId?: string;
+    code?: string;
+    facultyCode?: string;
+    name?: string;
+    facultyName?: string;
+    assignedAt?: string;
+  };
+  managedFaculties?: Array<{
+    id?: string;
+    facultyId?: string;
+    code?: string;
+    facultyCode?: string;
+    name?: string;
+    facultyName?: string;
+    assignedAt?: string;
+  }>;
   managedClasses?: Array<{
     id?: string;
     classId?: string;

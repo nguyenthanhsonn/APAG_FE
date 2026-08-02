@@ -57,7 +57,7 @@ export const EvaluationFormQD4185 = () => {
 	  const [isLocked, setIsLocked] = useState(false);
 	  const [alreadyEvaluated, setAlreadyEvaluated] = useState(false);
   const [evaluationId, setEvaluationId] = useState<string | null>(null);
-  const [_evaluationWorkflow, setEvaluationWorkflow] = useState<any>(null);
+  const [, setEvaluationWorkflow] = useState<any>(null);
   const [note, setNote] = useState<string>('');
 
   // Simulating user role switcher for testing purposes
