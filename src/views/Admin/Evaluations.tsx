@@ -119,7 +119,7 @@ export function AdminEvaluations() {
   const loadFilters = useCallback(async () => {
     try {
       const [facultyResult, classResult, semesterResult] = await Promise.all([
-        API_Admin.getFaculties(),
+        API_Admin.getMetadataFaculties(),
         API_Admin.getClasses(),
         API_Admin.getSemesters({ page: 1, limit: 100 }),
       ]);

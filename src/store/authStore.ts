@@ -21,7 +21,8 @@ function normalizeProfile(profile: any) {
     admissionYear: profile?.admissionYear ?? classInfo?.enrollmentYear,
     phoneNumber: profile?.phoneNumber ?? profile?.phone,
     managedClasses: profile?.managedClasses ?? [],
-    managedFaculties: profile?.managedFaculties ?? [],
+    managedFaculty: profile?.managedFaculty,
+    managedFaculties: profile?.managedFaculties ?? (profile?.managedFaculty ? [profile.managedFaculty] : []),
   };
 }
 
@@ -41,8 +42,22 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     if (storedUser && accessToken && refreshToken) {
       try {
-        const user = JSON.parse(storedUser);
+        const user = normalizeProfile(JSON.parse(storedUser));
         set({ user, isAuthenticated: true, isHydrated: true });
+        localStorage.setItem('user', JSON.stringify(user));
+
+        API_Auth.getProfile(accessToken)
+          .then((profileRes) => {
+            const refreshedProfile = normalizeProfile((profileRes as any).data || profileRes);
+            set((state) => {
+              const nextUser = state.user ? { ...state.user, ...refreshedProfile } : refreshedProfile;
+              localStorage.setItem('user', JSON.stringify(nextUser));
+              return { user: nextUser, isAuthenticated: true, isHydrated: true };
+            });
+          })
+          .catch(() => {
+            // Giữ phiên hiện tại nếu profile tạm thời không tải được; interceptor sẽ xử lý 401.
+          });
         return;
       } catch {
         localStorage.removeItem('user');

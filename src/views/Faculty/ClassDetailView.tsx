@@ -21,6 +21,8 @@ import type { AdminEvaluationItem } from '@/types';
 import {
   FacultyClassRecord,
   FacultyStudentRecord,
+  getEvaluationIdentityKeys,
+  getStudentIdentityKeys,
   mapEvaluationToFacultyStudent,
   resolveFacultyId,
   toArray,
@@ -97,8 +99,8 @@ export function FacultyClassDetailView({ classId }: Props) {
     try {
       const [classDetailResult, studentsResult, evaluationsResult] = await Promise.all([
         API_Admin.getClassById(classId),
-        API_Admin.getClassStudents(classId, { page: 1, limit: 1000 }),
-        API_Admin.getFacultyEvaluations(facultyId, { classId, limit: 1000 }),
+        API_Admin.getClassStudents(classId),
+        API_Admin.getFacultyEvaluations(facultyId, { classId, limit: 100 }),
       ]);
 
       const classDetail = classDetailResult as any;
@@ -186,7 +188,11 @@ export function FacultyClassDetailView({ classId }: Props) {
   const notSubmittedCount = students.filter((s) => s.status === 'NOT_SUBMITTED').length;
   const rejectedCount = students.filter((s) => s.status === 'REJECTED').length;
   const classStatus = classInfo?.status ?? 'IN_PROGRESS';
-  const managedFacultyName = (user as any)?.managedFaculties?.[0]?.facultyName || (user as any)?.faculty?.name || 'Khoa được phân công';
+  const managedFaculty =
+    (user as any)?.managedFaculty ||
+    (user as any)?.managedFaculties?.[0] ||
+    (user as any)?.faculty;
+  const managedFacultyName = managedFaculty?.facultyName || managedFaculty?.name || 'Khoa được phân công';
 
   const handleFacultyApproveClass = async () => {
     const pendingEvaluations = students.filter((item) =>

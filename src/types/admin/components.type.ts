@@ -141,6 +141,8 @@ export interface ModalCreateStudentProps {
   onClose: () => void;
   onSubmit: (values: StudentFormValues) => Promise<void> | void;
   editData?: StudentFormValues | null;
+  faculties?: Faculty[];
+  classes?: Class[];
 }
 
 export interface CreateStudentFieldProps {

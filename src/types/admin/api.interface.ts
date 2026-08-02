@@ -22,9 +22,11 @@ export interface CreateUserPayload {
   email: string;
   fullName: string;
   role: InternalUserRole;
-  password?: string;
+  password: string;
   phone?: string;
   dateOfBirth?: string;
+  facultyId?: string;
+  classId?: string;
 }
 
 /** Thông tin cập nhật tài khoản admin/cố vấn. */
@@ -36,6 +38,8 @@ export interface UpdateUserPayload {
   isActive?: boolean;
   phone?: string;
   dateOfBirth?: string;
+  facultyId?: string;
+  classId?: string;
 }
 
 /** Thông tin tạo sinh viên thủ công. */

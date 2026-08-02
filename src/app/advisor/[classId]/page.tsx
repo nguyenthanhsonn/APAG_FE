@@ -1,7 +1,7 @@
 'use client';
 
-import { StudentListView } from '@/views/Class_council/StudentListView';
+import AdvisorClassDetailPage from '@/views/Advisor/AdvisorClassDetailPage';
 
 export default function Page() {
-  return <StudentListView />;
+  return <AdvisorClassDetailPage />;
 }

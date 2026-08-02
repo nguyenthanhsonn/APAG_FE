@@ -44,13 +44,13 @@ export function FacultyDashboard() {
     setErrorMessage('');
     try {
       const [majorsResult, evaluationsResult] = await Promise.all([
-        API_Admin.getFacultyMajors(facultyId, { page: 1, limit: 1000, isActive: true, includeDeleted: false }),
-        API_Admin.getFacultyEvaluations(facultyId, { limit: 1000 }),
+        API_Admin.getFacultyMajors(facultyId, { page: 1, limit: 100, isActive: true, includeDeleted: false }),
+        API_Admin.getFacultyEvaluations(facultyId, { limit: 100 }),
       ]);
       const majors = toArray<AdminMajor>(majorsResult);
       const classesByMajor = await Promise.all(
         majors.map((major) =>
-          API_Admin.getMajorClasses(major.id, { page: 1, limit: 1000, isActive: true, includeDeleted: false }),
+          API_Admin.getMajorClasses(major.id, { page: 1, limit: 100, isActive: true, includeDeleted: false }),
         ),
       );
       const facultyClasses = classesByMajor.flatMap((result) => toArray<AdminClass>(result));
@@ -65,7 +65,7 @@ export function FacultyDashboard() {
               ...record,
               className: classItem.name || classItem.code || record.className,
               leader:
-                classItem.classLeaders?.map((item) => item.fullName || item.username).filter(Boolean).join(', ') ||
+                (classItem as any).classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') ||
                 record.leader,
               totalStudents: classItem.studentCount ?? record.totalStudents,
             };
@@ -75,7 +75,7 @@ export function FacultyDashboard() {
             id: classItem.id,
             className: classItem.name || classItem.code || 'Lớp chưa xác định',
             leader:
-              classItem.classLeaders?.map((item) => item.fullName || item.username).filter(Boolean).join(', ') || '—',
+              (classItem as any).classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') || '—',
             totalStudents: classItem.studentCount ?? 0,
             submittedCount: 0,
             approvedCount: 0,
@@ -128,7 +128,11 @@ export function FacultyDashboard() {
   const totalClasses = classes.length;
   const approvedClasses = classes.filter((c) => c.status === 'FACULTY_APPROVED').length;
   const pendingClasses = classes.filter((c) => c.status === 'PENDING_FACULTY').length;
-  const managedFacultyName = (user as any)?.managedFaculties?.[0]?.facultyName || (user as any)?.faculty?.name || 'Khoa được phân công';
+  const managedFaculty =
+    (user as any)?.managedFaculty ||
+    (user as any)?.managedFaculties?.[0] ||
+    (user as any)?.faculty;
+  const managedFacultyName = managedFaculty?.facultyName || managedFaculty?.name || 'Khoa được phân công';
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">

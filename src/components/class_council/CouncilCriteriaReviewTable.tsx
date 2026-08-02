@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Minus, Lock, AlertCircle, Upload, X, ChevronDown } from 'lucide-react';
 import type { CouncilDeductionStepperProps as DeductionStepperProps } from '@/types/admin';
-import { useCouncilReviewStore, computeCouncilScores } from '@/store/councilReviewStore';
+import { useShallow } from 'zustand/react/shallow';
+import { useCouncilReviewStore, computeCouncilScores, type CouncilReviewState } from '@/store/councilReviewStore';
 
 const DEDUCTION_WEIGHTS = [10, 3, 5, 5, 5, 5, 5, 10, 20];
 const DeductionStepper = ({ isSv, index, value, onChange, disabled, weight, noViolationScore, allDeductions, currentUserRole, isReadOnly }: DeductionStepperProps) => {
@@ -101,8 +102,8 @@ export const CouncilCriteriaReviewTable = () => {
   // ── Read all state from council review store via fine-grained selectors ───
   const currentUserRole = useCouncilReviewStore(s => s.currentUserRole);
   const isReadOnly = useCouncilReviewStore(s => s.isReadOnly);
-  const svScores = useCouncilReviewStore(s => computeCouncilScores(s, true));
-  const classScores = useCouncilReviewStore(s => computeCouncilScores(s, false));
+  const svScores = useCouncilReviewStore(useShallow((s: CouncilReviewState) => computeCouncilScores(s, true)));
+  const classScores = useCouncilReviewStore(useShallow((s: CouncilReviewState) => computeCouncilScores(s, false)));
 
   // Sec 1
   const svStudyAttitude = useCouncilReviewStore(s => s.svStudyAttitude);

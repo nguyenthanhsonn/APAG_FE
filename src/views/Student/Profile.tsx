@@ -14,7 +14,12 @@ export const StudentProfile = () => {
   const toast = useToast();
   const [mounted, setMounted] = useState(false);
   const isStudent = user?.role === 'student';
+  const isFaculty = user?.role === 'faculty';
   const managedClasses = user?.managedClasses ?? [];
+  const managedFaculty =
+    (user as any)?.managedFaculty ||
+    (user as any)?.managedFaculties?.[0] ||
+    (user as any)?.faculty;
 
   useEffect(() => {
     setMounted(true);
@@ -194,6 +199,8 @@ export const StudentProfile = () => {
           <p className="text-xs text-gray-500 mt-1">
             {isStudent
               ? 'Cập nhật hồ sơ sinh viên và kiểm tra thông tin kỳ đánh giá hiện tại.'
+              : isFaculty
+              ? 'Cập nhật hồ sơ cá nhân và xem khoa phụ trách.'
               : 'Cập nhật hồ sơ cá nhân và xem thông tin lớp phụ trách.'}
           </p>
         </div>
@@ -407,6 +414,36 @@ export const StudentProfile = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          ) : isFaculty ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <h2 className="text-sm sm:text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Calendar size={20} className="text-blue-600" />
+                Khoa phụ trách
+              </h2>
+
+              {managedFaculty && typeof managedFaculty === 'object' ? (
+                <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+                  <p className="text-sm font-bold text-gray-900">
+                    {managedFaculty.name || managedFaculty.facultyName || 'Khoa phụ trách'}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-gray-600">
+                    {managedFaculty.code || managedFaculty.facultyCode || 'Chưa có mã khoa'}
+                  </p>
+                  {managedFaculty.assignedAt && (
+                    <div className="mt-3 flex justify-between gap-3 text-xs text-gray-600">
+                      <span>Ngày gán</span>
+                      <span className="text-right font-semibold text-gray-800">
+                        {new Date(managedFaculty.assignedAt).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-xs font-semibold text-gray-600">
+                  Tài khoản này chưa được phân công khoa phụ trách.
+                </p>
+              )}
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">

@@ -17,6 +17,16 @@ export interface StudentManagementItem {
   isActive: boolean;
   accountEmailSent?: boolean;
   accountEmailError?: string;
+  managedFaculties?: Array<{
+    id?: string;
+    assignmentId?: string;
+    facultyId?: string;
+    code?: string;
+    facultyCode?: string;
+    name?: string;
+    facultyName?: string;
+    assignedAt?: string;
+  }>;
   managedClasses?: Array<{
     id?: string;
     assignmentId?: string;

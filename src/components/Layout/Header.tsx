@@ -143,6 +143,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
   const profileHref = user?.role === 'advisor'
     ? '/advisor/profile'
+    : user?.role === 'faculty'
+    ? '/faculty/profile'
     : '/student/profile';
   const changePasswordHref = user?.role === 'admin'
     ? '/admin/change-password'
@@ -150,6 +152,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     ? '/advisor/change-password'
     : user?.role === 'class_leader'
     ? '/class_leader/change-password'
+    : user?.role === 'faculty'
+    ? '/faculty/change-password'
     : '/student/change-password';
   const roleLabel = user?.role === 'admin'
     ? 'Quản trị viên'
@@ -163,7 +167,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     ? 'Phòng Đào Tạo'
     : 'Sinh viên';
 
-  const dropdownItems = (user?.role === 'admin' || user?.role === 'faculty' || user?.role === 'training_department')
+  const dropdownItems = (user?.role === 'admin' || user?.role === 'training_department')
     ? []
     : [
         { label: 'Thông tin cá nhân', href: profileHref, icon: User },

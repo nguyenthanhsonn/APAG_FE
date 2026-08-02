@@ -34,7 +34,7 @@ export const AdminMajors = () => {
       setLoading(true);
       setErrorMsg('');
       const [facs, majs] = await Promise.all([
-        API_Admin.getFaculties(),
+        API_Admin.getMetadataFaculties(),
         API_Admin.getMajors(),
       ]);
 
