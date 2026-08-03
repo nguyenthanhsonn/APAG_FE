@@ -409,10 +409,16 @@ export const CouncilCriteriaReviewTable = () => {
             <ViolationCheckRow label="[SV] Vi phạm nghiêm trọng quy chế thi / kỷ luật (Hủy điểm Mục II)" checked={isSvViolationSec2} onChange={v=>{if(isSvEditable)setIsSvViolationSec2(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm nghiêm trọng Mục II" checked={isClassViolationSec2} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec2(v);}}} disabled={!isClassEditable}/>
 
-            {/* II.1 điểm cộng */}
+            {/* II.1 header */}
+            <tr className="bg-gray-50/80">
+              <td className={`${tdR} text-center font-bold text-gray-700`}>1</td>
+              <td colSpan={7} className="px-3 py-1.5 border-b border-gray-200 text-[11px] font-bold text-gray-800 italic">Phần cộng điểm</td>
+            </tr>
+
+            {/* II.1 điểm cộng item */}
             <tr className="hover:bg-gray-50">
-              <td className={`${tdR} text-center font-semibold text-gray-500`}>1</td>
-              <td className={`${tdR} text-gray-700 font-medium leading-snug`} colSpan={2}>Chấp hành tốt nội quy, không vi phạm (Điểm cộng tự nhập, tối đa 25đ)</td>
+              <td className={`${tdR} text-center font-semibold text-gray-500`}></td>
+              <td className={`${tdR} text-gray-700 font-medium leading-snug`} colSpan={2}>Chấp hành tốt, không vi phạm<div className="text-[10px] text-gray-400 mt-0.5">(Điểm cộng tự nhập, tối đa 25đ)</div></td>
               <td className={`${tdR} text-center font-bold text-gray-600`}>25.00</td>
               <td className={tdR}><NoteArea value={notes['sv_ii1']||''} onChange={v=>setNote('sv_ii1',v)} disabled={!isSvEditable||isSvViolationSec2}/></td>
               <td className={tdR}>{isSvViolationSec2?<LockedScore/>:<input type="number" min={0} max={25} value={svNoViolationScore ?? 0} onChange={e=>{if(isSvEditable)setSvNoViolationScore(Math.min(25,Math.max(0,parseInt(e.target.value)||0)));}} disabled={!isSvEditable} className="w-16 h-7 px-1.5 text-center text-xs border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-blue-400 disabled:bg-gray-100"/>}</td>
@@ -421,12 +427,15 @@ export const CouncilCriteriaReviewTable = () => {
             </tr>
 
             {/* II.2 header */}
-            <tr className="bg-red-50"><td colSpan={8} className="px-3 py-1.5 border-b border-red-100 text-[11px] font-bold text-red-700">II.2 Các lỗi vi phạm — Điểm trừ tương ứng (nhập số lần vi phạm):</td></tr>
+            <tr className="bg-gray-50/80">
+              <td className={`${tdR} text-center font-bold text-gray-700`}>2</td>
+              <td colSpan={7} className="px-3 py-1.5 border-b border-gray-200 text-[11px] font-bold text-gray-800 italic">Phần trừ điểm: Sinh viên vi phạm một số lỗi trong nội quy, quy chế, quy định (nhập số lần vi phạm):</td>
+            </tr>
 
             {/* Deduction rows */}
             {deductionLabels.map((label,idx)=>(
-              <tr key={idx} className="hover:bg-red-50/40">
-                <td className={`${tdR} text-center text-gray-400 text-[10px]`}>{idx+1}</td>
+              <tr key={idx} className="hover:bg-gray-50">
+                <td className={`${tdR} text-center font-bold text-gray-500 text-xs select-none`}>-</td>
                 <td className={`${tdR} text-gray-600 text-[11px] leading-snug`} colSpan={2}>{label}</td>
                 <td className={`${tdR} text-center text-red-600 text-[11px] font-bold`}>−{DEDUCTION_WEIGHTS[idx]}đ/lần</td>
                 <td className={tdR}><NoteArea value={notes[`sv_ii2_${idx}`]||''} onChange={v=>setNote(`sv_ii2_${idx}`,v)} disabled={!isSvEditable||isSvViolationSec2}/></td>

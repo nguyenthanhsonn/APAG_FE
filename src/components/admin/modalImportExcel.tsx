@@ -152,6 +152,12 @@ export default function ModalImportExcel({ isOpen, onClose, onSuccess, classId }
 
       setImportResult(normalizeImportResult(res));
     } catch (err: any) {
+      if (err?.response?.data?.errors) {
+        setImportResult(normalizeImportResult({
+          ...err.response.data,
+          failedCount: err.response.data.errors.length,
+        }));
+      }
       setErrorMsg(getUserFriendlyError(err, 'Không thể import danh sách sinh viên.'));
     } finally {
       setLoading(false);
@@ -172,6 +178,12 @@ export default function ModalImportExcel({ isOpen, onClose, onSuccess, classId }
       setConfirmed(true);
       onSuccess?.();
     } catch (err: any) {
+      if (err?.response?.data?.errors) {
+        setImportResult(normalizeImportResult({
+          ...err.response.data,
+          failedCount: err.response.data.errors.length,
+        }));
+      }
       setErrorMsg(getUserFriendlyError(err, 'Không thể xác nhận import sinh viên.'));
     } finally {
       setConfirming(false);
@@ -184,8 +196,8 @@ export default function ModalImportExcel({ isOpen, onClose, onSuccess, classId }
   const canConfirm = !!importResult?.importToken && !confirmed && importResult.failedCount === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
-      <div className="relative w-full max-w-[860px] rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]" onClick={handleClose}>
+      <div className="relative w-full max-w-[860px] rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
@@ -336,6 +348,16 @@ export default function ModalImportExcel({ isOpen, onClose, onSuccess, classId }
                             <p className="truncate text-gray-700">{getStudentValue(student, ['dateOfBirth', 'birthday'])}</p>
                           </div>
                           <div className="min-w-0">
+                            <p className="text-[10px] font-bold uppercase text-gray-400">Ngành / Khoa</p>
+                            <p className="truncate text-gray-700">
+                              {[student.majorName, student.facultyName].filter(Boolean).join(' - ') || '—'}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-bold uppercase text-gray-400">Năm tuyển</p>
+                            <p className="truncate text-gray-700">{student.enrollmentYear ?? '—'}</p>
+                          </div>
+                          <div className="min-w-0">
                             <p className="text-[10px] font-bold uppercase text-gray-400">SĐT</p>
                             <p className="truncate text-gray-700">{getStudentValue(student, ['phoneNumber', 'phone'])}</p>
                           </div>
@@ -400,8 +422,23 @@ export default function ModalImportExcel({ isOpen, onClose, onSuccess, classId }
               )}
 
               {confirmed && (
-                <div className="mt-4 rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
-                  Đã import thành công. Email đã gửi: {importResult.emailSentCount ?? 0}, gửi lỗi: {importResult.emailFailedCount ?? 0}.
+                <div className="mt-4 space-y-2">
+                  <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
+                    Đã import thành công. Email đã gửi: {importResult.emailSentCount ?? 0}, gửi lỗi: {importResult.emailFailedCount ?? 0}.
+                  </div>
+                  {importResult.emailErrors && importResult.emailErrors.length > 0 && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
+                      <p className="font-bold text-amber-900 mb-1">Chi tiết lỗi gửi email ({importResult.emailErrors.length}):</p>
+                      <div className="space-y-1 max-h-[100px] overflow-y-auto pr-1">
+                        {importResult.emailErrors.map((eErr, idx) => (
+                          <div key={idx} className="flex items-start gap-1 text-[11px] text-amber-800">
+                            <span className="font-mono font-semibold shrink-0">{eErr.email || '—'}:</span>
+                            <span>{eErr.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

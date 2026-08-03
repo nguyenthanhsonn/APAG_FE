@@ -311,7 +311,7 @@ export const EvaluationSection2 = ({
 
           {/* Trừ điểm vi phạm */}
           <div>
-            <h3 className="text-sm font-bold text-gray-800">2.2 Các lỗi vi phạm (Điểm trừ tương ứng)</h3>
+            <h3 className="text-sm font-bold text-gray-800">2. Phần trừ điểm: Sinh viên vi phạm một số lỗi trong nội quy, quy chế, quy định</h3>
             <p className="text-xs text-gray-500 mt-0.5">Nhập số lần vi phạm. Điểm trừ được tính tự động (Dưới hạn tối thiểu 0đ).</p>
 
             <div className="mt-4 space-y-4">

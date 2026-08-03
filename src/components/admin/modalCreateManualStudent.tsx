@@ -121,8 +121,8 @@ export default function ModalCreateManualStudent({
   return (
     <>
       <div className="fixed inset-0 z-40 cursor-pointer bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E9ECEF] bg-white px-6 py-4">
             <div>
               <h2 className="text-lg font-bold text-[#1A1B1E]">Thêm sinh viên mới</h2>

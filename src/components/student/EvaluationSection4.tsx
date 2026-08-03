@@ -72,7 +72,7 @@ export const EvaluationSection4 = ({
         <div>
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
-            Mục IV: Ý thức công dân trong quan hệ cộng đồng
+            Mục IV: Đánh giá về ý thức công dân trong quan hệ cộng đồng
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">Điểm tối đa: 25đ</p>
         </div>

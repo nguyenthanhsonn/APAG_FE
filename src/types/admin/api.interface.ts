@@ -209,6 +209,9 @@ export interface ImportStudentPreviewItem {
     name?: string;
   };
   classId?: string;
+  majorName?: string;
+  enrollmentYear?: number;
+  facultyName?: string;
   username?: string;
   password?: string;
   note?: string;
@@ -217,6 +220,11 @@ export interface ImportStudentPreviewItem {
 export interface ImportErrorItem {
   field?: string;
   error?: string;
+}
+
+export interface ImportEmailErrorItem {
+  email?: string;
+  message?: string;
 }
 
 export interface ImportStudentsResult {
@@ -234,7 +242,7 @@ export interface ImportStudentsResult {
   createdStudents?: ImportStudentPreviewItem[];
   emailSentCount?: number;
   emailFailedCount?: number;
-  emailErrors?: ImportErrorItem[];
+  emailErrors?: ImportEmailErrorItem[];
   failedCount: number;
   errors: ImportErrorItem[];
 }

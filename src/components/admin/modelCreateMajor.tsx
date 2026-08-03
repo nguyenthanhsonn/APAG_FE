@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { X, Hash, BookOpen, Building2, Download } from 'lucide-react';
+import { X, Hash, BookOpen, Building2 } from 'lucide-react';
 import type { MajorFormValues, ModalCreateMajorProps } from '../../types';
-import ModalImportMajor from './modalImportMajor';
 
 const validationSchema = Yup.object({
   code: Yup.string()
@@ -29,10 +28,8 @@ export default function ModalCreateMajor({
   onSubmit,
   editData,
   faculties = [],
-  onImported,
 }: ModalCreateMajorProps) {
   const isEdit = !!editData;
-  const [importOpen, setImportOpen] = useState(false);
 
   const formik = useFormik<MajorFormValues>({
     initialValues: editData
@@ -76,9 +73,15 @@ export default function ModalCreateMajor({
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl">
+      {/* Modal Container */}
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+        onClick={onClose}
+      >
+        <div
+          className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[#E9ECEF] px-6 py-4">
             <div>
@@ -153,48 +156,25 @@ export default function ModalCreateMajor({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between gap-3 border-t border-[#E9ECEF] pt-4">
-              {!isEdit ? (
-                <button
-                  type="button"
-                  onClick={() => setImportOpen(true)}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-emerald-600 bg-white px-4 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-50 select-none"
-                >
-                  <Download size={13} />
-                  Nhập từ Excel
-                </button>
-              ) : (
-                <div />
-              )}
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="cursor-pointer rounded-lg border border-[#DEE2E6] bg-white px-5 py-2 text-sm font-semibold text-[#495057] transition hover:bg-[#F8F9FA]"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={formik.isSubmitting}
-                  className="cursor-pointer rounded-lg bg-[#0B3A82] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#104E92] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isEdit ? 'Cập nhật' : 'Tạo ngành'}
-                </button>
-              </div>
+            <div className="flex items-center justify-end gap-3 border-t border-[#E9ECEF] pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="cursor-pointer rounded-lg border border-[#DEE2E6] bg-white px-5 py-2 text-sm font-semibold text-[#495057] transition hover:bg-[#F8F9FA]"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={formik.isSubmitting}
+                className="cursor-pointer rounded-lg bg-[#0B3A82] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#104E92] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isEdit ? 'Cập nhật' : 'Tạo ngành'}
+              </button>
             </div>
           </form>
         </div>
       </div>
-
-      <ModalImportMajor
-        isOpen={importOpen}
-        onClose={() => setImportOpen(false)}
-        onSuccess={() => {
-          onImported?.();
-        }}
-      />
     </>
   );
 }

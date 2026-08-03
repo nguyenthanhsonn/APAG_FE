@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, X } from 'lucide-react';
+import { Users, X, FileText } from 'lucide-react';
 import { Header } from '@/components/Layout/Header';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const menuItems = [
   { path: '/class_leader', icon: Users, label: 'Danh sách lớp' },
+  { path: '/class_leader/bien-ban', icon: FileText, label: 'Biên bản họp lớp' },
 ];
 
 function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
