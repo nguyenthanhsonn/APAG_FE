@@ -5,6 +5,7 @@ import { Calendar, GraduationCap, Lock, Mail, Phone, School, User, X } from 'luc
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import type { CreateStudentPayload, ModalCreateManualStudentProps, CreateManualStudentFieldProps as FieldProps } from '../../types';
+import { getUserFriendlyError } from '../../utils/errorHelper';
 
 function Field({ label, icon: Icon, required, error, children }: FieldProps) {
   const normalizedError = Array.isArray(error) ? error[0] : error;
@@ -91,7 +92,7 @@ export default function ModalCreateManualStudent({
         resetForm();
         onClose();
       } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : 'Không thể tạo sinh viên. Vui lòng kiểm tra lại thông tin.');
+        setSubmitError(getUserFriendlyError(err, 'Không thể tạo sinh viên. Vui lòng kiểm tra lại thông tin.'));
       } finally {
         setSubmitting(false);
       }
@@ -120,8 +121,8 @@ export default function ModalCreateManualStudent({
   return (
     <>
       <div className="fixed inset-0 z-40 cursor-pointer bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E9ECEF] bg-white px-6 py-4">
             <div>
               <h2 className="text-lg font-bold text-[#1A1B1E]">Thêm sinh viên mới</h2>

@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Calendar, Eye, Loader2, AlertCircle } from 'lucide-react';
 import { API_Student } from '../../api/API_Student';
 import EvaluationStatusStepper from '../../components/common/EvaluationStatusStepper';
+import { getUserFriendlyError } from '../../utils/errorHelper';
 
 export const StudentHistory = () => {
   const router = useRouter();
@@ -76,7 +77,7 @@ export const StudentHistory = () => {
         setHistory(Array.isArray(data) ? data : []);
       } catch (err: any) {
         console.error(err);
-        setError(err.message || 'Không thể tải danh sách phiếu đánh giá');
+        setError(getUserFriendlyError(err, 'Không thể tải danh sách phiếu đánh giá.'));
         setHistory([]);
       } finally {
         setLoading(false);

@@ -20,17 +20,17 @@ export const AdminFacultyStatsCard = ({
               <div className="mb-2 flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-2">
                   {isMax && (
-                    <span className="shrink-0 rounded-full bg-[#EDF2FF] px-1.5 py-0.5 text-[10px] font-bold text-[#3B5BDB]">
+                    <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-brand-primary">
                       TOP
                     </span>
                   )}
                   <span className="truncate text-sm font-semibold text-[#1A1B1E]">{faculty.name}</span>
                 </div>
-                <span className="shrink-0 text-sm font-bold text-[#3B5BDB]">{faculty.students} SV</span>
+                <span className="shrink-0 text-sm font-bold text-brand-secondary">{faculty.students} SV</span>
               </div>
-              <div className="relative h-2 overflow-hidden rounded-full bg-[#EDF2FF]">
+              <div className="relative h-2 overflow-hidden rounded-full bg-brand-secondary/10">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#3B5BDB] to-[#4C6EF5] transition-all duration-700"
+                  className="h-full rounded-full bg-brand-primary transition-all duration-700"
                   style={{ width: `${percent}%` }}
                 />
               </div>

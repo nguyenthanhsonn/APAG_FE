@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Edit, Trash2, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { API_Admin } from '../../api/API_Admin';
-import type { Class, ClassFormValues, Faculty, Major, ClassTableRow } from '../../types';
+import type { Class, Faculty, Major, ClassTableRow } from '../../types';
 import ModalCreateClass from '../../components/admin/modalCreateClass';
 import ModalConfirm from '../../components/common/modalConfirm';
 import SearchFilterBar from '../../components/admin/SearchFilterBar';
@@ -13,6 +14,7 @@ import { AdminClassList } from './ClassList';
 import { useAdminUrlState } from '../../utils/adminUrlState';
 
 export const AdminClasses = () => {
+  const router = useRouter();
   const [classes, setClasses] = useState<ClassTableRow[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [majors, setMajors] = useState<Major[]>([]);
@@ -38,7 +40,7 @@ export const AdminClasses = () => {
       setLoading(true);
       setErrorMsg('');
       const [facs, majs, clss] = await Promise.all([
-        API_Admin.getFaculties(),
+        API_Admin.getMetadataFaculties(),
         API_Admin.getMajors(),
         API_Admin.getClasses(),
       ]);
@@ -137,7 +139,7 @@ export const AdminClasses = () => {
     setEditingClass(null);
   };
 
-  const handleSubmitModal = (_values: ClassFormValues) => {
+  const handleSubmitModal = () => {
     setErrorMsg('Chưa có API tạo/cập nhật lớp học.');
   };
 
@@ -300,7 +302,7 @@ export const AdminClasses = () => {
               paginationAlign="left"
               currentPage={page}
               onPageChange={handlePageChange}
-              onRowClick={(row) => setViewingClassId(row.id)}
+              onRowClick={(row) => router.push(`/admin/classes/${row.id}`)}
             />
           </div>
         </>

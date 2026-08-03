@@ -1,15 +1,61 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Loader2, AlertCircle, ArrowLeft, UserPlus, X } from 'lucide-react';
+import { Plus, Trash2, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { API_Admin } from '../../api/API_Admin';
-import { ClassListStudentItem, Class, Faculty, Major, StudentManagementItem, AdminClassListProps } from '../../types';
+import { API_Shared } from '../../api/API_Shared';
+import { ClassListStudentItem, Class, Faculty, Major, AdminClassListProps } from '../../types';
 import ModalConfirm from '../../components/common/modalConfirm';
 import SearchFilterBar from '../../components/admin/SearchFilterBar';
 import DataTable, { type Column } from '../../components/admin/DataTable';
 import ModalAddStudent from '../../components/admin/modalAddStudent';
 import { getUserFriendlyError, toArray } from '../../utils/adminData';
 import { useAdminUrlState } from '../../utils/adminUrlState';
+
+const normalizeFaculty = (f: any): Faculty => ({
+  id: f.id || f._id || '',
+  code: f.code || '',
+  name: f.name || '',
+  isActive: f.isActive ?? true,
+});
+
+const normalizeMajor = (m: any): Major => ({
+  id: m.id || m._id || '',
+  code: m.code || '',
+  name: m.name || '',
+  facultyId: m.facultyId || m.faculty_id || m.faculty?.id || m.faculty?._id || '',
+  faculty: m.faculty,
+  isActive: m.isActive ?? true,
+});
+
+const normalizeClass = (c: any): Class => {
+  const majorId = c.majorId || c.major_id || c.major?.id || c.major?._id || '';
+  const facultyId =
+    c.facultyId ||
+    c.faculty_id ||
+    c.faculty?.id ||
+    c.faculty?._id ||
+    c.major?.facultyId ||
+    c.major?.faculty_id ||
+    c.major?.faculty?.id ||
+    c.major?.faculty?._id ||
+    '';
+
+  return {
+    id: c.id || c._id || '',
+    code: c.code || '',
+    name: c.name || '',
+    facultyId,
+    majorId,
+    major: c.major,
+    faculty: c.faculty || c.major?.faculty,
+    enrollmentYear: c.enrollmentYear,
+    studentCount: c.studentCount,
+    classLeaders: c.classLeaders || [],
+    advisors: c.advisors || [],
+    isActive: c.isActive ?? true,
+  };
+};
 
 export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListProps) => {
   const { getPage, getValue, setQuery } = useAdminUrlState();
@@ -25,10 +71,6 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   const [classes, setClasses] = useState<Class[]>([]);
   const [classDetail, setClassDetail] = useState<Class | null>(null);
   const [students, setStudents] = useState<ClassListStudentItem[]>([]);
-  const [councils, setCouncils] = useState<StudentManagementItem[]>([]);
-  const [selectedCouncilId, setSelectedCouncilId] = useState('');
-  const [councilsSaving, setCouncilsSaving] = useState(false);
-
   const [loading, setLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -36,83 +78,64 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteStudent, setPendingDeleteStudent] = useState<ClassListStudentItem | null>(null);
 
-  // Sync selectedClass, selectedMajor, and selectedFaculty with preSelectedClassId once classes are loaded
+  // Chỉ tải danh sách khoa ban đầu; ngành/lớp được tải theo API cây khi người dùng chọn.
   useEffect(() => {
-    if (preSelectedClassId && classes.length > 0) {
-      const cls = classes.find((c) => c.id === preSelectedClassId);
-      if (cls) {
-        setSelectedFaculty(cls.facultyId || '');
-        setSelectedMajor(cls.majorId || '');
-        setSelectedClass(preSelectedClassId);
-      }
-    }
-  }, [preSelectedClassId, classes]);
-
-  // Load all metadata lists on mount
-  useEffect(() => {
-    const loadMetadata = async () => {
+    const loadFaculties = async () => {
       try {
         setLoading(true);
         setErrorMsg('');
-
-        const [facs, majs, clss] = await Promise.all([
-          API_Admin.getFaculties(),
-          API_Admin.getMajors(),
-          API_Admin.getClasses(),
-        ]);
-
-        const normalizedFaculties = toArray(facs as any).map((f: any) => ({
-          id: f.id || f._id || '',
-          code: f.code || '',
-          name: f.name || '',
-          isActive: f.isActive ?? true,
-        }));
-
-        const normalizedMajors = toArray(majs as any).map((m: any) => ({
-          id: m.id || m._id || '',
-          code: m.code || '',
-          name: m.name || '',
-          facultyId: m.facultyId || m.faculty_id || m.faculty?.id || m.faculty?._id || '',
-          isActive: m.isActive ?? true,
-        }));
-
-        const normalizedClasses = toArray(clss as any).map((c: any) => {
-          const majorId = c.majorId || c.major_id || c.major?.id || c.major?._id || '';
-          const facultyId =
-            c.facultyId ||
-            c.faculty_id ||
-            c.faculty?.id ||
-            c.faculty?._id ||
-            c.major?.facultyId ||
-            c.major?.faculty_id ||
-            c.major?.faculty?.id ||
-            c.major?.faculty?._id ||
-            normalizedMajors.find((m) => m.id === majorId)?.facultyId ||
-            '';
-
-          return {
-            id: c.id || c._id || '',
-            code: c.code || '',
-            name: c.name || '',
-            facultyId,
-            majorId,
-            major: c.major,
-            enrollmentYear: c.enrollmentYear,
-            isActive: c.isActive ?? true,
-          };
-        });
-
-        setFaculties(normalizedFaculties);
-        setMajors(normalizedMajors);
-        setClasses(normalizedClasses);
+        const facs = await API_Admin.getMetadataFaculties();
+        setFaculties(toArray(facs as any).map(normalizeFaculty));
       } catch (err: any) {
         setErrorMsg(getUserFriendlyError(err, 'Không thể tải thông tin danh mục. Vui lòng thử lại sau.'));
       } finally {
         setLoading(false);
       }
     };
-    loadMetadata();
+
+    loadFaculties();
   }, []);
+
+  useEffect(() => {
+    const loadMajorsByFaculty = async () => {
+      if (!selectedFaculty) {
+        setMajors([]);
+        setClasses([]);
+        return;
+      }
+
+      try {
+        setErrorMsg('');
+        const data = await API_Admin.getFacultyMajors(selectedFaculty, { page: 1, limit: 100, isActive: true, includeDeleted: false });
+        setMajors(toArray(data as any).map(normalizeMajor));
+      } catch (err) {
+        setMajors([]);
+        setErrorMsg(getUserFriendlyError(err, 'Không thể tải danh sách ngành trong khoa. Vui lòng thử lại sau.'));
+      }
+    };
+
+    loadMajorsByFaculty();
+  }, [selectedFaculty]);
+
+  useEffect(() => {
+    const loadClassesByMajor = async () => {
+      if (!selectedMajor) {
+        setClasses([]);
+        return;
+      }
+
+      try {
+        setErrorMsg('');
+        const data = await API_Admin.getMajorClasses(selectedMajor, { page: 1, limit: 100, isActive: true, includeDeleted: false });
+        setClasses(toArray(data as any).map(normalizeClass));
+      } catch (err) {
+        setClasses([]);
+        setErrorMsg(getUserFriendlyError(err, 'Không thể tải danh sách lớp trong ngành. Vui lòng thử lại sau.'));
+      }
+    };
+
+    loadClassesByMajor();
+  }, [selectedMajor]);
 
   const loadStudents = async (classId: string) => {
     if (!classId) {
@@ -123,13 +146,19 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
     try {
       setStudentsLoading(true);
       setErrorMsg('');
-      const data = await API_Admin.getClassStudents(classId);
+      const data = await API_Shared.getClassStudents(classId, { page: 1, limit: 1000 });
       const normalized: ClassListStudentItem[] = toArray(data as any).map((s: any) => ({
-        id: s.id,
+        id: s.studentId || s.userId || s.id,
         studentCode: s.studentCode || '',
         fullName: s.fullName || '',
         dateOfBirth: s.dateOfBirth ? s.dateOfBirth.split('T')[0] : '',
         phoneNumber: s.phone || s.phoneNumber || '',
+        email: s.email,
+        role: s.role || 'student',
+        isActive: s.isActive ?? true,
+        isClassLeader: !!s.isClassLeader,
+        classLeaderAssignment: s.classLeaderAssignment || null,
+        enrolledAt: s.enrolledAt,
       }));
       setStudents(normalized);
     } catch (err: any) {
@@ -147,55 +176,18 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
 
     try {
       const data = await API_Admin.getClassById(classId);
-      const detail = data as any;
-      const majorId = detail.majorId || detail.major_id || detail.major?.id || '';
-      const facultyId =
-        detail.facultyId ||
-        detail.faculty_id ||
-        detail.faculty?.id ||
-        detail.major?.facultyId ||
-        detail.major?.faculty?.id ||
-        majors.find((m) => m.id === majorId)?.facultyId ||
-        '';
-
-      setClassDetail({
-        id: detail.id || '',
-        code: detail.code || '',
-        name: detail.name || '',
-        majorId,
-        facultyId,
-        major: detail.major,
-        faculty: detail.faculty || detail.major?.faculty,
-        enrollmentYear: detail.enrollmentYear,
-        createdAt: detail.createdAt,
-        deletedAt: detail.deletedAt,
-        studentCount: detail.studentCount,
-        councils: detail.councils || [],
-        isActive: detail.isActive ?? true,
-      });
+      const detail = normalizeClass(data as any);
+      setClassDetail(detail);
     } catch (err: any) {
       setClassDetail(null);
       setErrorMsg(getUserFriendlyError(err, 'Không thể tải chi tiết lớp. Vui lòng thử lại sau.'));
     }
-  }, [majors]);
+  }, []);
 
   useEffect(() => {
     loadStudents(selectedClass);
     loadClassDetail(selectedClass);
   }, [loadClassDetail, selectedClass]);
-
-  useEffect(() => {
-    const loadCouncils = async () => {
-      try {
-        const data = await API_Admin.getUsers({ role: 'class_council', page: 1, limit: 100, includeDeleted: false });
-        setCouncils(toArray(data as any));
-      } catch {
-        setCouncils([]);
-      }
-    };
-
-    loadCouncils();
-  }, []);
 
   const filteredStudents = students.filter((s) =>
     s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -281,58 +273,15 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
     },
   ];
 
-  const filteredMajors = majors.filter((m) => m.isActive && m.facultyId === selectedFaculty);
-  const filteredClasses = classes.filter((c) => c.isActive && c.majorId === selectedMajor);
   const activeClassDetails = classes.find((c) => c.id === selectedClass);
   const displayedClass = classDetail || activeClassDetails || null;
   const displayedMajor = displayedClass?.major?.name || majors.find((m) => m.id === displayedClass?.majorId)?.name || '—';
   const displayedFaculty =
     displayedClass?.faculty?.name ||
     displayedClass?.major?.faculty?.name ||
-    faculties.find((f) => f.id === displayedClass?.facultyId)?.name ||
     '—';
-  const assignedCouncilUserIds = new Set((displayedClass?.councils || []).map((item) => item.userId));
-  const availableCouncils = councils.filter((item) => item.isActive && !assignedCouncilUserIds.has(item.id));
+  const displayedClassLeaders = (displayedClass as any)?.classLeaders || [];
 
-  const updateCouncilUsers = async (userIds: string[]) => {
-    if (!selectedClass) return;
-
-    try {
-      setCouncilsSaving(true);
-      setErrorMsg('');
-      const updatedClass = await API_Admin.updateClassCouncils(selectedClass, { userIds });
-      const detail = updatedClass as any;
-      setClassDetail((prev) => ({
-        ...(prev || {
-          id: detail.id || selectedClass,
-          code: detail.code || '',
-          name: detail.name || '',
-          facultyId: detail.facultyId || detail.faculty?.id || '',
-          majorId: detail.majorId || detail.major?.id || '',
-          isActive: detail.isActive ?? true,
-        }),
-        ...detail,
-        councils: detail.councils || [],
-      }));
-    } catch (err) {
-      setErrorMsg(getUserFriendlyError(err, 'Không thể cập nhật cố vấn phụ trách. Vui lòng thử lại sau.'));
-    } finally {
-      setCouncilsSaving(false);
-    }
-  };
-
-  const handleAssignCouncil = async () => {
-    if (!selectedCouncilId) return;
-
-    const currentIds = (displayedClass?.councils || []).map((item) => item.userId);
-    await updateCouncilUsers([...currentIds, selectedCouncilId]);
-    setSelectedCouncilId('');
-  };
-
-  const handleRemoveCouncil = async (userId: string) => {
-    const nextIds = (displayedClass?.councils || []).map((item) => item.userId).filter((id) => id !== userId);
-    await updateCouncilUsers(nextIds);
-  };
 
   const handleFacultyChange = (value: string) => {
     setSelectedFaculty(value);
@@ -426,8 +375,8 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                     disabled={!selectedFaculty}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer bg-white disabled:cursor-not-allowed disabled:bg-gray-100"
                   >
-                    <option value="">-- Chọn ngành --</option>
-                    {filteredMajors.map((m) => (
+                    <option value="">{selectedFaculty ? '-- Chọn ngành --' : '-- Chọn khoa trước --'}</option>
+                    {majors.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
                   </select>
@@ -440,8 +389,8 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                     disabled={!selectedMajor}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer bg-white disabled:cursor-not-allowed disabled:bg-gray-100"
                   >
-                    <option value="">-- Chọn lớp --</option>
-                    {filteredClasses.map((c) => (
+                    <option value="">{selectedMajor ? '-- Chọn lớp --' : '-- Chọn ngành trước --'}</option>
+                    {classes.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -479,6 +428,14 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                       <p className="text-xs font-semibold uppercase text-gray-500">Số sinh viên</p>
                       <p className="mt-1 text-sm text-gray-700">{displayedClass.studentCount ?? students.length}</p>
                     </div>
+                    <div className="sm:col-span-2 xl:col-span-1">
+                      <p className="text-xs font-semibold uppercase text-gray-500">Lớp trưởng</p>
+                      <p className="mt-1 truncate text-sm text-gray-700">
+                        {displayedClassLeaders.length > 0
+                          ? displayedClassLeaders.map((item: any) => item.fullName || item.username || item.name).filter(Boolean).join(', ')
+                          : students.find((item) => item.isClassLeader)?.fullName || '—'}
+                      </p>
+                    </div>
                     <div>
                       <p className="text-xs font-semibold uppercase text-gray-500">Trạng thái</p>
                       <span className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${displayedClass.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -489,72 +446,6 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
                 </div>
               )}
 
-              {displayedClass && (
-                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                  <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <h2 className="text-sm font-bold text-gray-900">Cố vấn phụ trách</h2>
-                      <p className="mt-0.5 text-xs font-medium text-gray-500">
-                        Gán cố vấn cho lớp tại đây. Hồ sơ cố vấn chỉ hiển thị danh sách này ở chế độ xem.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <select
-                        value={selectedCouncilId}
-                        onChange={(e) => setSelectedCouncilId(e.target.value)}
-                        disabled={councilsSaving || availableCouncils.length === 0}
-                        className="h-10 min-w-[240px] rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
-                      >
-                        <option value="">-- Chọn cố vấn --</option>
-                        {availableCouncils.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {[item.fullName, item.username].filter(Boolean).join(' - ')}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={handleAssignCouncil}
-                        disabled={!selectedCouncilId || councilsSaving}
-                        className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0B3A82] px-4 text-sm font-semibold text-white transition hover:bg-[#104E92] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {councilsSaving ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
-                        Gán cố vấn
-                      </button>
-                    </div>
-                  </div>
-
-                  {(displayedClass.councils || []).length > 0 ? (
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-                      {displayedClass.councils?.map((item) => (
-                        <div
-                          key={item.id || item.userId}
-                          className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-gray-900">{item.fullName || item.username}</p>
-                            <p className="truncate text-xs font-medium text-gray-500">{item.email || item.username}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCouncil(item.userId)}
-                            disabled={councilsSaving}
-                            className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            title="Gỡ cố vấn"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">
-                      Lớp này chưa có cố vấn phụ trách.
-                    </p>
-                  )}
-                </div>
-              )}
 
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-800">Danh sách sinh viên</h2>

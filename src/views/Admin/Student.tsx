@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Edit, Trash2, Lock, Unlock, AlertCircle, ChevronDown, UserPlus } from 'lucide-react';
 import ModalCreateStudent from '../../components/admin/modalCreateStudent';
-import { StudentManagementItem, StudentFormValues, UpdateUserPayload } from '../../types';
+import { Class, Faculty, StudentManagementItem, StudentFormValues, UpdateUserPayload, type InternalUserRole } from '../../types';
 import ModalConfirm from '../../components/common/modalConfirm';
 import SearchFilterBar from '../../components/admin/SearchFilterBar';
 import DataTable, { type Column } from '../../components/admin/DataTable';
@@ -16,6 +16,8 @@ export const AdminUsers = () => {
   const toast = useToast();
   const pageSize = 10;
   const [students, setStudents] = useState<StudentManagementItem[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
 
   const [showModal, setShowModal] = useState(false);
@@ -33,9 +35,10 @@ export const AdminUsers = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>(
     () => getValue('status', 'all') as 'all' | 'active' | 'inactive'
   );
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'class_council'>(() => {
-    const role = getValue('role', 'all');
-    return role === 'admin' || role === 'class_council' ? role : 'all';
+  const validInternalRoles: InternalUserRole[] = ['admin', 'class_leader', 'advisor', 'faculty', 'training_department'];
+  const [roleFilter, setRoleFilter] = useState<'all' | InternalUserRole>(() => {
+    const role = getValue('role', 'all') as InternalUserRole | 'all';
+    return validInternalRoles.includes(role as InternalUserRole) ? role : 'all';
   });
   const [page, setPage] = useState(() => getPage());
 
@@ -48,8 +51,58 @@ export const AdminUsers = () => {
     phone: u.phone,
     dateOfBirth: u.dateOfBirth,
     studentCode: u.studentCode || '',
+    facultyId:
+      u.facultyId ||
+      u.faculty?.id ||
+      u.managedFaculty?.facultyId ||
+      u.managedFaculty?.id ||
+      u.managedFaculties?.[0]?.facultyId ||
+      u.managedFaculties?.[0]?.id ||
+      '',
+    classId:
+      u.classId ||
+      u.class?.id ||
+      u.managedClasses?.[0]?.classId ||
+      u.managedClasses?.[0]?.id ||
+      '',
+    managedFaculties: u.managedFaculties || (u.managedFaculty ? [u.managedFaculty] : []),
+    managedClasses: u.managedClasses || (u.managedClass ? [u.managedClass] : []),
     isActive: u.isActive,
   });
+
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      try {
+        const [facultiesResult, classesResult] = await Promise.all([
+          API_Admin.getFaculties({ page: 1, limit: 100 }),
+          API_Admin.getClasses({ page: 1, limit: 100 }),
+        ]);
+        setFaculties(
+          toArray(facultiesResult as any).map((faculty: any) => ({
+            id: faculty.id || faculty._id || '',
+            code: faculty.code || '',
+            name: faculty.name || '',
+            isActive: faculty.isActive ?? true,
+          })),
+        );
+        setClasses(
+          toArray(classesResult as any).map((classItem: any) => ({
+            id: classItem.id || classItem._id || '',
+            code: classItem.code || '',
+            name: classItem.name || '',
+            majorId: classItem.majorId || classItem.major?.id || '',
+            facultyId: classItem.facultyId || classItem.faculty?.id || classItem.major?.facultyId || '',
+            isActive: classItem.isActive ?? true,
+          })),
+        );
+      } catch {
+        setFaculties([]);
+        setClasses([]);
+      }
+    };
+
+    fetchDropdownData();
+  }, []);
 
   const fetchStudents = async () => {
     try {
@@ -140,7 +193,7 @@ export const AdminUsers = () => {
       majorId: s.majorId ?? '',
       classId: s.classId ?? '',
       admissionYear: s.admissionYear ?? String(new Date().getFullYear()),
-      role: s.role as 'admin' | 'class_council',
+      role: s.role as InternalUserRole,
     });
     setEditingUserId(s.id);
     setShowModal(true);
@@ -164,6 +217,8 @@ export const AdminUsers = () => {
           role: values.role,
           phone: values.phone.trim() || undefined,
           dateOfBirth: values.dateOfBirth || undefined,
+          facultyId: values.role === 'faculty' ? values.facultyId : undefined,
+          classId: values.role === 'advisor' || values.role === 'class_leader' ? values.classId : undefined,
         };
         const res = await API_Admin.updateUser(editingUserId, payload);
         const updated = (res as any).data || res;
@@ -178,6 +233,8 @@ export const AdminUsers = () => {
                   role: updated.role || payload.role || s.role,
                   phone: updated.phone ?? values.phone,
                   dateOfBirth: updated.dateOfBirth ?? values.dateOfBirth,
+                  facultyId: updated.facultyId ?? payload.facultyId ?? '',
+                  classId: updated.classId ?? payload.classId ?? '',
                   isActive: updated.isActive ?? s.isActive,
                 }
               : s
@@ -194,17 +251,15 @@ export const AdminUsers = () => {
           role: values.role,
           phone: values.phone || undefined,
           dateOfBirth: values.dateOfBirth || undefined,
+          facultyId: values.role === 'faculty' ? values.facultyId : undefined,
+          classId: values.role === 'advisor' || values.role === 'class_leader' ? values.classId : undefined,
         });
-        const created = res.data || res;
+        const created = res;
 
-        if (values.role === 'class_council') {
-          if (created.accountEmailSent === true) {
-            toast.success('Tạo tài khoản và gửi email thành công.');
-          } else if (created.accountEmailSent === false && created.accountEmailError) {
-            toast.error('Tạo tài khoản thành công nhưng chưa gửi được email.');
-          } else {
-            toast.success('Tạo tài khoản thành công.');
-          }
+        if (created.accountEmailSent === true) {
+          toast.success('Tạo tài khoản và gửi email thành công.');
+        } else if (created.accountEmailSent === false && created.accountEmailError) {
+          toast.error(`Tạo tài khoản thành công nhưng chưa gửi được email: ${created.accountEmailError}`);
         } else {
           toast.success('Tạo tài khoản thành công.');
         }
@@ -223,7 +278,10 @@ export const AdminUsers = () => {
 
   const roleBadgeConfig = {
     admin: { label: 'Quản trị viên', className: 'bg-purple-100 text-purple-700' },
-    class_council: { label: 'Cố vấn học tập', className: 'bg-orange-100 text-orange-700' },
+    class_leader: { label: 'Lớp trưởng', className: 'bg-amber-100 text-amber-700' },
+    advisor: { label: 'Cố vấn học tập', className: 'bg-orange-100 text-orange-700' },
+    faculty: { label: 'Khoa', className: 'bg-teal-100 text-teal-700' },
+    training_department: { label: 'Phòng Đào tạo', className: 'bg-indigo-100 text-indigo-700' },
   } as const;
 
   const columns: Column<StudentManagementItem>[] = [
@@ -238,7 +296,7 @@ export const AdminUsers = () => {
       label: 'Vai trò',
       width: '15%',
       render: (val) => {
-        const config = roleBadgeConfig[(val as keyof typeof roleBadgeConfig) || 'admin'] || roleBadgeConfig.admin;
+        const config = roleBadgeConfig[val as keyof typeof roleBadgeConfig] || roleBadgeConfig.admin;
         return (
           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${config.className}`}>
             {config.label}
@@ -301,8 +359,11 @@ export const AdminUsers = () => {
   ];
   const roleFilterOptions = [
     { label: 'Tất cả', value: 'all' },
-    { label: 'Cố vấn học tập', value: 'class_council' },
     { label: 'Quản trị viên', value: 'admin' },
+    { label: 'Lớp trưởng', value: 'class_leader' },
+    { label: 'Cố vấn học tập', value: 'advisor' },
+    { label: 'Khoa', value: 'faculty' },
+    { label: 'Phòng Đào tạo', value: 'training_department' },
   ];
 
   const handleSearchChange = (value: string) => {
@@ -318,7 +379,7 @@ export const AdminUsers = () => {
   };
 
   const handleRoleChange = (value: string) => {
-    setRoleFilter(value as 'all' | 'admin' | 'class_council');
+    setRoleFilter(value as 'all' | InternalUserRole);
     setPage(1);
     setQuery({ role: value }, { resetPage: true });
   };
@@ -404,6 +465,8 @@ export const AdminUsers = () => {
         onClose={handleCloseModal}
         onSubmit={handleSubmitModal}
         editData={editingStudent}
+        faculties={faculties}
+        classes={classes}
       />
 
       <ModalConfirm

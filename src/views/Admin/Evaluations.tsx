@@ -13,7 +13,8 @@ const normalizeStatus = (status?: string) => String(status || '').toLowerCase();
 const statusConfig = {
   draft: { label: 'Đang điền', className: 'bg-gray-100 text-gray-700' },
   submitted: { label: 'Chờ lớp duyệt', className: 'bg-yellow-100 text-yellow-700' },
-  class_approved: { label: 'Chờ quản trị viên phê duyệt', className: 'bg-blue-100 text-blue-700' },
+  class_approved: { label: 'Chờ Khoa gửi PĐT', className: 'bg-blue-100 text-blue-700' },
+  faculty_approved: { label: 'Chờ PĐT phê duyệt', className: 'bg-indigo-100 text-indigo-700' },
   finalized: { label: 'Đã hoàn tất', className: 'bg-green-100 text-green-700' },
   rejected: { label: 'Bị trả về', className: 'bg-red-100 text-red-700' },
 } as const;
@@ -83,7 +84,7 @@ function mapEvaluationRow(item: any): EvaluationRow {
     semester: item.semester,
     academicYear: item.academicYear,
     status,
-    statusLabel: status === 'class_approved' ? 'Chờ quản trị viên phê duyệt' : item.statusLabel,
+    statusLabel: status === 'class_approved' ? 'Chờ Khoa gửi PĐT' : item.statusLabel,
   };
 }
 
@@ -119,7 +120,7 @@ export function AdminEvaluations() {
   const loadFilters = useCallback(async () => {
     try {
       const [facultyResult, classResult, semesterResult] = await Promise.all([
-        API_Admin.getFaculties(),
+        API_Admin.getMetadataFaculties(),
         API_Admin.getClasses(),
         API_Admin.getSemesters({ page: 1, limit: 100 }),
       ]);

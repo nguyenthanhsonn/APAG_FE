@@ -11,6 +11,8 @@ import { create } from 'zustand';
 import type { ChangeEvent } from 'react';
 import type { UploadedEvidenceFile } from '@/types/student';
 
+export type EvaluationScoreSection = 'study' | 'discipline' | 'activity' | 'community' | 'role';
+
 // ---------------------------------------------------------------------------
 // Score result type
 // ---------------------------------------------------------------------------
@@ -80,14 +82,14 @@ export interface EvaluationFormState {
   isClassViolationSec4: boolean;
 
   // --- Section 5: Role (max 10) ---
-  svRoleType: 'cadre' | 'student';
-  svCadrePosition: 'a1' | 'a2';
+  svRoleType: string;
+  svCadrePosition: string;
   svCadrePerformance: string;
   svManagementLevel: string;
   svClassParticipation: number;
   svSpecialAchievement: string;
-  classRoleType: 'cadre' | 'student';
-  classCadrePosition: 'a1' | 'a2';
+  classRoleType: string;
+  classCadrePosition: string;
   classCadrePerformance: string;
   classManagementLevel: string;
   classClassParticipation: number;
@@ -125,6 +127,8 @@ export interface EvaluationFormState {
    * Remove uploaded file — injected by the page controller after store creation.
    */
   removeFileAction: (key: string, index: number) => void;
+
+  persistSectionAction: (section: EvaluationScoreSection) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,28 +137,28 @@ export interface EvaluationFormState {
 export const EVAL_DEDUCTION_WEIGHTS = [10, 3, 5, 5, 5, 5, 5, 10, 20];
 
 const DEDUCTION_LABELS = [
-  'Không tham gia nghiêm túc tuần sinh hoạt công dân / bài thu hoạch không đạt (TBCHT < 5) (Trừ 10đ)',
-  'Nghỉ không lý do các chuyên đề tuần sinh hoạt công dân-SV (Trừ 3đ/buổi)',
-  'Không tham gia sinh hoạt lớp, họp, hội nghị, giao ban, tập huấn... (Trừ 5đ/buổi)',
-  'Không đeo thẻ SV / không mặc đồng phục GDTC / hút thuốc / xả rác (Trừ 5đ/lần)',
-  'Vi phạm quy định giảng đường, thư viện, nơi cư trú (Trừ 5đ/lần)',
-  'Chậm đóng học phí / lệ phí / BHYT / nộp hồ sơ (Trừ 5đ/lần)',
-  'Bị khiển trách, nhắc nhở trong phòng thi (Trừ 5đ/lần)',
-  'Vi phạm quy chế thi ở mức cảnh cáo / trừ điểm thi (Trừ 10đ/lần)',
-  'Vi phạm quy chế thi bị đình chỉ thi (Trừ 20đ/lần)',
+  'Không tham gia học tập đầy đủ, nghiêm túc nghị quyết, nội quy, quy chế, tuần sinh hoạt công dân -sinh viên (các chuyên đề sinh hoạt sinh viên đầu khóa, đầu năm, cuối khóa) hoặc bài thu hoạch không đạt (Điểm trung bình chung <5)',
+  'Nghỉ không lý do các chuyên đề “tuần sinh hoạt công dân-sinh viên” đầu khóa, đầu năm, cuối khóa',
+  'Không tham gia các buổi sinh hoạt lớp, họp, hội nghị, giao ban, tập huấn và các hoạt động khác do Học viện yêu cầu.',
+  'Không đeo thẻ sinh viên đến Học viện, không mặc đồng phục thể thao trong giờ học GDTC, hút thuốc, xả rác bừa bãi nơi công cộng, vi phạm một trong những điều sinh viên không được làm',
+  'Vi phạm các quy định khu giảng đường, thư viện; không chấp hành các quy định nơi cư trú và làm các thủ tục khi thay đổi chỗ ở theo quy định.',
+  'Chậm đóng học phí, lệ phí, bảo hiểm y tế bắt buộc, tiền nội trú, các khoản thu theo qui định của Học viện hoặc chậm nộp các loại giấy tờ, hồ sơ, văn bằng, chứng chỉ cho Học viện (chưa có quyết định đình chỉ học có thời hạn).',
+  'Bị khiển trách, nhắc nhở trong phòng thi.',
+  'Vi phạm quy chế thi ở mức cảnh cáo hoặc trừ điểm thi nhưng chưa đến mức bị đình chỉ thi',
+  'Vi phạm quy chế thi bị lập biên bản đình chỉ thi',
 ];
 
 // ---------------------------------------------------------------------------
 // Score lookup tables (mirrors the useMemo tables in EvaluationFormQD4185)
 // ---------------------------------------------------------------------------
-const STUDY_ATTITUDE_SCORES: Record<string, number> = { very_good: 6, good: 5, fair: 4, average: 2, poor: 1, none: 0 };
-const ACADEMIC_RANK_SCORES: Record<string, number> = { excellent: 8, good: 7, fair: 6, average: 4, weak_no_warn: 2, weak_warn: 1, none: 0 };
+const STUDY_ATTITUDE_SCORES: Record<string, number> = { GTE_9: 6, FROM_7_TO_UNDER_9: 5, FROM_5_TO_UNDER_7: 4, FROM_4_TO_UNDER_5: 2, FROM_1_TO_UNDER_4: 1, very_good: 6, good: 5, fair: 4, average: 2, poor: 1, none: 0, '': 0 };
+const ACADEMIC_RANK_SCORES: Record<string, number> = { EXCELLENT: 8, GOOD: 7, FAIR: 6, AVERAGE: 4, WEAK_NO_WARNING: 2, WEAK_WARNING_FIRST: 1, excellent: 8, good: 7, fair: 6, average: 4, weak_no_warn: 2, weak_warn: 1, none: 0, '': 0 };
 const ACTIVITY1_SCORES: Record<string, number> = { GOOD_PARTICIPATION: 5, ABSENT_ONCE: 3, ABSENT_TWICE: 2, ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED: 0, active: 5, full: 3, excused: 2, unexcused: 0 };
-const ACTIVITY2_SCORES: Record<string, number> = { many: 5, some: 3, active: 2, full: 1, none: 0 };
-const ACTIVITY3_SCORES: Record<string, number> = { prize_or_org: 5, active: 3, some: 2, full: 1, none: 0 };
-const ACTIVITY4_SCORES: Record<string, number> = { active: 3, full: 2, some: 1, none: 0 };
+const ACTIVITY2_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION: 5, EFFECTIVE_PARTICIPATION_FROM_HALF: 3, ENCOURAGED_OTHERS: 2, ABSENT_OVER_HALF: 1, NOT_PARTICIPATED: 0, many: 5, some: 3, active: 2, full: 1, none: 0 };
+const ACTIVITY3_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION: 5, ACTIVE_ONE_OR_MORE: 3, ACTIVE_SUPPORTER: 2, ABSENT_OVER_HALF: 1, NOT_PARTICIPATED: 0, prize_or_org: 5, active: 3, some: 2, full: 1, none: 0 };
+const ACTIVITY4_SCORES: Record<string, number> = { MULTIPLE_ACTIVITIES_OR_REPORTING: 3, ONE_EFFECTIVE_ACTIVITY: 2, AWARENESS_OR_SUPPORT: 1, REMINDED_VIOLATION: 0, active: 3, full: 2, some: 1, none: 0 };
 const POLICY_SCORES: Record<string, number> = { GOOD_WITH_REWARD: 10, GOOD: 8, AVERAGE: 5, VIOLATED: 0, excellent_propaganda: 10, good: 8, minor_violation: 5, none: 0 };
-const SOLIDARITY_SCORES: Record<string, number> = { excellent_achievements: 10, regular: 8, some: 5, none: 0 };
+const SOLIDARITY_SCORES: Record<string, number> = { ACTIVE_WITH_REWARD: 10, ACTIVE: 8, PARTICIPATED: 5, NOT_PARTICIPATED: 0, excellent_achievements: 10, regular: 8, some: 5, none: 0 };
 const LOCALITY_SCORES: Record<string, number> = { GOOD: 5, ONE_WARNING: 1, TWO_WARNINGS: 0, good: 5, rewarded: 1, warned: 0 };
 
 // ---------------------------------------------------------------------------
@@ -211,22 +215,24 @@ export function computeEvaluationScores(s: EvaluationFormState, isSv: boolean): 
   const isVio5 = isSv ? s.isSvViolationSec5 : s.isClassViolationSec5;
   let sec5 = 0;
   if (!isVio5) {
-    const roleType = isSv ? s.svRoleType : s.classRoleType;
-    if (roleType === 'cadre') {
-      const pos = isSv ? s.svCadrePosition : s.classCadrePosition;
-      const perf = isSv ? s.svCadrePerformance : s.classCadrePerformance;
-      const mgmt = isSv ? s.svManagementLevel : s.classManagementLevel;
-      const perfMap = pos === 'a1'
-        ? { excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
-        : { excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
-      const mgmtMap: Record<string, number> = { head: 3, deputy: 2, member: 1, none: 0 };
-      sec5 = clamp((perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0), 10);
-    } else {
-      const part = isSv ? s.svClassParticipation : s.classClassParticipation;
-      const ach = isSv ? s.svSpecialAchievement : s.classSpecialAchievement;
-      const achMap: Record<string, number> = { national_intl: 7, provincial: 5, none: 0 };
-      sec5 = clamp(part + (achMap[ach] || 0), 10);
+    const pos = isSv ? s.svCadrePosition : s.classCadrePosition;
+    const perf = isSv ? s.svCadrePerformance : s.classCadrePerformance;
+    const mgmt = isSv ? s.svManagementLevel : s.classManagementLevel;
+    const part = isSv ? s.svClassParticipation : s.classClassParticipation;
+    const ach = isSv ? s.svSpecialAchievement : s.classSpecialAchievement;
+
+    let section5Part1 = 0;
+    if (pos && pos !== 'NONE' && pos !== 'none') {
+      const perfMap = pos === 'LEADER_GROUP' || pos === 'a1'
+        ? { EXCELLENT: 7, GOOD: 6, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
+        : { EXCELLENT: 6, GOOD: 5, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
+      const mgmtMap: Record<string, number> = { HEAD_POSITION: 3, DEPUTY_POSITION: 2, MEMBER_POSITION: 1, head: 3, deputy: 2, member: 1, none: 0, '': 0 };
+      section5Part1 = (perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0);
     }
+
+    const achMap: Record<string, number> = { NATIONAL_OR_INTL: 7, PROVINCIAL_LEVEL: 5, NONE: 0, national_intl: 7, provincial: 5, none: 0 };
+    const section5Part2 = clamp(Number(part) || 0, 3) + (achMap[ach] || 0);
+    sec5 = clamp(section5Part1 + section5Part2, 10);
   }
 
   return { sec1, sec2, sec3, sec4, sec5, total: clamp(sec1 + sec2 + sec3 + sec4 + sec5, 100) };
@@ -245,16 +251,16 @@ const DEFAULT_STATE: Omit<
   isReadOnly: false,
   fieldErrors: {},
 
-  svStudyAttitude: 'none',
+  svStudyAttitude: 'FROM_1_TO_UNDER_4',
   svNckh: false,
   svOlympic: false,
   svCreative: false,
-  svAcademicRank: 'none',
-  classStudyAttitude: 'none',
+  svAcademicRank: 'WEAK_WARNING_FIRST',
+  classStudyAttitude: 'FROM_1_TO_UNDER_4',
   classNckh: false,
   classOlympic: false,
   classCreative: false,
-  classAcademicRank: 'none',
+  classAcademicRank: 'WEAK_WARNING_FIRST',
   isSvViolationSec1: false,
   isClassViolationSec1: false,
 
@@ -267,39 +273,39 @@ const DEFAULT_STATE: Omit<
   isClassViolationSec2: false,
 
   svActivity1: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
-  svActivity2: 'none',
-  svActivity3: 'none',
-  svActivity4: 'none',
+  svActivity2: 'NOT_PARTICIPATED',
+  svActivity3: 'NOT_PARTICIPATED',
+  svActivity4: 'REMINDED_VIOLATION',
   svRewardPoints: 0,
   classActivity1: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
-  classActivity2: 'none',
-  classActivity3: 'none',
-  classActivity4: 'none',
+  classActivity2: 'NOT_PARTICIPATED',
+  classActivity3: 'NOT_PARTICIPATED',
+  classActivity4: 'REMINDED_VIOLATION',
   classRewardPoints: 0,
   isSvViolationSec3: false,
   isClassViolationSec3: false,
 
   svPolicy: 'VIOLATED',
-  svSolidarity: 'none',
+  svSolidarity: 'NOT_PARTICIPATED',
   svLocality: 'TWO_WARNINGS',
   classPolicy: 'VIOLATED',
-  classSolidarity: 'none',
+  classSolidarity: 'NOT_PARTICIPATED',
   classLocality: 'TWO_WARNINGS',
   isSvViolationSec4: false,
   isClassViolationSec4: false,
 
-  svRoleType: 'student',
-  svCadrePosition: 'a2',
-  svCadrePerformance: 'unsatisfactory',
-  svManagementLevel: 'none',
+  svRoleType: 'NORMAL_STUDENT',
+  svCadrePosition: 'NONE',
+  svCadrePerformance: 'POOR',
+  svManagementLevel: '',
   svClassParticipation: 0,
-  svSpecialAchievement: 'none',
-  classRoleType: 'student',
-  classCadrePosition: 'a2',
-  classCadrePerformance: 'unsatisfactory',
-  classManagementLevel: 'none',
+  svSpecialAchievement: 'NONE',
+  classRoleType: 'NORMAL_STUDENT',
+  classCadrePosition: 'NONE',
+  classCadrePerformance: 'POOR',
+  classManagementLevel: '',
   classClassParticipation: 0,
-  classSpecialAchievement: 'none',
+  classSpecialAchievement: 'NONE',
   isSvViolationSec5: false,
   isClassViolationSec5: false,
 
@@ -308,6 +314,31 @@ const DEFAULT_STATE: Omit<
 
   handleFileUploadAction: noop,
   removeFileAction: noop,
+  persistSectionAction: noop,
+};
+
+const fieldSectionMap: Partial<Record<keyof EvaluationFormState, EvaluationScoreSection>> = {
+  svStudyAttitude: 'study',
+  svNckh: 'study',
+  svOlympic: 'study',
+  svCreative: 'study',
+  svAcademicRank: 'study',
+  svNoViolationScore: 'discipline',
+  svDeductions: 'discipline',
+  svActivity1: 'activity',
+  svActivity2: 'activity',
+  svActivity3: 'activity',
+  svActivity4: 'activity',
+  svRewardPoints: 'activity',
+  svPolicy: 'community',
+  svSolidarity: 'community',
+  svLocality: 'community',
+  svRoleType: 'role',
+  svCadrePosition: 'role',
+  svCadrePerformance: 'role',
+  svManagementLevel: 'role',
+  svClassParticipation: 'role',
+  svSpecialAchievement: 'role',
 };
 
 // ---------------------------------------------------------------------------
@@ -317,7 +348,11 @@ export const createEvaluationFormStore = () =>
   create<EvaluationFormState>()((set, get) => ({
     ...DEFAULT_STATE,
 
-    setField: (key, value) => set({ [key]: value } as Pick<EvaluationFormState, typeof key>),
+    setField: (key, value) => {
+      set({ [key]: value } as Pick<EvaluationFormState, typeof key>);
+      const section = fieldSectionMap[key];
+      if (section) queueMicrotask(() => get().persistSectionAction(section));
+    },
 
     batchSet: (partial) => set(partial as Partial<EvaluationFormState>),
 
@@ -332,7 +367,7 @@ export const createEvaluationFormStore = () =>
         0,
       );
       const remainingScore = Math.max(0, currentBase - sumOther);
-      const maxTimes = weight > 0 ? Math.ceil(remainingScore / weight) : 0;
+      const maxTimes = weight > 0 ? Math.floor(remainingScore / weight) : 0;
       const clamped = Math.min(maxTimes, Math.max(0, value));
 
       const newDeductions = [...prevDeductions];
@@ -340,6 +375,7 @@ export const createEvaluationFormStore = () =>
 
       if (isSv) {
         set({ svDeductions: newDeductions });
+        queueMicrotask(() => get().persistSectionAction('discipline'));
       } else {
         set({ classDeductions: newDeductions });
       }

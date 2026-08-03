@@ -1,5 +1,7 @@
 import type { AdminEvaluationItem } from './api.type';
 
+export type InternalUserRole = 'admin' | 'class_leader' | 'advisor' | 'faculty' | 'training_department';
+
 /** Thông tin chia trang danh sách. */
 export interface PaginationQuery {
   page?: number;
@@ -19,10 +21,12 @@ export interface CreateUserPayload {
   username: string;
   email: string;
   fullName: string;
-  role: 'admin' | 'class_council';
-  password?: string;
+  role: InternalUserRole;
+  password: string;
   phone?: string;
   dateOfBirth?: string;
+  facultyId?: string;
+  classId?: string;
 }
 
 /** Thông tin cập nhật tài khoản admin/cố vấn. */
@@ -30,10 +34,12 @@ export interface UpdateUserPayload {
   username?: string;
   email?: string;
   fullName?: string;
-  role?: 'admin' | 'class_council';
+  role?: InternalUserRole;
   isActive?: boolean;
   phone?: string;
   dateOfBirth?: string;
+  facultyId?: string;
+  classId?: string;
 }
 
 /** Thông tin tạo sinh viên thủ công. */
@@ -50,13 +56,19 @@ export interface CreateStudentPayload {
 
 /** Điều kiện xem danh sách người dùng. */
 export interface UserListQuery extends PaginationQuery {
-  role?: 'admin' | 'class_council';
+  role?: InternalUserRole;
   keyword?: string;
   isActive?: boolean;
   includeDeleted?: boolean;
 }
 
 /** Điều kiện xem danh sách sinh viên. */
+export interface AdminTreeListQuery extends PaginationQuery {
+  search?: string;
+  isActive?: boolean;
+  includeDeleted?: boolean;
+}
+
 export interface AdminStudentListQuery extends PaginationQuery {
   keyword?: string;
   classId?: string;
@@ -144,7 +156,8 @@ export interface AdminSemester {
   semesterName?: string;
   name?: string;
   startDate: string;
-  endDate: string;  isActive: boolean;
+  endDate: string;
+  isActive: boolean;
   hasEvaluationForms?: boolean;
 }
 
@@ -196,6 +209,9 @@ export interface ImportStudentPreviewItem {
     name?: string;
   };
   classId?: string;
+  majorName?: string;
+  enrollmentYear?: number;
+  facultyName?: string;
   username?: string;
   password?: string;
   note?: string;
@@ -204,6 +220,11 @@ export interface ImportStudentPreviewItem {
 export interface ImportErrorItem {
   field?: string;
   error?: string;
+}
+
+export interface ImportEmailErrorItem {
+  email?: string;
+  message?: string;
 }
 
 export interface ImportStudentsResult {
@@ -221,7 +242,7 @@ export interface ImportStudentsResult {
   createdStudents?: ImportStudentPreviewItem[];
   emailSentCount?: number;
   emailFailedCount?: number;
-  emailErrors?: ImportErrorItem[];
+  emailErrors?: ImportEmailErrorItem[];
   failedCount: number;
   errors: ImportErrorItem[];
 }
@@ -294,6 +315,62 @@ export interface AssignCouncilPayload {
   facultyId?: string;
   semester?: string;
   academicYear?: string;
+}
+
+export interface SubmitClassEvaluationPayload {
+  semesterId?: string;
+  evaluationIds?: string[];
+}
+
+export interface SubmitClassEvaluationResponse {
+  classId: string;
+  classCode: string;
+  className: string;
+  semesterId: string;
+  academicYear: string;
+  fromStatus: string;
+  toStatus: string;
+  submittedCount: number;
+  totalForms: number;
+  notReadyCount: number;
+  alreadyForwardedCount: number;
+  missingClassScoreCount?: number;
+  submittedToAdvisorAt?: string;
+  submittedToFacultyAt?: string;
+  advisorIds?: string[];
+  facultyUserIds?: string[];
+  facultyId?: string;
+  facultyCode?: string;
+  facultyName?: string;
+  message: string;
+}
+
+export interface ReturnEvaluationToStudentPayload {
+  reason: string;
+}
+
+export interface SubmitFacultyEvaluationPayload {
+  semesterId?: string;
+  classId?: string;
+}
+
+export interface SubmitFacultyEvaluationResponse {
+  facultyId: string;
+  facultyCode: string;
+  facultyName: string;
+  classId: string | null;
+  semesterId: string;
+  academicYear: string;
+  fromStatus: string;
+  toStatus: string;
+  submittedToTrainingDepartmentAt: string;
+  submittedCount: number;
+  totalForms: number;
+  notReadyCount: number;
+  missingClassScoreCount: number;
+  alreadyForwardedCount: number;
+  trainingDepartmentUserIds: string[];
+  message: string;
 }
 
 /** Điều kiện xem báo cáo. */

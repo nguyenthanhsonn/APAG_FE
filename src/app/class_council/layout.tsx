@@ -6,7 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export default function ClassCouncilLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedRoute requiredRole="class_council">
+    <ProtectedRoute requiredRole="advisor">
       <MainLayout>{children}</MainLayout>
     </ProtectedRoute>
   );

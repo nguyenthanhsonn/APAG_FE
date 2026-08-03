@@ -1,8 +1,10 @@
+import type { InternalUserRole } from './api.interface';
+
 export interface StudentManagementItem {
   id: string;
   username: string;
   fullName: string;
-  role: 'student' | 'admin' | 'class_council';
+  role: 'student' | InternalUserRole;
   email?: string;
   phone?: string;
   dateOfBirth?: string;
@@ -15,6 +17,16 @@ export interface StudentManagementItem {
   isActive: boolean;
   accountEmailSent?: boolean;
   accountEmailError?: string;
+  managedFaculties?: Array<{
+    id?: string;
+    assignmentId?: string;
+    facultyId?: string;
+    code?: string;
+    facultyCode?: string;
+    name?: string;
+    facultyName?: string;
+    assignedAt?: string;
+  }>;
   managedClasses?: Array<{
     id?: string;
     assignmentId?: string;
@@ -33,4 +45,13 @@ export interface ClassListStudentItem {
   fullName: string;
   dateOfBirth: string;
   phoneNumber: string;
+  email?: string;
+  role?: 'student' | InternalUserRole;
+  isActive?: boolean;
+  isClassLeader?: boolean;
+  classLeaderAssignment?: {
+    id?: string;
+    assignedAt?: string;
+  } | null;
+  enrolledAt?: string;
 }

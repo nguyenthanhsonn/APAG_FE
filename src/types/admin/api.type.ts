@@ -5,7 +5,9 @@ export type {
   AddStudentToClassPayload,
   AdminSemester,
   AdminStudentListQuery,
+  AdminTreeListQuery,
   AdminEvaluationListQuery,
+  InternalUserRole,
   AssignCouncilPayload,
   BulkFinalizeEvaluationsPayload,
   ConfirmImportPayload,
@@ -64,13 +66,44 @@ export type AdminFaculty = Faculty & {
 /** Phiếu đánh giá trong danh sách quản trị. */
 export type AdminEvaluationItem = {
   id: string;
-  studentId: string;
-  studentName?: string;
   status: string;
-  semester?: string;
-  academicYear?: string;
-  totalScore?: number;
+  statusLabel?: string;
+  submittedAt?: string;
   updatedAt?: string;
+  studentId?: string;
+  studentName?: string;
+  student?: {
+    id: string;
+    studentCode: string;
+    fullName: string;
+    email: string;
+  };
+  class?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  faculty?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  semester?: {
+    id?: string;
+    semester?: string;
+    year?: string;
+    name?: string;
+  } | string;
+  academicYear?: string;
+  studentScore?: number;
+  classScore?: number;
+  advisorScore?: number;
+  finalScore?: number;
+  totalScore?: number;
+  classification?: string;
+  classLeaderReviewedAt?: string | null;
+  classReviewedAt?: string | null;
+  advisorReviewedAt?: string | null;
 };
 
 /** Bài viết quản trị tạo hoặc đọc. */

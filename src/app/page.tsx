@@ -22,8 +22,8 @@ export default function RootPage() {
     } else {
       if (user?.role === 'admin') {
         router.replace('/admin');
-      } else if (user?.role === 'class_council') {
-        router.replace('/class_council');
+      } else if (user?.role === 'advisor') {
+        router.replace('/advisor');
       } else if (user?.role === 'class_leader') {
         router.replace('/class_leader');
       } else if (user?.role === 'faculty') {

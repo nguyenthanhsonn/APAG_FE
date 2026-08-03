@@ -4,11 +4,45 @@ import type { AuthState } from '../types';
 import { API_Auth } from '../api/API_Auth';
 import type { Student, Admin } from '../types';
 
+function normalizeManagedClass(item: any) {
+  const classInfo = item?.class || item?.managedClass || item;
+  const faculty = classInfo?.faculty || item?.faculty;
+  const major = classInfo?.major || item?.major;
+
+  return {
+    ...classInfo,
+    id: classInfo?.id || item?.classId || item?.id || '',
+    classId: item?.classId || classInfo?.id || item?.id || '',
+    code: classInfo?.code || item?.classCode || item?.code,
+    classCode: item?.classCode || classInfo?.code || item?.code,
+    name: classInfo?.name || item?.className || item?.name || item?.classCode || classInfo?.code,
+    className: item?.className || classInfo?.name || item?.name || item?.classCode || classInfo?.code,
+    enrollmentYear: classInfo?.enrollmentYear || item?.enrollmentYear,
+    studentCount: classInfo?.studentCount ?? item?.studentCount,
+    major,
+    faculty,
+    facultyName: faculty?.name || classInfo?.facultyName || item?.facultyName,
+    assignedAt: item?.assignedAt,
+  };
+}
+
+function normalizeManagedClasses(profile: any) {
+  const sources = [
+    profile?.managedClasses,
+    profile?.advisorAssignments,
+    profile?.classLeaderAssignments,
+    profile?.assignments,
+  ].find((value) => Array.isArray(value) && value.length > 0);
+
+  return (sources || []).map(normalizeManagedClass).filter((item: any) => item.classId || item.id);
+}
+
 function normalizeProfile(profile: any) {
   const student = profile?.student;
   const classInfo = student?.class;
   const major = student?.major;
   const faculty = student?.faculty;
+  const managedClasses = normalizeManagedClasses(profile);
 
   return {
     ...profile,
@@ -20,8 +54,9 @@ function normalizeProfile(profile: any) {
     faculty: profile?.faculty ?? faculty,
     admissionYear: profile?.admissionYear ?? classInfo?.enrollmentYear,
     phoneNumber: profile?.phoneNumber ?? profile?.phone,
-    managedClasses: profile?.managedClasses ?? [],
-    managedFaculties: profile?.managedFaculties ?? [],
+    managedClasses,
+    managedFaculty: profile?.managedFaculty,
+    managedFaculties: profile?.managedFaculties ?? (profile?.managedFaculty ? [profile.managedFaculty] : []),
   };
 }
 
@@ -41,8 +76,22 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     if (storedUser && accessToken && refreshToken) {
       try {
-        const user = JSON.parse(storedUser);
+        const user = normalizeProfile(JSON.parse(storedUser));
         set({ user, isAuthenticated: true, isHydrated: true });
+        localStorage.setItem('user', JSON.stringify(user));
+
+        API_Auth.getProfile(accessToken)
+          .then((profileRes) => {
+            const refreshedProfile = normalizeProfile((profileRes as any).data || profileRes);
+            set((state) => {
+              const nextUser = state.user ? { ...state.user, ...refreshedProfile } : refreshedProfile;
+              localStorage.setItem('user', JSON.stringify(nextUser));
+              return { user: nextUser, isAuthenticated: true, isHydrated: true };
+            });
+          })
+          .catch(() => {
+            // Giữ phiên hiện tại nếu profile tạm thời không tải được; interceptor sẽ xử lý 401.
+          });
         return;
       } catch {
         localStorage.removeItem('user');
@@ -97,6 +146,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
     }
+  },
+  /** Mock: set user directly without API — dev/test only */
+  setUser: (user: any) => {
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('accessToken', 'mock-token');
+    localStorage.setItem('refreshToken', 'mock-refresh-token');
+    set({ user, isAuthenticated: true, isHydrated: true });
   },
   refreshProfile: async () => {
     const accessToken = localStorage.getItem('accessToken');

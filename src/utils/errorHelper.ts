@@ -45,6 +45,65 @@ const TECHNICAL_PATTERNS = [
   /:\d{4,5}\//,
 ];
 
+const FIELD_LABELS: Record<string, string> = {
+  username: 'Tên đăng nhập',
+  password: 'Mật khẩu',
+  email: 'Email',
+  fullName: 'Họ và tên',
+  phone: 'Số điện thoại',
+  phoneNumber: 'Số điện thoại',
+  dateOfBirth: 'Ngày sinh',
+  studentCode: 'Mã sinh viên',
+  classId: 'Lớp',
+  facultyId: 'Khoa',
+  majorId: 'Ngành',
+  semester: 'Học kỳ',
+  academicYear: 'Năm học',
+  captchaCode: 'Mã xác nhận',
+  regularScoreLevel: 'Mức độ tham gia học tập',
+  academicRank: 'Xếp loại học tập',
+  positionGroup: 'Chức vụ',
+  taskCompletionLevel: 'Mức độ hoàn thành nhiệm vụ',
+  managementSkillLevel: 'Kỹ năng quản lý',
+  specialAchievementLevel: 'Thành tích đặc biệt',
+  normalStudentActivityScore: 'Điểm hoạt động lớp',
+};
+
+const MESSAGE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/network error|failed to fetch|unable to connect|econnrefused|econnreset|socket hang up/i, 'Không thể kết nối tới máy chủ, vui lòng thử lại.'],
+  [/request failed with status code 400/i, 'Dữ liệu gửi lên chưa hợp lệ. Vui lòng kiểm tra lại thông tin.'],
+  [/request failed with status code 401|unauthorized/i, 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'],
+  [/request failed with status code 403|forbidden/i, 'Bạn không có quyền thực hiện thao tác này.'],
+  [/request failed with status code 404|not found/i, 'Không tìm thấy dữ liệu yêu cầu.'],
+  [/request failed with status code 409|conflict/i, 'Dữ liệu đã tồn tại hoặc đang xung đột. Vui lòng kiểm tra lại.'],
+  [/request failed with status code 5\d\d|internal server error/i, 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau ít phút.'],
+  [/timeout|etimedout|exceeded/i, 'Yêu cầu mất quá nhiều thời gian. Vui lòng thử lại.'],
+  [/must be one of the following values/i, 'Giá trị đã chọn không hợp lệ. Vui lòng chọn lại.'],
+  [/should not be empty|must not be empty|is required|required/i, 'Vui lòng nhập đầy đủ thông tin bắt buộc.'],
+  [/must be a string/i, 'Dữ liệu nhập vào chưa đúng định dạng văn bản.'],
+  [/must be a number|must be an integer/i, 'Dữ liệu nhập vào phải là số hợp lệ.'],
+  [/must be an email/i, 'Email không hợp lệ.'],
+];
+
+function replaceFieldNames(message: string) {
+  return Object.entries(FIELD_LABELS).reduce(
+    (current, [field, label]) => current.replace(new RegExp(`\\b${field}\\b`, 'g'), label),
+    message
+  );
+}
+
+function hasVietnameseText(message: string) {
+  return /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(message);
+}
+
+function translateTechnicalMessage(message: string, fallback: string) {
+  const normalized = replaceFieldNames(message.trim());
+  const translated = MESSAGE_TRANSLATIONS.find(([pattern]) => pattern.test(normalized));
+  if (translated) return translated[1];
+  if (!hasVietnameseText(normalized) && /[a-z]/i.test(normalized)) return fallback;
+  return normalized;
+}
+
 /** Kiểm tra xem một message có an toàn để hiển thị cho user không */
 function isSafeUserMessage(message: string): boolean {
   if (!message || typeof message !== 'string') return false;
@@ -53,7 +112,8 @@ function isSafeUserMessage(message: string): boolean {
   const normalized = message.trim();
   if (normalized.length < 3) return false;
 
-  return !TECHNICAL_PATTERNS.some((pattern) => pattern.test(normalized));
+  if (TECHNICAL_PATTERNS.some((pattern) => pattern.test(normalized))) return false;
+  return hasVietnameseText(normalized);
 }
 
 // ─── Logger ────────────────────────────────────────────────────────────────────
@@ -120,7 +180,8 @@ export function getUserFriendlyError(
       if ((isLogin || url.includes('/auth/login')) && userMsg.includes('hết hạn')) {
         // Bỏ qua userMessage cũ bị sai, để phía dưới đánh giá lại đúng cho API login
       } else {
-        return userMsg;
+        const friendlyMessage = translateTechnicalMessage(userMsg, fallback);
+        if (isSafeUserMessage(friendlyMessage)) return friendlyMessage;
       }
     }
   } else if (typeof error === 'object' && error !== null) {
@@ -136,7 +197,8 @@ export function getUserFriendlyError(
       if ((isLogin || url.includes('/auth/login')) && userMsg.includes('hết hạn')) {
         // Bỏ qua
       } else {
-        return userMsg;
+        const friendlyMessage = translateTechnicalMessage(userMsg, fallback);
+        if (isSafeUserMessage(friendlyMessage)) return friendlyMessage;
       }
     }
   } else if (typeof error === 'string') {
@@ -189,16 +251,20 @@ export function getUserFriendlyError(
         (firstErr as any).message ||
         (firstErr as any).msg ||
         '';
-      if (typeof errMsg === 'string' && isSafeUserMessage(errMsg)) {
-        return errMsg;
+      if (typeof errMsg === 'string') {
+        const friendlyMessage = translateTechnicalMessage(errMsg, fallback);
+        if (isSafeUserMessage(friendlyMessage)) return friendlyMessage;
       }
     }
   }
 
   // ── Bước 5: Ưu tiên message tiếng Việt an toàn từ BE ──────────────────────
   // Ví dụ: BE trả về { statusCode: 401, message: "Tên đăng nhập hoặc mật khẩu không đúng" }
-  if (rawMessage && isSafeUserMessage(rawMessage)) {
-    return rawMessage;
+  if (rawMessage) {
+    const friendlyMessage = translateTechnicalMessage(rawMessage, fallback);
+    if (isSafeUserMessage(friendlyMessage)) {
+      return friendlyMessage;
+    }
   }
 
   // ── Bước 6: Phân loại theo HTTP status code khi BE KHÔNG trả message rõ ràng ─

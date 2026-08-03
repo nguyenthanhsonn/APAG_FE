@@ -28,7 +28,7 @@ function toArray<T>(value: unknown): T[] {
 function toReviewStatus(status?: string): StudentReviewStatus {
   const normalized = String(status || '').toLowerCase();
 
-  if (['submitted', 'class_approved', 'finalized'].includes(normalized)) {
+  if (['submitted', 'class_leader_approved', 'class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normalized)) {
     return 'submitted';
   }
 
@@ -102,8 +102,8 @@ export function StudentListView() {
       try {
         setLoading(true);
         const [classDetailResult, studentsResult] = await Promise.all([
-          API_Admin.getClassCouncilClassById(classId),
-          API_Admin.getClassStudents(classId),
+          API_Admin.getAdvisorClassById(classId),
+          API_Admin.getClassStudents(classId, { page: 1, limit: 1000 }),
         ]);
 
         if (!mounted) {
@@ -201,8 +201,8 @@ export function StudentListView() {
         <div>
           <button
             type="button"
-            onClick={() => router.push('/class_council')}
-            className="mb-2 inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-[#3B5BDB] hover:text-[#4C6EF5]"
+            onClick={() => router.push('/advisor')}
+            className="mb-2 inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-brand-secondary hover:text-brand-primary"
           >
             <ArrowLeft size={16} />
             Quay lại danh sách lớp
@@ -214,16 +214,16 @@ export function StudentListView() {
           type="button"
           disabled={hasNotSubmitted || students.length === 0}
           title={hasNotSubmitted ? 'Còn sinh viên chưa nộp phiếu đánh giá.' : undefined}
-          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#3B5BDB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4C6EF5] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Send size={16} />
-          Gửi cả lớp lên Admin
+          Phê duyệt
         </button>
       </div>
 
       {loading ? (
         <div className="flex min-h-[360px] flex-col items-center justify-center gap-2.5 rounded-xl border border-[#E9ECEF] bg-white p-6 shadow-sm">
-          <Loader2 className="animate-spin text-[#3B5BDB]" size={34} />
+          <Loader2 className="animate-spin text-brand-primary" size={34} />
           <p className="text-sm font-semibold text-[#868E96]">Đang tải danh sách sinh viên...</p>
         </div>
       ) : (
@@ -245,7 +245,7 @@ export function StudentListView() {
           />
           <StudentReviewTable
             students={filteredStudents}
-            onReview={(studentId) => router.push(`/class_council/${classId}/${studentId}`)}
+            onReview={(studentId) => router.push(`/advisor/${classId}/${studentId}`)}
           />
         </>
       )}

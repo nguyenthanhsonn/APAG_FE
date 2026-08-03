@@ -14,7 +14,7 @@ export default function ClassCard({ classItem, onOpen }: ClassCardProps) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EDF2FF] text-[#3B5BDB]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-secondary/10 text-brand-secondary">
             <School size={22} />
           </div>
           <div className="min-w-0">
@@ -22,7 +22,7 @@ export default function ClassCard({ classItem, onOpen }: ClassCardProps) {
             {classItem.facultyName && <p className="mt-1 text-sm text-[#868E96]">{classItem.facultyName}</p>}
           </div>
         </div>
-        <ChevronRight size={18} className="mt-1 shrink-0 text-[#ADB5BD] transition group-hover:translate-x-0.5 group-hover:text-[#3B5BDB]" />
+        <ChevronRight size={18} className="mt-1 shrink-0 text-[#ADB5BD] transition group-hover:translate-x-0.5 group-hover:text-brand-primary" />
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -30,7 +30,7 @@ export default function ClassCard({ classItem, onOpen }: ClassCardProps) {
           <Users size={13} className="mr-1" />
           {classItem.studentCount} SV
         </span>
-        {classItem.academicYear && <span className="ui-badge bg-[#EDF2FF] text-[#3B5BDB]">{classItem.academicYear}</span>}
+        {classItem.academicYear && <span className="ui-badge bg-brand-secondary/10 text-brand-secondary">{classItem.academicYear}</span>}
         {classItem.semester && (
           <span className="ui-badge bg-[#FFF9DB] text-[#E67700]">
             <CalendarDays size={13} className="mr-1" />

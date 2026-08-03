@@ -109,8 +109,8 @@ export default function ModalImportMajor({ isOpen, onClose, onSuccess }: ModalIm
   const canConfirm = !!result?.importToken && !confirmed && result.failedCount === 0;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
-      <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]" onClick={handleClose}>
+      <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <div>
             <h2 className="text-base font-bold text-gray-900">Import ngành từ Excel</h2>

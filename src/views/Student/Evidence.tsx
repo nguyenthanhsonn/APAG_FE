@@ -6,6 +6,8 @@ import { EvidenceGuidelines } from '../../components/student/EvidenceGuidelines'
 import { EvidenceGroupCard } from '../../components/student/EvidenceGroupCard';
 import { API_Student } from '../../api/API_Student';
 import { uploadEvidenceFile } from '../../services/cloudinaryUpload';
+import { getUserFriendlyError } from '../../utils/errorHelper';
+import { CRITERIA_CODES } from '../../constants/evaluationEnums';
 
 export const StudentEvidence = () => {
   const [evidences, setEvidences] = useState<EvidenceFile[]>([]);
@@ -13,15 +15,33 @@ export const StudentEvidence = () => {
   const [uploadingGroup, setUploadingGroup] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-	  const mapEvidence = (item: any): EvidenceFile => ({
-	    id: item.id,
-	    fileName: item.fileName || item.title || item.publicId || 'Minh chứng',
-	    fileType: item.fileType || item.mimeType || 'application/octet-stream',
-	    fileSize: item.fileSize || item.size || 0,
-	    criteriaId: item.criteriaId || item.criteriaCode || 'TC1',
-	    uploadDate: item.uploadDate || item.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
-	    aiVerification: item.aiVerification || 'manual_review',
-	  });
+  const getEvidenceUrl = useCallback(
+    (item: any) => item.imageUrl || item.secureUrl || item.fileUrl || item.downloadUrl || item.url || item.storageKey || '',
+    [],
+  );
+
+  const mapEvidence = useCallback((item: any): EvidenceFile => ({
+    id: item.id,
+    fileName: item.fileName || item.title || item.publicId || 'Minh chứng',
+    fileType: item.fileType || item.mimeType || 'application/octet-stream',
+    fileSize: item.fileSize || item.size || 0,
+    url: getEvidenceUrl(item),
+    criteriaId: item.criteriaId || item.criteriaCode || 'TC1',
+    uploadDate: item.uploadDate || item.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+    aiVerification: item.aiVerification || 'manual_review',
+  }), [getEvidenceUrl]);
+
+  const mapEvidenceCriteriaCode = (criteriaId: string) => {
+    const map: Record<string, string> = {
+      TC1: CRITERIA_CODES.SECTION_1.NCKH_PARTICIPATION,
+      TC2: CRITERIA_CODES.SECTION_2.NO_VIOLATION,
+      TC3: CRITERIA_CODES.SECTION_3.REWARD,
+      TC4: CRITERIA_CODES.SECTION_4.LAW_COMPLIANCE,
+      TC5: CRITERIA_CODES.SECTION_5.SPECIAL_ACHIEVEMENT,
+    };
+
+    return map[criteriaId] || criteriaId;
+  };
 
   const loadEvidences = useCallback(async () => {
     try {
@@ -30,11 +50,11 @@ export const StudentEvidence = () => {
       const data = await API_Student.getMyEvidences();
       setEvidences((data || []).map(mapEvidence));
     } catch (err: any) {
-      setError(err.message || 'Không thể tải danh sách minh chứng.');
+      setError(getUserFriendlyError(err, 'Không thể tải danh sách minh chứng.'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mapEvidence]);
 
   useEffect(() => {
     loadEvidences();
@@ -61,11 +81,16 @@ export const StudentEvidence = () => {
       const results = await Promise.allSettled(
         fileList.map(async (file) => {
           const { secureUrl, publicId } = await uploadEvidenceFile(file);
-          await API_Student.linkEvidenceUrl({
-            criteriaCode: criteriaId,
-            imageUrl: secureUrl,
-            publicId,
-          });
+          const evidenceCriteriaCode = mapEvidenceCriteriaCode(criteriaId);
+          try {
+            await API_Student.linkEvidenceUrl({
+              criteriaCode: evidenceCriteriaCode,
+              imageUrl: secureUrl,
+              publicId,
+            });
+          } catch (linkErr) {
+            console.warn('Backend linkEvidenceUrl failed:', linkErr);
+          }
         })
       );
 
@@ -81,7 +106,7 @@ export const StudentEvidence = () => {
       // Reload danh sách từ server để đảm bảo đồng bộ
       await loadEvidences();
     } catch (err: any) {
-      setError(err.message || 'Không thể tải minh chứng. Vui lòng thử lại.');
+      setError(getUserFriendlyError(err, 'Không thể tải minh chứng. Vui lòng thử lại.'));
     } finally {
       setUploadingGroup(null);
       e.target.value = '';
@@ -95,7 +120,7 @@ export const StudentEvidence = () => {
         await API_Student.deleteEvidence(id);
         setEvidences((prev) => prev.filter((e) => e.id !== id));
       } catch (err: any) {
-        setError(err.message || 'Không thể xóa minh chứng.');
+        setError(getUserFriendlyError(err, 'Không thể xóa minh chứng.'));
       }
     }
   };

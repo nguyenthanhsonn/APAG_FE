@@ -1,14 +1,23 @@
 export type { Admin, DashboardStats } from './admin-user.type';
-export type { Class, Faculty, Major, ClassCouncil, ClassTableRow } from './academic.type';
+export type { Class, Faculty, Major, ClassLeader, ClassAdvisor, ClassTableRow } from './academic.type';
 export type { EvaluationReviewAction, EvaluationReviewPermission, EvaluationRow, ReviewStudent } from './evaluation-review.type';
 export type { StudentManagementItem, ClassListStudentItem } from './student-management.type';
+export type {
+  ReturnEvaluationToStudentPayload,
+  SubmitClassEvaluationPayload,
+  SubmitClassEvaluationResponse,
+  SubmitFacultyEvaluationPayload,
+  SubmitFacultyEvaluationResponse,
+} from './api.interface';
 export type {
   AddStudentToClassPayload,
   AdminSemester,
   AdminStudentListQuery,
+  AdminTreeListQuery,
   AdminClass,
   AdminEvaluationItem,
   AdminEvaluationListQuery,
+  InternalUserRole,
   AdminFaculty,
   AdminMajor,
   AdminUser,

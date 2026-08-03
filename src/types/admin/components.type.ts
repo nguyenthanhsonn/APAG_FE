@@ -141,6 +141,8 @@ export interface ModalCreateStudentProps {
   onClose: () => void;
   onSubmit: (values: StudentFormValues) => Promise<void> | void;
   editData?: StudentFormValues | null;
+  faculties?: Faculty[];
+  classes?: Class[];
 }
 
 export interface CreateStudentFieldProps {
@@ -253,12 +255,12 @@ export interface CouncilDeductionStepperProps {
   weight: number;
   noViolationScore: number;
   allDeductions: number[];
-  currentUserRole: 'student' | 'class';
+  currentUserRole: 'student' | 'class_leader' | 'advisor';
   isReadOnly: boolean;
 }
 
 export interface CouncilCriteriaReviewTableProps {
-  currentUserRole: 'student' | 'class';
+  currentUserRole: 'student' | 'class_leader' | 'advisor';
   setIsClassEdited: (v: boolean) => void;
   isReadOnly: boolean;
   svScores: { sec1: number; sec2: number; sec3: number; sec4: number; sec5: number; total: number };
@@ -316,12 +318,19 @@ export type StudentReviewStatus = 'not_submitted' | 'submitted';
 
 export interface CouncilStudentReview {
   id: string;
+  evaluationId?: string;
   code: string;
   fullName: string;
   selfScore: number | null;
+  classScore?: number | null;
   status: StudentReviewStatus;
   workflowStatus?: string;
   statusLabel?: string;
+  classLeaderReviewedAt?: string | null;
+  classLeaderConfirmedAt?: string | null;
+  classReviewedAt?: string | null;
+  advisorReviewedAt?: string | null;
+  advisorConfirmedAt?: string | null;
 }
 
 export interface StudentReviewTableProps {

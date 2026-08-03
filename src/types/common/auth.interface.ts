@@ -12,6 +12,30 @@ export interface User {
   fullName?: string;
   phone?: string | null;
   dateOfBirth?: string | null;
+  facultyId?: string;
+  faculty?: string | {
+    id?: string;
+    code?: string;
+    name?: string;
+  };
+  managedFaculty?: {
+    id?: string;
+    facultyId?: string;
+    code?: string;
+    facultyCode?: string;
+    name?: string;
+    facultyName?: string;
+    assignedAt?: string;
+  };
+  managedFaculties?: Array<{
+    id?: string;
+    facultyId?: string;
+    code?: string;
+    facultyCode?: string;
+    name?: string;
+    facultyName?: string;
+    assignedAt?: string;
+  }>;
   managedClasses?: Array<{
     id?: string;
     classId?: string;
@@ -27,6 +51,42 @@ export interface User {
     facultyName?: string;
     faculty?: {
       name?: string;
+    };
+  }>;
+  advisorAssignments?: Array<{
+    id?: string;
+    classId?: string;
+    assignedAt?: string;
+    class?: {
+      id?: string;
+      code?: string;
+      name?: string;
+      enrollmentYear?: number;
+      studentCount?: number;
+      major?: {
+        name?: string;
+      };
+      faculty?: {
+        name?: string;
+      };
+    };
+  }>;
+  classLeaderAssignments?: Array<{
+    id?: string;
+    classId?: string;
+    assignedAt?: string;
+    class?: {
+      id?: string;
+      code?: string;
+      name?: string;
+      enrollmentYear?: number;
+      studentCount?: number;
+      major?: {
+        name?: string;
+      };
+      faculty?: {
+        name?: string;
+      };
     };
   }>;
 }
@@ -79,6 +139,8 @@ export interface AuthState {
   hydrateAuth: () => void;
   login: (username: string, password: string, captchaId: string, captchaCode: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  /** Mock: set user directly without API — dev/test only */
+  setUser: (user: any) => void;
   refreshProfile: () => Promise<void>;
   updateProfile: (data: Partial<Student | Admin>) => Promise<void>;
 }

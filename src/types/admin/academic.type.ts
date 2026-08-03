@@ -27,10 +27,21 @@ export interface Class {
   studentCount?: number;
   major?: Major;
   faculty?: Faculty;
-  councils?: ClassCouncil[];
+  classLeaders?: ClassLeader[];
+  advisors?: ClassAdvisor[];
 }
 
-export interface ClassCouncil {
+export interface ClassLeader {
+  id: string;
+  userId: string;
+  username: string;
+  fullName: string;
+  email: string;
+  isActive: boolean;
+  assignedAt?: string;
+}
+
+export interface ClassAdvisor {
   id: string;
   userId: string;
   username: string;
