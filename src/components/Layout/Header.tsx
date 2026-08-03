@@ -145,6 +145,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     ? '/advisor/profile'
     : user?.role === 'faculty'
     ? '/faculty/profile'
+    : user?.role === 'class_leader'
+    ? '/class_leader/profile'
     : '/student/profile';
   const changePasswordHref = user?.role === 'admin'
     ? '/admin/change-password'

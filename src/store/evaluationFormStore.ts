@@ -367,7 +367,7 @@ export const createEvaluationFormStore = () =>
         0,
       );
       const remainingScore = Math.max(0, currentBase - sumOther);
-      const maxTimes = weight > 0 ? Math.ceil(remainingScore / weight) : 0;
+      const maxTimes = weight > 0 ? Math.floor(remainingScore / weight) : 0;
       const clamped = Math.min(maxTimes, Math.max(0, value));
 
       const newDeductions = [...prevDeductions];

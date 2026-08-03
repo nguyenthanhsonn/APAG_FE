@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Plus, Minus, Lock, AlertCircle } from 'lucide-react';
+import { ChevronUp, ChevronDown, Plus, Minus, Lock } from 'lucide-react';
 
 const DEDUCTION_WEIGHTS = [10, 3, 5, 5, 5, 5, 5, 10, 20];
 
@@ -30,44 +30,37 @@ const DeductionStepper = ({
   currentUserRole,
   isReadOnly
 }: DeductionStepperProps) => {
-  // Tính tổng điểm trừ của các lỗi khác
   const sumOtherDeductions = allDeductions.reduce((sum, count, idx) => {
     if (idx === index) return sum;
     return sum + (Number(count) || 0) * DEDUCTION_WEIGHTS[idx];
   }, 0);
 
-  // Điểm còn lại trước khi trừ lỗi này
-  const remainingScore = Math.max(0, noViolationScore - sumOtherDeductions);
+  const baseScore = Number(noViolationScore) || 0;
+  const remainingScore = Math.max(0, baseScore - sumOtherDeductions);
+  const maxTimes = weight > 0 ? Math.floor(remainingScore / weight) : 0;
 
-  // Số lần tối đa được phép nhập cho lỗi này
-  const maxTimes = Math.floor(remainingScore / weight);
-
-  // Vô hiệu hóa nút +
   const disabledPlus = disabled || value >= maxTimes;
-  // Vô hiệu hóa nút -
   const disabledMinus = disabled || value <= 0;
 
-  // Quản lý state nhập liệu cục bộ dạng string để hỗ trợ gõ tay và xóa trống
   const [localVal, setLocalVal] = useState<string>(String(value));
 
   useEffect(() => {
     setLocalVal(String(value));
   }, [value]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const valStr = e.target.value;
-    // Chỉ nhận chuỗi số
-    if (/^\d*$/.test(valStr)) {
-      setLocalVal(valStr);
-    }
-  };
+  const parsedVal = parseInt(localVal.trim(), 10);
+  const isInvalidInput = localVal.trim() !== '' && (
+    isNaN(parsedVal) ||
+    parsedVal < 0 ||
+    parsedVal > maxTimes ||
+    !/^\d+$/.test(localVal.trim())
+  );
 
   const handleBlurOrEnter = () => {
-    let num = parseInt(localVal, 10);
+    let num = parseInt(localVal.trim(), 10);
     if (isNaN(num)) {
       num = 0;
     }
-    // Giới hạn trong khoảng [0, maxTimes]
     const clamped = Math.min(maxTimes, Math.max(0, num));
     setLocalVal(String(clamped));
     onChange(clamped);
@@ -81,21 +74,23 @@ const DeductionStepper = ({
   };
 
   const handleIncrement = () => {
-    if (value < maxTimes) {
+    if (!disabledPlus && value < maxTimes) {
       onChange(value + 1);
     }
   };
 
   const handleDecrement = () => {
-    if (value > 0) {
+    if (!disabledMinus && value > 0) {
       onChange(value - 1);
     }
   };
 
-  // Tooltip giải thích khi bị khóa cột do vai trò
   const isColumnRoleLocked = disabled && !isReadOnly && (
     (currentUserRole === 'student' && !isSv) || (currentUserRole === 'class' && isSv)
   );
+
+  const currentCount = isInvalidInput ? (isNaN(parsedVal) ? 0 : Math.max(0, parsedVal)) : value;
+  const deductedPoints = Math.min(baseScore, currentCount * weight);
 
   return (
     <div className="flex items-center gap-1.5">
@@ -104,60 +99,50 @@ const DeductionStepper = ({
       </span>
       
       {isColumnRoleLocked ? (
-        <div className="relative group flex items-center justify-center">
-          <div className="flex items-center gap-1 bg-gray-100 text-gray-500 border border-gray-200 rounded-lg px-2 py-1.5 h-8 select-none">
-            <Lock size={12} className="text-gray-400 shrink-0" />
-            <span className="text-[11px] font-semibold">{value}</span>
-          </div>
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48 text-center z-20 leading-relaxed font-medium">
-            {currentUserRole === 'student'
-              ? 'Cột của Lớp trưởng/BCS đánh giá (đang tự động đồng bộ theo bạn).'
-              : 'Cột tự đánh giá của Sinh viên (Lớp trưởng không được sửa).'}
-          </div>
+        <div className="flex items-center gap-1 bg-gray-100 text-gray-500 border border-gray-200 rounded-lg px-2 py-1.5 h-8 select-none">
+          <Lock size={12} className="text-gray-400 shrink-0" />
+          <span className="text-[11px] font-semibold">{value} lần (−{deductedPoints}đ)</span>
         </div>
       ) : (
-        <div className="flex items-center relative">
-          {/* Nút Decrement */}
-          <button
-            type="button"
-            onClick={handleDecrement}
-            disabled={disabledMinus}
-            className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-l-lg hover:bg-gray-100 text-gray-600 disabled:opacity-40 disabled:hover:bg-transparent min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 transition duration-150 cursor-pointer"
-          >
-            <Minus size={12} />
-          </button>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={handleDecrement}
+              disabled={disabledMinus}
+              className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-l-lg hover:bg-gray-100 text-gray-600 disabled:opacity-40 disabled:hover:bg-transparent min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 transition duration-150 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Minus size={12} />
+            </button>
 
-          {/* Input gõ tay */}
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={localVal}
-            onChange={handleInputChange}
-            onBlur={handleBlurOrEnter}
-            onKeyDown={handleKeyDown}
-            disabled={disabled}
-            className="w-12 h-8 text-center text-xs border-y border-gray-300 outline-none bg-white font-bold text-gray-800 disabled:bg-gray-100 disabled:text-gray-400 transition"
-          />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={localVal}
+              onChange={(e) => setLocalVal(e.target.value)}
+              onBlur={handleBlurOrEnter}
+              onKeyDown={handleKeyDown}
+              disabled={disabled}
+              className={`w-12 h-8 text-center text-xs border-y outline-none font-bold disabled:bg-gray-100 disabled:text-gray-400 transition ${
+                isInvalidInput
+                  ? 'border-red-500 text-red-600 bg-red-50 focus:border-red-500 ring-1 ring-red-500'
+                  : 'border-gray-300 bg-white text-gray-800 focus:border-blue-500'
+              }`}
+            />
 
-          {/* Nút Increment */}
-          <div className="relative group">
             <button
               type="button"
               onClick={handleIncrement}
               disabled={disabledPlus}
-              className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-r-lg hover:bg-gray-100 text-gray-600 disabled:opacity-40 disabled:hover:bg-transparent min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 transition duration-150 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-r-lg hover:bg-gray-100 text-gray-600 disabled:opacity-40 disabled:hover:bg-transparent min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 transition duration-150 cursor-pointer disabled:cursor-not-allowed"
             >
               <Plus size={12} />
             </button>
-            
-            {disabledPlus && !disabled && (
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2.5 hidden group-hover:flex bg-red-600 text-white text-[10px] py-1.5 px-2.5 rounded-lg shadow-lg whitespace-nowrap z-20 font-bold items-center gap-1">
-                <AlertCircle size={10} />
-                Đã đạt số lần tối đa, điểm Mục II không thể âm
-              </div>
-            )}
           </div>
+
+          <span className={`text-xs font-semibold whitespace-nowrap ${deductedPoints > 0 ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
+            −{deductedPoints}đ
+          </span>
         </div>
       )}
     </div>

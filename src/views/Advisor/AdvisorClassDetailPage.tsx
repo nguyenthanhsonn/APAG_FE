@@ -254,6 +254,7 @@ export default function AdvisorClassDetailPage() {
         onSendToAdmin={() => {
           toast.success('Đã gửi phiếu đánh giá của toàn bộ lớp lên Admin phê duyệt.');
         }}
+        hideBreadcrumb={user?.role === 'class_leader'}
       />
 
       {/* Sticky Filter Bar on Scroll */}

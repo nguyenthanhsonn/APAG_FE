@@ -105,7 +105,7 @@ export const MANAGEMENT_SKILL_LEVEL_OPTIONS: EvaluationOption[] = [
 ];
 
 export const SPECIAL_ACHIEVEMENT_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'NATIONAL_OR_INTL', label: '7đ - Được khen thưởng từ cấp Học viện trở lên' },
-  { value: 'PROVINCIAL_LEVEL', label: '5đ - Đạt khen thưởng từ cấp Khoa trở lên' },
+  { value: 'SCHOOL_LEVEL_OR_HIGHER', label: '7đ - Được khen thưởng từ cấp Học viện trở lên' },
+  { value: 'FACULTY_LEVEL', label: '5đ - Đạt khen thưởng từ cấp Khoa trở lên' },
   { value: 'NONE', label: '0đ - Không có' },
 ];

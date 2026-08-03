@@ -318,7 +318,7 @@ Vào menu **Lịch sử đánh giá** hoặc **Kết quả**:
 | I | Ý thức tham gia học tập | 20 điểm |
 | II | Chấp hành nội quy, quy chế | 25 điểm |
 | III | Hoạt động CT-XH, văn hóa, thể thao | 20 điểm |
-| IV | Ý thức công dân trong quan hệ cộng đồng | 25 điểm |
+| IV | Đánh giá về ý thức công dân trong quan hệ cộng đồng | 25 điểm |
 | V | Vai trò cán bộ lớp, Đoàn, Hội, CLB | 10 điểm |
 | **TỔNG** | | **100 điểm** |
 
