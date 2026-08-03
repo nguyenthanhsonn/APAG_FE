@@ -170,7 +170,7 @@ export const EvaluationPages345 = (props: Props) => {
           <div className="min-w-0 pr-4">
             <h2 className="text-xl sm:text-2xl font-bold text-yellow-900">TRANG 4</h2>
             <h3 className="text-base sm:text-lg font-semibold text-yellow-700 mt-1 leading-snug">
-              IV. Ý thức công dân trong quan hệ cộng đồng (Tối đa 25 điểm)
+              IV. Đánh giá về ý thức công dân trong quan hệ cộng đồng (Tối đa 25 điểm)
             </h3>
           </div>
           {expandedSections.page4 ? <ChevronUp size={20} className="shrink-0" /> : <ChevronDown size={20} className="shrink-0" />}

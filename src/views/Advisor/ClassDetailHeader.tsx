@@ -12,6 +12,7 @@ export interface ClassDetailHeaderProps {
   totalStudents: number;
   hasNotSubmitted: boolean;
   onSendToAdmin?: () => void;
+  hideBreadcrumb?: boolean;
 }
 
 export function ClassDetailHeader({
@@ -23,6 +24,7 @@ export function ClassDetailHeader({
   totalStudents,
   hasNotSubmitted,
   onSendToAdmin,
+  hideBreadcrumb = false,
 }: ClassDetailHeaderProps) {
   const displayTitle =
     className && className !== classCode
@@ -43,17 +45,19 @@ export function ClassDetailHeader({
   return (
     <header className="space-y-3">
       {/* Breadcrumb Navigation */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-        <Link
-          href="/advisor"
-          className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
-        >
-          <ArrowLeft size={14} />
-          Danh sách lớp
-        </Link>
-        <ChevronRight size={12} className="text-gray-400" />
-        <span className="font-semibold text-gray-800">{classCode}</span>
-      </nav>
+      {!hideBreadcrumb && (
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+          <Link
+            href="/advisor"
+            className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
+          >
+            <ArrowLeft size={14} />
+            Danh sách lớp
+          </Link>
+          <ChevronRight size={12} className="text-gray-400" />
+          <span className="font-semibold text-gray-800">{classCode}</span>
+        </nav>
+      )}
 
       {/* Main Page Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

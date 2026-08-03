@@ -46,6 +46,18 @@ export const AdminImport = () => {
       const res = await API_Admin.importStudents({ file });
       setImportResult(res);
     } catch (err: any) {
+      if (err?.response?.data?.errors) {
+        setImportResult({
+          totalRows: 0,
+          successCount: 0,
+          skippedCount: 0,
+          createdAccountCount: 0,
+          createdAccounts: [],
+          failedCount: err.response.data.errors.length,
+          errors: err.response.data.errors,
+          ...err.response.data,
+        });
+      }
       setErrorMsg(getUserFriendlyError(err, 'Không thể import danh sách sinh viên.'));
     } finally {
       setLoading(false);
@@ -66,6 +78,18 @@ export const AdminImport = () => {
       setImportResult(res);
       setConfirmed(true);
     } catch (err: any) {
+      if (err?.response?.data?.errors) {
+        setImportResult((prev) => ({
+          totalRows: prev?.totalRows ?? 0,
+          successCount: prev?.successCount ?? 0,
+          skippedCount: prev?.skippedCount ?? 0,
+          createdAccountCount: prev?.createdAccountCount ?? 0,
+          createdAccounts: prev?.createdAccounts ?? [],
+          failedCount: err.response.data.errors.length,
+          errors: err.response.data.errors,
+          ...err.response.data,
+        }));
+      }
       setErrorMsg(getUserFriendlyError(err, 'Không thể xác nhận import sinh viên.'));
     } finally {
       setConfirming(false);
@@ -233,8 +257,23 @@ export const AdminImport = () => {
             )}
 
             {confirmed && (
-              <div className="mt-4 rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
-                Đã import thành công. Email đã gửi: {importResult.emailSentCount ?? 0}, gửi lỗi: {importResult.emailFailedCount ?? 0}.
+              <div className="mt-4 space-y-2">
+                <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
+                  Đã import thành công. Email đã gửi: {importResult.emailSentCount ?? 0}, gửi lỗi: {importResult.emailFailedCount ?? 0}.
+                </div>
+                {importResult.emailErrors && importResult.emailErrors.length > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
+                    <p className="font-bold text-amber-900 mb-1">Chi tiết lỗi gửi email ({importResult.emailErrors.length}):</p>
+                    <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
+                      {importResult.emailErrors.map((eErr, idx) => (
+                        <div key={idx} className="flex items-start gap-1 text-[11px] text-amber-800">
+                          <span className="font-mono font-semibold shrink-0">{eErr.email || '—'}:</span>
+                          <span>{eErr.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

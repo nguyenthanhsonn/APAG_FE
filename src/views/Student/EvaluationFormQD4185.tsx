@@ -22,6 +22,7 @@ import { EvaluationTableGrid } from '../../components/student/EvaluationTableGri
 import type { UploadedEvidenceFile } from '@/types/student';
 import {
   createEvaluationFormStore,
+  EVAL_DEDUCTION_WEIGHTS,
   EvaluationFormStoreContext,
 } from '../../store/evaluationFormStore';
 import type { EvaluationFormStore } from '../../store/evaluationFormStore';
@@ -1307,10 +1308,15 @@ export const EvaluationFormQD4185 = () => {
         normalStudentActivityScore: Number(s.svClassParticipation) || 0,
         specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement) || null,
       });
-      const disciplineViolations = s.svDeductions.map((count, idx) => ({
-        code: DISCIPLINE_VIOLATION_CODES[idx],
-        count: Number(count) || 0,
-      }));
+      const disciplineViolations = s.svDeductions.map((count, idx) => {
+        const c = Math.round(Number(count) || 0);
+        const weight = EVAL_DEDUCTION_WEIGHTS[idx] || 0;
+        return {
+          code: DISCIPLINE_VIOLATION_CODES[idx],
+          count: c,
+          deductScore: Math.round(c * weight),
+        };
+      });
 
       // Save detailed score sections
       const saveRequests: Array<Promise<unknown>> = [
@@ -1371,10 +1377,15 @@ export const EvaluationFormQD4185 = () => {
     const s = store.getState();
     const compactPayload = (payload: Record<string, unknown>) =>
       Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
-    const disciplineViolations = s.svDeductions.map((count, idx) => ({
-      code: DISCIPLINE_VIOLATION_CODES[idx],
-      count: Number(count) || 0,
-    }));
+    const disciplineViolations = s.svDeductions.map((count, idx) => {
+      const c = Math.round(Number(count) || 0);
+      const weight = EVAL_DEDUCTION_WEIGHTS[idx] || 0;
+      return {
+        code: DISCIPLINE_VIOLATION_CODES[idx],
+        count: c,
+        deductScore: Math.round(c * weight),
+      };
+    });
     const hasRolePart1 =
       s.svRoleType === 'CLASS_OFFICER' ||
       !['', 'POOR', 'unsatisfactory'].includes(s.svCadrePerformance) ||
@@ -1469,7 +1480,7 @@ export const EvaluationFormQD4185 = () => {
   }, [fieldErrors, store]);
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto w-full pb-28">
+    <div className="p-4 sm:p-6 sm:px-8 max-w-full mx-auto w-full pb-28">
       {step === 1 ? (
         /* Step 1: Chọn kỳ đánh giá */
         <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-6 my-12 transition-all duration-300 transform ease-out animate-fade-in">
@@ -1554,82 +1565,82 @@ export const EvaluationFormQD4185 = () => {
           {/* ── HEADER PHIẾU CHÍNH THỨC (hiển thị khi in) ── */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 print:rounded-none print:border-0 print:shadow-none print:p-0">
             {/* Dòng trên cùng: tên trường (trái) + ĐCSVN (phải) */}
-            <div className="flex justify-between items-start mb-2 text-center">
-              <div className="text-[11px] leading-snug text-gray-700 font-semibold max-w-[40%]">
-                <p className="uppercase font-black">HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
-                <p className="text-[10px] font-semibold">PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
-                <p className="text-[10px] font-semibold">TẠI TỈNH QUẢNG NAM</p>
-                <p className="text-[10px] mt-1">──────</p>
+            <div className="flex justify-between items-start mb-3 text-center">
+              <div className="text-xs sm:text-sm leading-snug text-gray-800 font-semibold max-w-[45%]">
+                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
+                <p className="text-xs font-semibold text-gray-700">PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
+                <p className="text-xs font-semibold text-gray-700">TẠI TỈNH QUẢNG NAM</p>
+                <p className="text-xs mt-1">──────</p>
               </div>
-              <div className="text-[11px] leading-snug text-gray-700 font-semibold max-w-[40%] text-center">
-                <p className="uppercase font-black">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-                <p className="font-semibold">Độc lập – Tự do – Hạnh phúc</p>
-                <p className="text-[10px] mt-1">──────</p>
+              <div className="text-xs sm:text-sm leading-snug text-gray-800 font-semibold max-w-[45%] text-center">
+                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+                <p className="font-bold text-xs sm:text-sm text-gray-800">Độc lập – Tự do – Hạnh phúc</p>
+                <p className="text-xs mt-1">──────</p>
               </div>
             </div>
 
             {/* Tiêu đề chính giữa */}
-            <div className="text-center my-4">
-              <h1 className="text-base font-black uppercase tracking-wide text-gray-900 print:text-sm">
+            <div className="text-center my-5">
+              <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wide text-gray-950 print:text-lg">
                 PHIẾU ĐÁNH GIÁ KẾT QUẢ RÈN LUYỆN CỦA SINH VIÊN
               </h1>
-              <p className="text-[11px] text-gray-500 mt-1 italic">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1.5 italic font-medium">
                 (Kèm theo Quyết định số 4185/QĐ-HCQG ngày 08 tháng 9 năm 2023 của Giám đốc Học viện Hành chính Quốc gia)
               </p>
             </div>
 
             {/* Đánh giá kết quả rèn luyện học kỳ */}
-            <div className="text-center mb-4">
-              <p className="text-sm font-bold text-gray-800">
+            <div className="text-center mb-5">
+              <p className="text-base sm:text-lg font-bold text-gray-900">
                 Đánh giá kết quả rèn luyện học kỳ&nbsp;
-                <span className="text-[#000000]">{semester === 'HK1' ? 'I' : semester === 'HK2' ? 'II' : 'Hè'}</span>
+                <span className="text-[#000000] font-extrabold">{semester === 'HK1' ? 'I' : semester === 'HK2' ? 'II' : 'Hè'}</span>
                 &nbsp;— năm học&nbsp;
-                <span className="text-[#000000]">{academicYear}</span>
+                <span className="text-[#000000] font-extrabold">{academicYear}</span>
               </p>
             </div>
 
             {/* Thông tin sinh viên — 2 cột */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-800 border border-gray-200 rounded-lg p-4 bg-gray-50/50 print:border print:rounded-none print:bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-base text-gray-900 border border-gray-200 rounded-lg p-5 bg-gray-50/50 print:border print:rounded-none print:bg-white">
               <p className="flex items-center gap-2">
-                <span className="shrink-0 font-bold">Họ và tên:</span>
-                <span className="font-semibold text-gray-700">
+                <span className="shrink-0 font-bold text-gray-950">Họ và tên:</span>
+                <span className="font-bold text-gray-900">
                   {(user as any)?.fullName || 'Chưa cập nhật'}
                 </span>
               </p>
               <p className="flex items-center gap-2">
-                <span className="shrink-0 font-bold">Mã sinh viên:</span>
-                <span className="font-semibold text-gray-700">
+                <span className="shrink-0 font-bold text-gray-950">Mã sinh viên:</span>
+                <span className="font-bold text-gray-900">
                   {(user as any)?.studentCode || 'Chưa cập nhật'}
                 </span>
               </p>
               <p className="flex items-center gap-2">
-                <span className="shrink-0 font-bold">Ngày sinh:</span>
-                <span className="font-semibold text-gray-700">
+                <span className="shrink-0 font-bold text-gray-950">Ngày sinh:</span>
+                <span className="font-bold text-gray-900">
                   {(user as any)?.dateOfBirth || 'Chưa cập nhật'}
                 </span>
               </p>
               <p className="flex items-center gap-2">
-                <span className="shrink-0 font-bold">Lớp:</span>
-                <span className="font-semibold text-gray-700">
+                <span className="shrink-0 font-bold text-gray-950">Lớp:</span>
+                <span className="font-bold text-gray-900">
                   {(user as any)?.className || 'Chưa cập nhật'}
                 </span>
               </p>
               <p className="flex items-center gap-2">
-                <span className="shrink-0 font-bold">Ngành / Chuyên ngành:</span>
-                <span className="font-semibold text-gray-700">
+                <span className="shrink-0 font-bold text-gray-950">Ngành / Chuyên ngành:</span>
+                <span className="font-bold text-gray-900">
                   {majorDisplayName}
                 </span>
               </p>
               <p className="flex items-center gap-2">
-                <span className="shrink-0 font-bold">Năm trúng tuyển:</span>
-                <span className="font-semibold text-gray-700">
+                <span className="shrink-0 font-bold text-gray-950">Năm trúng tuyển:</span>
+                <span className="font-bold text-gray-900">
                   {admissionYearDisplay}
                 </span>
               </p>
               <p className="flex items-center gap-2">
-                <span className="font-bold shrink-0">Số điện thoại:</span>{' '}
+                <span className="font-bold shrink-0 text-gray-950">Số điện thoại:</span>{' '}
                 {isReadOnly ? (
-                  <span className="font-semibold text-gray-700">{phoneNumber || 'Chưa cập nhật'}</span>
+                  <span className="font-bold text-gray-900">{phoneNumber || 'Chưa cập nhật'}</span>
                 ) : (
                   <input
                     type="tel"
@@ -1732,73 +1743,6 @@ export const EvaluationFormQD4185 = () => {
 	          <EvaluationFormStoreContext.Provider value={store}>
 	            <EvaluationTableGrid />
 	          </EvaluationFormStoreContext.Provider>
-
-          {/* ── GHI CHÚ + XẾP LOẠI ── */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4 print:rounded-none print:border-0 print:shadow-none print:p-0">
-            {/* Bảng xếp loại */}
-            <div>
-              <h3 className="text-xs font-black uppercase text-gray-700 mb-2">Bảng xếp loại kết quả rèn luyện</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-xs border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100 text-gray-700 font-bold text-center">
-                      <th className="border border-gray-300 px-3 py-2">Xếp loại</th>
-                      <th className="border border-gray-300 px-3 py-2">Xuất sắc</th>
-                      <th className="border border-gray-300 px-3 py-2">Tốt</th>
-                      <th className="border border-gray-300 px-3 py-2">Khá</th>
-                      <th className="border border-gray-300 px-3 py-2">Trung bình</th>
-                      <th className="border border-gray-300 px-3 py-2">Yếu</th>
-                      <th className="border border-gray-300 px-3 py-2">Kém</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="text-center text-gray-700">
-                      <td className="border border-gray-300 px-3 py-2 font-semibold">Điểm</td>
-                      <td className="border border-gray-300 px-3 py-2">Từ 90 đến 100</td>
-                      <td className="border border-gray-300 px-3 py-2">Từ 80 đến cận 90</td>
-                      <td className="border border-gray-300 px-3 py-2">Từ 65 đến cận 80</td>
-                      <td className="border border-gray-300 px-3 py-2">Từ 50 đến cận 65</td>
-                      <td className="border border-gray-300 px-3 py-2">Từ 35 đến cận 50</td>
-                      <td className="border border-gray-300 px-3 py-2">Dưới 35</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Ghi chú */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Ghi chú</label>
-              <textarea
-                value={note}
-                onChange={e => setNote(e.target.value)}
-                disabled={isReadOnly}
-                rows={3}
-                placeholder={isReadOnly ? '' : 'Nhập ghi chú, lý do (nếu có)...'}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 resize-none outline-none focus:ring-2 focus:ring-blue-400 bg-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-              />
-            </div>
-
-            {/* Ô chữ ký 4 cột */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-gray-200 mt-2">
-              {[
-                { title: 'SINH VIÊN TỰ ĐÁNH GIÁ', sub: '(Ký, ghi rõ họ tên)' },
-                { title: 'LỚP ĐÁNH GIÁ', sub: '(Ký, ghi rõ họ tên)' },
-                { title: 'GIÁO VIÊN CHỦ NHIỆM', sub: '(Xác nhận, ký tên)' },
-                { title: 'TRƯỞNG KHOA', sub: '(Ký, ghi rõ họ tên)' },
-              ].map(col => (
-                <div key={col.title} className="text-center space-y-12">
-                  <div>
-                    <p className="text-[11px] font-black uppercase text-gray-800">{col.title}</p>
-                    <p className="text-[10px] text-gray-500 italic">{col.sub}</p>
-                  </div>
-                  {/* Chỗ ký tên trống */}
-                  <div className="text-[10px] text-gray-400 italic">Họ và tên</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 mt-6 bg-white p-5 rounded-xl shadow-sm print:hidden">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Calendar } from 'lucide-react';
+import { Save, Calendar, Users } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import type { Class, Faculty, Major, Student, ProfileUser } from '../../types';
 import { API_Student } from '../../api/API_Student';
@@ -13,8 +13,9 @@ export const StudentProfile = () => {
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const toast = useToast();
   const [mounted, setMounted] = useState(false);
-  const isStudent = user?.role === 'student';
+  const isStudent = user?.role === 'student' || user?.role === 'class_leader';
   const isFaculty = user?.role === 'faculty';
+  const isProfileReadOnly = user?.role === 'class_leader';
   const managedClasses = user?.managedClasses ?? [];
   const managedFaculty =
     (user as any)?.managedFaculty ||
@@ -318,7 +319,7 @@ export const StudentProfile = () => {
                     />
                   </div>
 
-                  {/* Field: Số điện thoại */}
+                   {/* Field: Số điện thoại */}
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
                       Số điện thoại
@@ -326,37 +327,44 @@ export const StudentProfile = () => {
                     <input
                       type="tel"
                       value={phoneNumber}
+                      readOnly={isProfileReadOnly}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-white"
-                      placeholder="Nhập số điện thoại"
+                      className={`w-full px-3 py-2 text-xs sm:text-sm border rounded-lg outline-none h-10 ${
+                        isProfileReadOnly
+                          ? 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed'
+                          : 'border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white'
+                      }`}
+                      placeholder="Số điện thoại"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Action Footer */}
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  {saved && (
-                    <p className="text-green-600 text-xs sm:text-sm font-semibold flex items-center gap-1.5 animate-fade-in">
-                      <span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-ping"></span>
-                      Lưu thông tin thành công!
-                    </p>
-                  )}
-                  {errorMsg && (
-                    <p className="text-red-600 text-xs sm:text-sm font-semibold flex items-center gap-1.5 animate-fade-in">
-                      {errorMsg}
-                    </p>
-                  )}
+              {!isProfileReadOnly && (
+                <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    {saved && (
+                      <p className="text-green-600 text-xs sm:text-sm font-semibold flex items-center gap-1.5 animate-fade-in">
+                        <span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-ping"></span>
+                        Lưu thông tin thành công!
+                      </p>
+                    )}
+                    {errorMsg && (
+                      <p className="text-red-600 text-xs sm:text-sm font-semibold flex items-center gap-1.5 animate-fade-in">
+                        {errorMsg}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleSave}
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer min-h-[40px] shadow-sm shrink-0"
+                  >
+                    <Save size={18} />
+                    Lưu thông tin
+                  </button>
                 </div>
-                <button
-                  onClick={handleSave}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer min-h-[40px] shadow-sm shrink-0"
-                >
-                  <Save size={18} />
-                  Lưu thông tin
-                </button>
-              </div>
+              )}
             </div>
 
         </div>
@@ -486,7 +494,40 @@ export const StudentProfile = () => {
             </div>
           )}
 
-
+          {/* Card: Lớp phụ trách (cho Lớp trưởng) */}
+          {user?.role === 'class_leader' && managedClasses.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <h2 className="text-sm sm:text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Users size={20} className="text-blue-600" />
+                Lớp phụ trách
+              </h2>
+              <div className="space-y-3">
+                {managedClasses.map((item) => (
+                  <div
+                    key={item.classId ?? item.classCode ?? item.className}
+                    className="rounded-xl border border-blue-100 bg-blue-50/70 p-3"
+                  >
+                    <p className="text-sm font-bold text-gray-900">{item.className || item.classCode || 'Lớp phụ trách'}</p>
+                    <p className="mt-1 text-xs font-semibold text-gray-600">{item.classCode || 'Chưa có mã lớp'}</p>
+                    <div className="mt-3 space-y-1.5 text-xs text-gray-600">
+                      <div className="flex justify-between gap-3">
+                        <span>Ngành</span>
+                        <span className="text-right font-semibold text-gray-800">{item.major?.name || '—'}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span>Khoa</span>
+                        <span className="text-right font-semibold text-gray-800">{item.faculty?.name || '—'}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span>Sinh viên</span>
+                        <span className="font-semibold text-gray-800">{item.studentCount ?? 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

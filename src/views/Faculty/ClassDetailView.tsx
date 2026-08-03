@@ -21,8 +21,6 @@ import type { AdminEvaluationItem } from '@/types';
 import {
   FacultyClassRecord,
   FacultyStudentRecord,
-  getEvaluationIdentityKeys,
-  getStudentIdentityKeys,
   mapEvaluationToFacultyStudent,
   resolveFacultyId,
   toArray,

@@ -137,15 +137,15 @@ export interface EvaluationFormState {
 export const EVAL_DEDUCTION_WEIGHTS = [10, 3, 5, 5, 5, 5, 5, 10, 20];
 
 const DEDUCTION_LABELS = [
-  'Không tham gia nghiêm túc tuần sinh hoạt công dân / bài thu hoạch không đạt (TBCHT < 5) (Trừ 10đ)',
-  'Nghỉ không lý do các chuyên đề tuần sinh hoạt công dân-SV (Trừ 3đ/buổi)',
-  'Không tham gia sinh hoạt lớp, họp, hội nghị, giao ban, tập huấn... (Trừ 5đ/buổi)',
-  'Không đeo thẻ SV / không mặc đồng phục GDTC / hút thuốc / xả rác (Trừ 5đ/lần)',
-  'Vi phạm quy định giảng đường, thư viện, nơi cư trú (Trừ 5đ/lần)',
-  'Chậm đóng học phí / lệ phí / BHYT / nộp hồ sơ (Trừ 5đ/lần)',
-  'Bị khiển trách, nhắc nhở trong phòng thi (Trừ 5đ/lần)',
-  'Vi phạm quy chế thi ở mức cảnh cáo / trừ điểm thi (Trừ 10đ/lần)',
-  'Vi phạm quy chế thi bị đình chỉ thi (Trừ 20đ/lần)',
+  'Không tham gia học tập đầy đủ, nghiêm túc nghị quyết, nội quy, quy chế, tuần sinh hoạt công dân -sinh viên (các chuyên đề sinh hoạt sinh viên đầu khóa, đầu năm, cuối khóa) hoặc bài thu hoạch không đạt (Điểm trung bình chung <5)',
+  'Nghỉ không lý do các chuyên đề “tuần sinh hoạt công dân-sinh viên” đầu khóa, đầu năm, cuối khóa',
+  'Không tham gia các buổi sinh hoạt lớp, họp, hội nghị, giao ban, tập huấn và các hoạt động khác do Học viện yêu cầu.',
+  'Không đeo thẻ sinh viên đến Học viện, không mặc đồng phục thể thao trong giờ học GDTC, hút thuốc, xả rác bừa bãi nơi công cộng, vi phạm một trong những điều sinh viên không được làm',
+  'Vi phạm các quy định khu giảng đường, thư viện; không chấp hành các quy định nơi cư trú và làm các thủ tục khi thay đổi chỗ ở theo quy định.',
+  'Chậm đóng học phí, lệ phí, bảo hiểm y tế bắt buộc, tiền nội trú, các khoản thu theo qui định của Học viện hoặc chậm nộp các loại giấy tờ, hồ sơ, văn bằng, chứng chỉ cho Học viện (chưa có quyết định đình chỉ học có thời hạn).',
+  'Bị khiển trách, nhắc nhở trong phòng thi.',
+  'Vi phạm quy chế thi ở mức cảnh cáo hoặc trừ điểm thi nhưng chưa đến mức bị đình chỉ thi',
+  'Vi phạm quy chế thi bị lập biên bản đình chỉ thi',
 ];
 
 // ---------------------------------------------------------------------------
@@ -367,7 +367,7 @@ export const createEvaluationFormStore = () =>
         0,
       );
       const remainingScore = Math.max(0, currentBase - sumOther);
-      const maxTimes = weight > 0 ? Math.ceil(remainingScore / weight) : 0;
+      const maxTimes = weight > 0 ? Math.floor(remainingScore / weight) : 0;
       const clamped = Math.min(maxTimes, Math.max(0, value));
 
       const newDeductions = [...prevDeductions];

@@ -126,7 +126,7 @@ export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={loading ? undefined : handleClose}>
       {/* Backdrop overlay */}
       <div 
         className="fixed inset-0 bg-[#0B0F19]/45 backdrop-blur-[3px] transition-all duration-300"
@@ -134,7 +134,7 @@ export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProp
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-[420px] transform overflow-hidden rounded-2xl bg-white p-6 shadow-[0_25px_60px_-15px_rgba(59,91,219,0.2)] border border-[#E9ECEF] transition-all animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out">
+      <div className="relative w-full max-w-[420px] transform overflow-hidden rounded-2xl bg-white p-6 shadow-[0_25px_60px_-15px_rgba(59,91,219,0.2)] border border-[#E9ECEF] transition-all animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out" onClick={(e) => e.stopPropagation()}>
         
         {/* Close Button */}
         <button

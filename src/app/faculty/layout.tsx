@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, X } from 'lucide-react';
+import { Building2, X, FileText } from 'lucide-react';
 import { Header } from '@/components/Layout/Header';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const menuItems = [
   { path: '/faculty', icon: Building2, label: 'Duyệt điểm rèn luyện' },
+  { path: '/faculty/bien-ban', icon: FileText, label: 'Biên bản họp Hội đồng' },
 ];
 
 function FacultySidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -41,10 +42,6 @@ function FacultySidebar({ open, onClose }: { open: boolean; onClose: () => void 
           </button>
         </div>
 
-        <div className="border-b border-white/10 px-4 py-3">
-          <p className="text-[11px] font-semibold text-white/80">Tài khoản khoa</p>
-          <p className="break-words text-[10px] text-white/55">Dữ liệu theo phiên đăng nhập</p>
-        </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-white/55">KHOA</p>
