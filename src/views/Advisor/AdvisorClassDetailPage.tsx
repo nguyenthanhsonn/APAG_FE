@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_Admin } from '@/api/API_Admin';
+import { API_Shared } from '@/api/API_Shared';
 import CustomSelect from '@/components/common/CustomSelect';
 import { useToast } from '@/components/common/ToastProvider';
 import { useAuthStore } from '@/store/authStore';
@@ -25,7 +26,7 @@ function toArray<T>(value: unknown): T[] {
 
 function toReviewStatus(status?: string): StudentReviewStatus {
   const normalized = String(status || '').toLowerCase();
-  if (['submitted', 'class_approved', 'finalized'].includes(normalized)) return 'submitted';
+  if (['submitted', 'class_approved', 'faculty_approved', 'finalized'].includes(normalized)) return 'submitted';
   return 'not_submitted';
 }
 
@@ -80,6 +81,7 @@ export default function AdvisorClassDetailPage() {
   const [classDetail, setClassDetail] = useState<ClassMetadata | null>(null);
   const [className, setClassName] = useState('Lớp phụ trách');
   const [students, setStudents] = useState<CouncilStudentReview[]>([]);
+  const [submittingClass, setSubmittingClass] = useState(false);
   const [semester, setSemester] = useState('all');
   const [status, setStatus] = useState<ReviewStatusFilter>('all');
   const [keyword, setKeyword] = useState('');
@@ -109,8 +111,8 @@ export default function AdvisorClassDetailPage() {
       try {
         setLoading(true);
         const [classDetailResult, studentsResult] = await Promise.all([
-          API_Admin.getAdvisorClassById(classId),
-          API_Admin.getClassStudents(classId, { page: 1, limit: 100 }),
+          API_Shared.getClassDetails(classId),
+          API_Shared.getClassStudents(classId, { page: 1, limit: 100 }),
         ]);
 
         if (!mounted) return;
@@ -134,11 +136,16 @@ export default function AdvisorClassDetailPage() {
         }
 
         const classStudents = toArray<any>(studentsResult);
-        const evaluationsResult = await API_Admin.getAdminEvaluationList({
-          classId,
-          page: 1,
-          limit: Math.max(classStudents.length, 20),
-        });
+        let evaluationsResult: any = [];
+        try {
+          evaluationsResult = await API_Shared.getTrainingEvaluations({
+            classId,
+            page: 1,
+            limit: Math.max(classStudents.length, 20),
+          });
+        } catch {
+          evaluationsResult = [];
+        }
 
         if (!mounted) return;
 
@@ -237,8 +244,28 @@ export default function AdvisorClassDetailPage() {
       const basePath = user?.role === 'class_leader' ? '/class_leader' : '/advisor';
       router.push(`${basePath}/${classId}/${studentId}`);
     },
-    [classId, router, user?.role],
+    [classId, router, user],
   );
+
+  const handleSubmitClass = useCallback(async () => {
+    if (!classId || submittingClass) {
+      return;
+    }
+
+    try {
+      setSubmittingClass(true);
+      const result =
+        user?.role === 'class_leader'
+          ? await API_Admin.submitClassToAdvisor(classId)
+          : await API_Admin.submitClassToFaculty(classId);
+      const data = (result as any)?.data || result;
+      toast.success(data?.message || 'Đã gửi danh sách phiếu đánh giá.');
+    } catch (error: any) {
+      toast.error(getUserFriendlyError(error, 'Không gửi được danh sách phiếu đánh giá.'));
+    } finally {
+      setSubmittingClass(false);
+    }
+  }, [classId, submittingClass, toast, user]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">

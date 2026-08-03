@@ -1,4 +1,8 @@
 import { axiosInstance, buildQueryParams, del, get, patch, post } from './api';
+import { API_Faculty } from './API_Faculty';
+import { API_Advisor } from './API_Advisor';
+import { API_ClassLeader } from './API_ClassLeader';
+import { API_EvaluationForm } from './API_EvaluationForm';
 
 import type {
   AddStudentToClassPayload,
@@ -31,9 +35,13 @@ import type {
   ReportsOverview,
   ReviewEvaluationPayload,
   ReviewScoresPayload,
+  ReturnEvaluationToStudentPayload,
   SemesterPayload,
   SemesterQuery,
   StatusPayload,
+  SubmitClassEvaluationPayload,
+  SubmitFacultyEvaluationPayload,
+  SubmitFacultyEvaluationResponse,
   TrainingResultsReport,
   UpdateUserPayload,
   UserListQuery,
@@ -149,17 +157,28 @@ async function toggleSemesterActive(id: string, payload: StatusPayload) {
 
 /** Mở lại phiếu đánh giá. */
 async function reopenEvaluation(id: string, payload?: ReopenEvaluationPayload) {
-  return post<AdminEvaluationItem>(`/training-evaluations/${id}/reopen`, payload);
+  return API_EvaluationForm.reopenEvaluation(id, payload);
 }
 
 /** Ghi nhận điểm hội đồng lớp. */
 async function reviewScoresByClassCouncil(id: string, payload: ReviewScoresPayload) {
-  return patch<AdminEvaluationItem>(`/training-evaluations/${id}/review-scores`, payload);
+  return API_EvaluationForm.reviewScoresByClassCouncil(id, payload as any);
 }
 
 /** Duyệt hoặc từ chối phiếu đánh giá. */
 async function reviewEvaluation(id: string, payload: ReviewEvaluationPayload) {
-  return post<AdminEvaluationItem>(`/training-evaluations/${id}/review`, payload);
+  return API_EvaluationForm.reviewEvaluation(id, payload);
+}
+
+/** CVHT gửi lại phiếu đánh giá cho sinh viên kèm lý do. */
+async function returnEvaluationToStudent(
+  id: string,
+  payload: ReturnEvaluationToStudentPayload,
+) {
+  return post<AdminEvaluationItem>(
+    `/training-evaluations/${id}/return-to-student`,
+    payload,
+  );
 }
 
 /** Admin phê duyệt cuối phiếu đánh giá. */
@@ -331,25 +350,49 @@ async function updateClassAdvisors(classId: string, payload: { userIds: string[]
 
 /** Khoa lấy danh sách phiếu trong phạm vi khoa được phân công. */
 async function getFacultyEvaluations(facultyId: string, query?: AdminEvaluationListQuery) {
-  return get<PaginatedResponse<AdminEvaluationItem> | AdminEvaluationItem[]>(
-    `/faculty/faculties/${facultyId}/evaluations`,
-    { params: buildQueryParams(query) },
-  );
+  return API_Faculty.getFacultyEvaluations(facultyId, query);
 }
 
 /** Khoa duyệt một phiếu đã được CVHT chốt. */
 async function approveFacultyEvaluation(id: string) {
-  return patch<AdminEvaluationItem>(`/faculty/evaluations/${id}/approve`);
+  return API_Faculty.approveFacultyEvaluation(id);
 }
 
 /** Khoa trả phiếu về CVHT kèm lý do. */
 async function rejectFacultyEvaluation(id: string, reason: string) {
-  return patch<AdminEvaluationItem>(`/faculty/evaluations/${id}/reject`, { reason });
+  return API_Faculty.rejectFacultyEvaluation(id, reason);
 }
 
 /** Lớp trưởng chốt một phiếu đang chờ xử lý nếu backend cho phép theo luồng hiện tại. */
 async function approveClassLeaderEvaluation(id: string, score: number) {
-  return reviewEvaluation(id, { action: 'approve', classScore: score });
+  return API_ClassLeader.approveClassLeaderEvaluation(id, score);
+}
+
+/** Lớp trưởng gửi toàn bộ phiếu trong lớp lên CVHT. */
+async function submitClassToAdvisor(
+  classId: string,
+  payload: SubmitClassEvaluationPayload = {},
+) {
+  return API_ClassLeader.submitClassToAdvisor(classId, payload);
+}
+
+/** CVHT gửi toàn bộ phiếu trong lớp lên khoa. */
+async function submitClassToFaculty(
+  classId: string,
+  payload: SubmitClassEvaluationPayload = {},
+) {
+  return API_Advisor.submitClassToFaculty(classId, payload);
+}
+
+/** Khoa gửi toàn bộ phiếu lên Phòng Đào tạo. */
+async function submitFacultyToTrainingDepartment(
+  facultyId: string,
+  payload: SubmitFacultyEvaluationPayload = {},
+) {
+  return post<SubmitFacultyEvaluationResponse>(
+    `/training-evaluations/faculties/${facultyId}/submit-to-training-department`,
+    payload,
+  );
 }
 
 /** Phòng Đào tạo lấy danh sách phiếu toàn trường đang chờ duyệt cuối. */
@@ -362,7 +405,7 @@ async function getTrainingDepartmentEvaluations(query?: AdminEvaluationListQuery
 
 /** Phòng Đào tạo duyệt cuối một phiếu. */
 async function approveTrainingDepartmentEvaluation(id: string) {
-  return patch<AdminEvaluationItem>(`/training-department/evaluations/${id}/approve`);
+  return patch<AdminEvaluationItem>(`/training-department/evaluations/${id}/finalize`);
 }
 
 /** Lấy sinh viên trong lớp bằng route chung cho admin/CVHT/lớp trưởng/khoa. */
@@ -488,6 +531,7 @@ export const API_Admin = {
   reopenEvaluation,
   reviewScoresByClassCouncil,
   reviewEvaluation,
+  returnEvaluationToStudent,
   finalizeEvaluation,
   bulkFinalizeEvaluations,
   finalizeEvaluationsByFilter,
@@ -520,6 +564,9 @@ export const API_Admin = {
   approveFacultyEvaluation,
   rejectFacultyEvaluation,
   approveClassLeaderEvaluation,
+  submitClassToAdvisor,
+  submitClassToFaculty,
+  submitFacultyToTrainingDepartment,
   getTrainingDepartmentEvaluations,
   approveTrainingDepartmentEvaluation,
   getClassStudents,

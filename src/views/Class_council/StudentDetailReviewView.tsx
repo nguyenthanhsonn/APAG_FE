@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, Loader2, Paperclip, Send } from 'lucide-react';
+import { FileText, Loader2, Paperclip, RotateCcw, Send, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_Admin } from '@/api/API_Admin';
+import { API_Shared } from '@/api/API_Shared';
 import { CouncilCriteriaReviewTable } from '@/components/class_council/CouncilCriteriaReviewTable';
 import EvidenceReviewModal, { type ReviewEvidence } from '@/components/class_council/EvidenceReviewModal';
 import StudentReviewHeader from '@/components/class_council/StudentReviewHeader';
@@ -135,6 +136,9 @@ export function StudentDetailReviewView() {
   const evaluationId = getParam(params.studentId);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
+  const [returnModalOpen, setReturnModalOpen] = useState(false);
+  const [returnReason, setReturnReason] = useState('');
+  const [returning, setReturning] = useState(false);
 
   // ── Zustand store (factory pattern — isolated per student mount) ──────────
   const [store] = useState<CouncilReviewStore>(() => createCouncilReviewStore());
@@ -303,9 +307,13 @@ export function StudentDetailReviewView() {
       const { computeCouncilScores } = await import('@/store/councilReviewStore');
       const storeState = store.getState();
       const classTotal = computeCouncilScores(storeState, false).total;
-      await API_Admin.reviewEvaluation(evaluationId, {
+      if (classTotal > 0) {
+        await API_Shared.reviewScores(evaluationId, {
+          studyScore: Math.round(classTotal),
+        });
+      }
+      await API_Shared.reviewEvaluation(evaluationId, {
         action: 'approve',
-        classScore: Math.round(classTotal),
       });
 
       toast.success('Đã gửi phiếu lên Admin.');
@@ -314,6 +322,33 @@ export function StudentDetailReviewView() {
       toast.error(getUserFriendlyError(error, 'Không gửi được phiếu lên Admin.'));
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleReturnToStudent = async () => {
+    const reason = returnReason.trim();
+
+    if (!evaluationId) {
+      toast.error('Không tìm thấy phiếu đánh giá.');
+      return;
+    }
+
+    if (!reason) {
+      toast.error('Vui lòng nhập lý do gửi lại phiếu cho sinh viên.');
+      return;
+    }
+
+    try {
+      setReturning(true);
+      await API_Admin.returnEvaluationToStudent(evaluationId, { reason });
+      toast.success('Đã gửi lại phiếu cho sinh viên.');
+      setReturnModalOpen(false);
+      setReturnReason('');
+      router.push(`/advisor/${classId}`);
+    } catch (error: any) {
+      toast.error(getUserFriendlyError(error, 'Không gửi lại được phiếu cho sinh viên.'));
+    } finally {
+      setReturning(false);
     }
   };
 
@@ -388,11 +423,22 @@ export function StudentDetailReviewView() {
           </CouncilReviewStoreContext.Provider>
 
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
+            {user?.role === 'advisor' && (
+              <button
+                type="button"
+                onClick={() => setReturnModalOpen(true)}
+                disabled={returning || approving}
+                className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-6 py-2.5 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {returning ? <Loader2 className="animate-spin" size={15} /> : <RotateCcw size={15} />}
+                Gửi lại cho sinh viên
+              </button>
+            )}
             <button
               type="button"
               onClick={handleApprove}
-              disabled={approving}
+              disabled={approving || returning}
               className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#2563EB] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {approving ? <Loader2 className="animate-spin" size={15} /> : <Send size={15} />}
@@ -400,6 +446,59 @@ export function StudentDetailReviewView() {
             </button>
           </div>
         </>
+      )}
+
+      {returnModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <h2 className="text-base font-bold text-gray-900">Gửi lại phiếu cho sinh viên</h2>
+              <button
+                type="button"
+                onClick={() => setReturnModalOpen(false)}
+                disabled={returning}
+                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-2 px-5 py-4">
+              <label htmlFor="return-reason" className="text-sm font-semibold text-gray-700">
+                Lý do gửi lại <span className="text-red-600">*</span>
+              </label>
+              <textarea
+                id="return-reason"
+                value={returnReason}
+                onChange={(event) => setReturnReason(event.target.value)}
+                maxLength={1000}
+                rows={5}
+                className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                placeholder="Nhập lý do để sinh viên biết cần chỉnh sửa nội dung nào..."
+              />
+              <p className="text-right text-xs text-gray-400">{returnReason.length}/1000</p>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-gray-100 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setReturnModalOpen(false)}
+                disabled={returning}
+                className="inline-flex min-h-[40px] cursor-pointer items-center justify-center rounded-lg border border-gray-200 px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleReturnToStudent}
+                disabled={returning || !returnReason.trim()}
+                className="inline-flex min-h-[40px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {returning && <Loader2 className="animate-spin" size={15} />}
+                Gửi lại
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <EvidenceReviewModal

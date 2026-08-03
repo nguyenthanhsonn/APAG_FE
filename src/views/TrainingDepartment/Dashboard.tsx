@@ -49,7 +49,7 @@ function buildFacultyStats(evaluations: AdminEvaluationItem[]): FacultyStat[] {
     const record = grouped.get(id) || { name: getFacultyName(item), classes: new Set<string>(), total: 0, completed: 0, excellentGood: 0 };
     record.classes.add(getClassId(item));
     record.total += 1;
-    if (['faculty_approved', 'finalized'].includes(String((item as any).status))) record.completed += 1;
+    if (['faculty_approved', 'finalized'].includes(String((item as any).status).toLowerCase())) record.completed += 1;
     if (isExcellentOrGood(item)) record.excellentGood += 1;
     grouped.set(id, record);
   });
@@ -89,7 +89,9 @@ export function TrainingDeptDashboard() {
 
   const facultyStats = useMemo(() => buildFacultyStats(evaluations), [evaluations]);
   const totalStudents = evaluations.length;
-  const completedCount = evaluations.filter((item: any) => ['faculty_approved', 'finalized'].includes(String(item.status))).length;
+  const completedCount = evaluations.filter((item: any) =>
+    ['faculty_approved', 'finalized'].includes(String(item.status).toLowerCase()),
+  ).length;
   const excellentGoodCount = evaluations.filter(isExcellentOrGood).length;
   const excellentGoodRate = totalStudents > 0 ? `${Math.round((excellentGoodCount / totalStudents) * 100)}%` : '0%';
 

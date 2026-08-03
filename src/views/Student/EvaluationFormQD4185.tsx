@@ -27,7 +27,7 @@ import {
 } from '../../store/evaluationFormStore';
 import type { EvaluationFormStore } from '../../store/evaluationFormStore';
 
-const EDITABLE_EVALUATION_STATUSES = ['DRAFT', 'REJECTED'];
+const EDITABLE_EVALUATION_STATUSES = ['draft', 'rejected'];
 const DISCIPLINE_VIOLATION_CODES = [
   'MISSED_CITIZEN_WEEK_FULL',
   'ABSENT_CITIZEN_WEEK_SESSION',
@@ -215,7 +215,7 @@ export const EvaluationFormQD4185 = () => {
     .flat()
     .filter((file, index, arr) => arr.findIndex((item) => item.url === file.url || item.name === file.name) === index);
 
-	  const normalizeEvaluationStatus = (status?: string) => String(status || '').toUpperCase();
+	  const normalizeEvaluationStatus = (status?: string) => String(status || '').trim().toLowerCase();
 
 	  const canEditEvaluation = (form: any) => {
 	    const status = normalizeEvaluationStatus(form?.status);

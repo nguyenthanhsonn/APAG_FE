@@ -88,9 +88,10 @@ function getDate(item: any): string {
 }
 
 function mapStatus(status?: string): FacultyStudentStatus {
-  if (status === 'faculty_approved' || status === 'finalized') return 'APPROVED';
-  if (status === 'rejected') return 'REJECTED';
-  if (!status || status === 'draft') return 'NOT_SUBMITTED';
+  const normalized = String(status || '').trim().toLowerCase();
+  if (normalized === 'faculty_approved' || normalized === 'finalized') return 'APPROVED';
+  if (normalized === 'rejected') return 'REJECTED';
+  if (!normalized || normalized === 'draft') return 'NOT_SUBMITTED';
   return 'WAITING_APPROVAL';
 }
 
@@ -139,8 +140,8 @@ export function groupFacultyEvaluationsByClass(items: AdminEvaluationItem[]): Fa
     const totalStudents = record.evaluations.length;
     const approvedCount = record.evaluations.filter((item) => item.status === 'APPROVED').length;
     const submittedCount = record.evaluations.filter((item) => item.status !== 'NOT_SUBMITTED').length;
-    const pendingCount = record.evaluations.filter((item) =>
-      ['advisor_approved', 'faculty_rejected'].includes(item.rawStatus),
+    const pendingCount = record.evaluations.filter(
+      (item) => item.rawStatus.toLowerCase() === 'class_approved',
     ).length;
 
     return {

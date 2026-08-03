@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { PrintButton } from '@/components/common/PrintButton';
 import { API_Admin } from '@/api/API_Admin';
+import { API_Shared } from '@/api/API_Shared';
 import { useAuthStore } from '@/store/authStore';
 import type { AdminClass, AdminEvaluationItem, AdminMajor } from '@/types';
 import {
@@ -44,13 +45,13 @@ export function FacultyDashboard() {
     setErrorMessage('');
     try {
       const [majorsResult, evaluationsResult] = await Promise.all([
-        API_Admin.getFacultyMajors(facultyId, { page: 1, limit: 100, isActive: true, includeDeleted: false }),
+        API_Shared.getFacultyMajors(facultyId, { page: 1, limit: 100 }),
         API_Admin.getFacultyEvaluations(facultyId, { limit: 100 }),
       ]);
       const majors = toArray<AdminMajor>(majorsResult);
       const classesByMajor = await Promise.all(
         majors.map((major) =>
-          API_Admin.getMajorClasses(major.id, { page: 1, limit: 100, isActive: true, includeDeleted: false }),
+          API_Shared.getMajorClasses(major.id, { page: 1, limit: 100 }),
         ),
       );
       const facultyClasses = classesByMajor.flatMap((result) => toArray<AdminClass>(result));
@@ -98,8 +99,8 @@ export function FacultyDashboard() {
   }, [loadClasses]);
 
   const handleFacultyApprove = async (record: FacultyClassRecord) => {
-    const pendingEvaluations = record.evaluations.filter((item) =>
-      ['advisor_approved', 'faculty_rejected'].includes(item.rawStatus),
+    const pendingEvaluations = record.evaluations.filter(
+      (item) => item.rawStatus.toLowerCase() === 'class_approved',
     );
 
     if (pendingEvaluations.length === 0) return;
@@ -107,12 +108,10 @@ export function FacultyDashboard() {
     setLoading(true);
     setErrorMessage('');
     try {
-      await Promise.all(
-        pendingEvaluations.map((item) => API_Admin.approveFacultyEvaluation(item.evaluationId)),
-      );
+      await API_Admin.submitFacultyToTrainingDepartment(facultyId, { classId: record.id });
       await loadClasses();
     } catch (err: any) {
-      setErrorMessage(getUserFriendlyError(err, 'Không duyệt được phiếu của lớp.'));
+      setErrorMessage(getUserFriendlyError(err, 'Không gửi được phiếu của lớp lên Phòng Đào tạo.'));
       setLoading(false);
     }
   };
@@ -286,7 +285,7 @@ export function FacultyDashboard() {
                           onClick={() => handleFacultyApprove(c)}
                           className="flex cursor-pointer items-center gap-1 rounded-lg bg-brand-primary px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
                         >
-                          <FileCheck size={13} /> Duyệt toàn lớp
+                          <FileCheck size={13} /> Gửi PĐT
                         </button>
                       )}
                       <button

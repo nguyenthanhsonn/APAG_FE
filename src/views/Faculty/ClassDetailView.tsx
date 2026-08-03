@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { PrintButton } from '@/components/common/PrintButton';
 import { API_Admin } from '@/api/API_Admin';
+import { API_Shared } from '@/api/API_Shared';
 import { useAuthStore } from '@/store/authStore';
 import type { AdminEvaluationItem } from '@/types';
 import {
@@ -96,8 +97,8 @@ export function FacultyClassDetailView({ classId }: Props) {
     setErrorMessage('');
     try {
       const [classDetailResult, studentsResult, evaluationsResult] = await Promise.all([
-        API_Admin.getClassById(classId),
-        API_Admin.getClassStudents(classId),
+        API_Shared.getClassDetails(classId),
+        API_Shared.getClassStudents(classId),
         API_Admin.getFacultyEvaluations(facultyId, { classId, limit: 100 }),
       ]);
 
@@ -193,8 +194,8 @@ export function FacultyClassDetailView({ classId }: Props) {
   const managedFacultyName = managedFaculty?.facultyName || managedFaculty?.name || 'Khoa được phân công';
 
   const handleFacultyApproveClass = async () => {
-    const pendingEvaluations = students.filter((item) =>
-      ['advisor_approved', 'faculty_rejected'].includes(item.rawStatus),
+    const pendingEvaluations = students.filter(
+      (item) => item.rawStatus.toLowerCase() === 'class_approved',
     );
 
     if (pendingEvaluations.length === 0) return;
@@ -202,12 +203,10 @@ export function FacultyClassDetailView({ classId }: Props) {
     setLoading(true);
     setErrorMessage('');
     try {
-      await Promise.all(
-        pendingEvaluations.map((item) => API_Admin.approveFacultyEvaluation(item.evaluationId)),
-      );
+      await API_Admin.submitFacultyToTrainingDepartment(facultyId, { classId });
       await loadClassDetail();
     } catch (err: any) {
-      setErrorMessage(getUserFriendlyError(err, 'Không duyệt được phiếu của lớp.'));
+      setErrorMessage(getUserFriendlyError(err, 'Không gửi được phiếu của lớp lên Phòng Đào tạo.'));
       setLoading(false);
     }
   };

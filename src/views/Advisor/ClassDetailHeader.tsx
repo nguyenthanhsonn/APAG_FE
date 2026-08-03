@@ -11,6 +11,8 @@ export interface ClassDetailHeaderProps {
   enrollmentYear?: string | number;
   totalStudents: number;
   hasNotSubmitted: boolean;
+  submitting?: boolean;
+  sendLabel?: string;
   onSendToAdmin?: () => void;
   hideBreadcrumb?: boolean;
 }
@@ -23,6 +25,8 @@ export function ClassDetailHeader({
   enrollmentYear,
   totalStudents,
   hasNotSubmitted,
+  submitting = false,
+  sendLabel = 'Phê duyệt',
   onSendToAdmin,
   hideBreadcrumb = false,
 }: ClassDetailHeaderProps) {
@@ -71,19 +75,19 @@ export function ClassDetailHeader({
         <button
           type="button"
           onClick={onSendToAdmin}
-          disabled={hasNotSubmitted || totalStudents === 0}
+          disabled={submitting || hasNotSubmitted || totalStudents === 0}
           title={
             totalStudents === 0
               ? 'Lớp chưa có sinh viên nào.'
               : hasNotSubmitted
                 ? 'Còn sinh viên chưa nộp phiếu đánh giá.'
-                : 'Gửi tất cả phiếu lên Admin phê duyệt.'
+                : sendLabel
           }
           aria-label="Phê duyệt"
           className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Send size={16} />
-          Phê duyệt
+          {submitting ? 'Đang gửi...' : sendLabel}
         </button>
       </div>
     </header>

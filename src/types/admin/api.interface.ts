@@ -317,6 +317,61 @@ export interface AssignCouncilPayload {
   academicYear?: string;
 }
 
+export interface SubmitClassEvaluationPayload {
+  semesterId?: string;
+}
+
+export interface SubmitClassEvaluationResponse {
+  classId: string;
+  classCode: string;
+  className: string;
+  semesterId: string;
+  academicYear: string;
+  fromStatus: string;
+  toStatus: string;
+  submittedCount: number;
+  totalForms: number;
+  notReadyCount: number;
+  alreadyForwardedCount: number;
+  missingClassScoreCount?: number;
+  submittedToAdvisorAt?: string;
+  submittedToFacultyAt?: string;
+  advisorIds?: string[];
+  facultyUserIds?: string[];
+  facultyId?: string;
+  facultyCode?: string;
+  facultyName?: string;
+  message: string;
+}
+
+export interface ReturnEvaluationToStudentPayload {
+  reason: string;
+}
+
+export interface SubmitFacultyEvaluationPayload {
+  semesterId?: string;
+  classId?: string;
+}
+
+export interface SubmitFacultyEvaluationResponse {
+  facultyId: string;
+  facultyCode: string;
+  facultyName: string;
+  classId: string | null;
+  semesterId: string;
+  academicYear: string;
+  fromStatus: string;
+  toStatus: string;
+  submittedToTrainingDepartmentAt: string;
+  submittedCount: number;
+  totalForms: number;
+  notReadyCount: number;
+  missingClassScoreCount: number;
+  alreadyForwardedCount: number;
+  trainingDepartmentUserIds: string[];
+  message: string;
+}
+
 /** Điều kiện xem báo cáo. */
 export interface ReportQuery {
   semester?: string;

@@ -6,7 +6,8 @@ import type { EvaluationStepStatus, EvaluationWorkflowStep, EvaluationStatusStep
 const defaultSteps: EvaluationWorkflowStep[] = [
   { key: 'student_submit', label: 'Sinh viên nộp phiếu', status: 'pending' },
   { key: 'class_review', label: 'Lớp/CVHT duyệt', status: 'pending' },
-  { key: 'admin_finalization', label: 'Admin phê duyệt', status: 'pending' },
+  { key: 'faculty_review', label: 'Khoa gửi PĐT', status: 'pending' },
+  { key: 'admin_finalization', label: 'PĐT phê duyệt', status: 'pending' },
 ];
 
 export function normalizeEvaluationStatus(status?: string | null) {
@@ -19,7 +20,8 @@ export function getEvaluationStatusLabel(status?: string | null, fallback?: stri
     not_submitted: 'Chưa nộp',
     draft: 'Đang điền',
     submitted: 'Chờ Lớp/CVHT duyệt',
-    class_approved: 'Chờ Admin phê duyệt',
+    class_approved: 'Chờ Khoa gửi PĐT',
+    faculty_approved: 'Chờ PĐT phê duyệt',
     finalized: 'Đã hoàn tất',
     rejected: 'Bị trả về',
   };
@@ -35,6 +37,13 @@ export function deriveEvaluationSteps(status?: string | null): EvaluationWorkflo
   }
 
   if (normalized === 'class_approved') {
+    return defaultSteps.map((step) => ({
+      ...step,
+      status: step.key === 'faculty_review' ? 'current' : step.key === 'admin_finalization' ? 'pending' : 'completed',
+    }));
+  }
+
+  if (normalized === 'faculty_approved') {
     return defaultSteps.map((step) => ({
       ...step,
       status: step.key === 'admin_finalization' ? 'current' : 'completed',
