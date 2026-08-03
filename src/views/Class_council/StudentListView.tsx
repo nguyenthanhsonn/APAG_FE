@@ -28,7 +28,7 @@ function toArray<T>(value: unknown): T[] {
 function toReviewStatus(status?: string): StudentReviewStatus {
   const normalized = String(status || '').toLowerCase();
 
-  if (['submitted', 'class_approved', 'faculty_approved', 'finalized'].includes(normalized)) {
+  if (['submitted', 'class_leader_approved', 'class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normalized)) {
     return 'submitted';
   }
 

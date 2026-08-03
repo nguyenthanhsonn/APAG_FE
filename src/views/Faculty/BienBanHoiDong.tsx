@@ -149,7 +149,7 @@ export function BienBanHoiDongView() {
     try {
       const [studentsResult, evaluationsResult] = await Promise.all([
         API_Admin.getClassStudents(selectedClassId),
-        API_Admin.getFacultyEvaluations(facultyId, { classId: selectedClassId, limit: 200 }),
+        API_Admin.getFacultyEvaluations(facultyId, { classId: selectedClassId, limit: 100 }),
       ]);
 
       const cStudents = toArray<any>(studentsResult);
@@ -160,9 +160,12 @@ export function BienBanHoiDongView() {
 
       if (evs.length > 0) {
         const first = evs[0];
+        const semesterValue = typeof first.semester === 'object'
+          ? first.semester?.semester || first.semester?.name || first.semester?.id
+          : first.semester;
         setFormData((p) => ({
           ...p,
-          hocKy: first.semester || p.hocKy,
+          hocKy: semesterValue || p.hocKy,
           namHoc: first.academicYear || p.namHoc,
         }));
       }

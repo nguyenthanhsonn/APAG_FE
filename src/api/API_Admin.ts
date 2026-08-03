@@ -183,7 +183,7 @@ async function returnEvaluationToStudent(
 
 /** Admin phê duyệt cuối phiếu đánh giá. */
 async function finalizeEvaluation(id: string, payload: FinalizeEvaluationPayload = {}) {
-  return patch<AdminEvaluationItem>(`/admin/training-evaluations/${id}/finalize`, payload);
+  return patch<AdminEvaluationItem>(`/training-department/evaluations/${id}/finalize`, payload);
 }
 
 /** Admin phê duyệt nhiều phiếu đã chọn. */
@@ -410,9 +410,37 @@ async function approveTrainingDepartmentEvaluation(id: string) {
 
 /** Lấy sinh viên trong lớp bằng route chung cho admin/CVHT/lớp trưởng/khoa. */
 async function getClassStudents(classId: string, query?: AdminTreeListQuery) {
-  return get<PaginatedResponse<AdminUser> | AdminUser[]>(`/classes/${classId}/students`, {
-    params: buildQueryParams(query),
-  });
+  try {
+    return await get<PaginatedResponse<AdminUser> | AdminUser[]>(`/classes/${classId}/students`, {
+      params: buildQueryParams(query),
+    });
+  } catch (err: any) {
+    if (err?.response?.status === 404 || err?.statusCode === 404 || err?.status === 404) {
+      try {
+        const evals = await getAdminEvaluationList({
+          classId,
+          page: query?.page || 1,
+          limit: query?.limit || 100,
+        });
+        const items = Array.isArray(evals) ? evals : (evals as any)?.data || [];
+        return items.map((item: any) => ({
+          id: item.studentId || item.student?.id || item.user?.id || item.id,
+          studentCode:
+            item.studentCode ||
+            item.student?.studentCode ||
+            item.student?.code ||
+            item.user?.studentCode ||
+            item.user?.code ||
+            '-',
+          fullName: item.studentName || item.student?.fullName || item.user?.fullName || 'Sinh viên',
+          ...item.student,
+        }));
+      } catch {
+        return [];
+      }
+    }
+    throw err;
+  }
 }
 
 /** Thêm sinh viên vào lớp. */

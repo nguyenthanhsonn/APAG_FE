@@ -136,14 +136,17 @@ export function BienBanHopLop() {
     setLoading(true);
     setError('');
     try {
-      const result = await API_Admin.getAdminEvaluationList({ classId, limit: 200 });
+      const result = await API_Admin.getAdminEvaluationList({ classId, limit: 100 });
       const rows = toArray<AdminEvaluationItem>(result);
       setApiRows(rows);
       if (rows.length > 0) {
         const first = rows[0];
+        const semesterValue = typeof first.semester === 'object'
+          ? first.semester?.semester || first.semester?.name || first.semester?.id
+          : first.semester;
         setFormData((p) => ({
           ...p,
-          hocKy: first.semester || p.hocKy,
+          hocKy: semesterValue || p.hocKy,
           namHoc: first.academicYear || p.namHoc,
           tongSoDuHop: String(rows.length),
         }));

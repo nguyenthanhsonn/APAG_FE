@@ -319,6 +319,7 @@ export interface AssignCouncilPayload {
 
 export interface SubmitClassEvaluationPayload {
   semesterId?: string;
+  evaluationIds?: string[];
 }
 
 export interface SubmitClassEvaluationResponse {

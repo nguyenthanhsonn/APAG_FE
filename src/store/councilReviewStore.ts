@@ -26,7 +26,7 @@ export interface ScoreResult {
 // ---------------------------------------------------------------------------
 export interface CouncilReviewState {
   // UI context (same fields as evaluationFormStore for interface compatibility)
-  currentUserRole: 'student' | 'class';
+  currentUserRole: 'student' | 'class_leader' | 'advisor';
   isReadOnly: boolean;
 
   // --- Section 1: Study & Research (max 20) ---
@@ -236,7 +236,7 @@ const DEFAULT_STATE: Omit<
   CouncilReviewState,
   'setField' | 'batchSet' | 'handleDeductionChange' | 'setIsClassEdited'
 > = {
-  currentUserRole: 'class',
+  currentUserRole: 'class_leader',
   isReadOnly: false,
 
   svStudyAttitude: 'none',

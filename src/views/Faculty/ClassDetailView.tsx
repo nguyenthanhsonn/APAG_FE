@@ -33,7 +33,7 @@ interface Props {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  APPROVED: 'Đã duyệt',
+  APPROVED: 'Đã gửi PĐT',
   WAITING_APPROVAL: 'Đang trong luồng duyệt',
   REJECTED: 'Trả về',
   NOT_SUBMITTED: 'Chưa nộp',
@@ -275,13 +275,13 @@ export function FacultyClassDetailView({ classId }: Props) {
               className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
             >
               <FileCheck size={16} />
-              Duyệt toàn lớp
+              Gửi PĐT
             </button>
           )}
           {classStatus === 'FACULTY_APPROVED' && (
             <span className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-sm font-semibold shrink-0">
               <Check size={15} />
-              Khoa đã duyệt
+              Đã gửi PĐT
             </span>
           )}
         </div>
@@ -300,7 +300,7 @@ export function FacultyClassDetailView({ classId }: Props) {
         </div>
         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle2 size={22} /></div>
-          <div><p className="text-xs text-gray-500 font-medium">Đã duyệt</p><p className="text-xl font-bold text-emerald-600">{approvedCount} Phiếu</p></div>
+          <div><p className="text-xs text-gray-500 font-medium">Đã gửi PĐT</p><p className="text-xl font-bold text-emerald-600">{approvedCount} Phiếu</p></div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
           <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><Clock size={22} /></div>
@@ -334,7 +334,7 @@ export function FacultyClassDetailView({ classId }: Props) {
                 className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
               >
                 <option value="ALL">Tất cả trạng thái</option>
-                <option value="APPROVED">Đã duyệt</option>
+                <option value="APPROVED">Đã gửi PĐT</option>
                 <option value="WAITING_APPROVAL">Đang trong luồng</option>
                 <option value="REJECTED">Trả về</option>
                 <option value="NOT_SUBMITTED">Chưa nộp</option>
@@ -349,7 +349,7 @@ export function FacultyClassDetailView({ classId }: Props) {
               label="In danh sách"
               summaryStats={[
                 { label: 'Số phiếu', value: `${totalCount} Phiếu` },
-                { label: 'Đã duyệt', value: `${approvedCount} Phiếu` },
+                { label: 'Đã gửi PĐT', value: `${approvedCount} Phiếu` },
                 { label: 'Đang trong luồng', value: `${waitingCount} Phiếu` },
                 { label: 'Chưa nộp / Trả về', value: `${notSubmittedCount + rejectedCount} Phiếu` },
               ]}
@@ -393,7 +393,7 @@ export function FacultyClassDetailView({ classId }: Props) {
                     {st.rank !== '-' ? <span className="inline-block px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-md">{st.rank}</span> : <span className="text-gray-400">-</span>}
                   </td>
                   <td className="py-3.5 px-4">
-                    {st.status === 'APPROVED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200"><Check size={12} /> Đã duyệt</span>}
+                    {st.status === 'APPROVED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200"><Check size={12} /> Đã gửi PĐT</span>}
                     {st.status === 'WAITING_APPROVAL' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 rounded-full border border-amber-200"><Clock size={12} /> Đang trong luồng</span>}
                     {st.status === 'REJECTED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 rounded-full border border-rose-200"><AlertCircle size={12} /> Trả về</span>}
                     {st.status === 'NOT_SUBMITTED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-100 rounded-full">Chưa nộp</span>}

@@ -53,6 +53,42 @@ export interface User {
       name?: string;
     };
   }>;
+  advisorAssignments?: Array<{
+    id?: string;
+    classId?: string;
+    assignedAt?: string;
+    class?: {
+      id?: string;
+      code?: string;
+      name?: string;
+      enrollmentYear?: number;
+      studentCount?: number;
+      major?: {
+        name?: string;
+      };
+      faculty?: {
+        name?: string;
+      };
+    };
+  }>;
+  classLeaderAssignments?: Array<{
+    id?: string;
+    classId?: string;
+    assignedAt?: string;
+    class?: {
+      id?: string;
+      code?: string;
+      name?: string;
+      enrollmentYear?: number;
+      studentCount?: number;
+      major?: {
+        name?: string;
+      };
+      faculty?: {
+        name?: string;
+      };
+    };
+  }>;
 }
 
 /** Mã xác nhận đăng nhập. */

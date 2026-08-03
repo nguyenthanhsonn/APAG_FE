@@ -101,6 +101,9 @@ export type AdminEvaluationItem = {
   finalScore?: number;
   totalScore?: number;
   classification?: string;
+  classLeaderReviewedAt?: string | null;
+  classReviewedAt?: string | null;
+  advisorReviewedAt?: string | null;
 };
 
 /** Bài viết quản trị tạo hoặc đọc. */

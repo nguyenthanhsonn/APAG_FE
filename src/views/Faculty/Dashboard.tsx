@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Building2,
-  CheckCircle2,
   Clock,
   Search,
   Filter,
@@ -100,7 +99,7 @@ export function FacultyDashboard() {
 
   const handleFacultyApprove = async (record: FacultyClassRecord) => {
     const pendingEvaluations = record.evaluations.filter(
-      (item) => item.rawStatus.toLowerCase() === 'class_approved',
+      (item) => ['advisor_approved', 'class_approved'].includes(item.rawStatus.toLowerCase()),
     );
 
     if (pendingEvaluations.length === 0) return;
@@ -124,6 +123,46 @@ export function FacultyDashboard() {
     return matchesSearch && matchesStatus;
   }), [classes, searchTerm, statusFilter]);
 
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
+
+  const handleToggleSelectClass = (classId: string) => {
+    setSelectedClassIds((prev) =>
+      prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId],
+    );
+  };
+
+  const pendingClassesList = useMemo(
+    () => filteredClasses.filter((c) => c.status === 'PENDING_FACULTY'),
+    [filteredClasses],
+  );
+
+  const isAllClassesSelected =
+    pendingClassesList.length > 0 && pendingClassesList.every((c) => selectedClassIds.includes(c.id));
+
+  const handleToggleSelectAllClasses = () => {
+    if (isAllClassesSelected) {
+      setSelectedClassIds([]);
+    } else {
+      setSelectedClassIds(pendingClassesList.map((c) => c.id));
+    }
+  };
+
+  const handleBulkFacultyApprove = async () => {
+    if (selectedClassIds.length === 0) return;
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      for (const cId of selectedClassIds) {
+        await API_Admin.submitFacultyToTrainingDepartment(facultyId, { classId: cId });
+      }
+      setSelectedClassIds([]);
+      await loadClasses();
+    } catch (err: any) {
+      setErrorMessage(getUserFriendlyError(err, 'Không gửi được các phiếu đã chọn lên Phòng Đào tạo.'));
+      setLoading(false);
+    }
+  };
+
   const totalClasses = classes.length;
   const approvedClasses = classes.filter((c) => c.status === 'FACULTY_APPROVED').length;
   const pendingClasses = classes.filter((c) => c.status === 'PENDING_FACULTY').length;
@@ -143,6 +182,15 @@ export function FacultyDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Ban/Khoa Xét Duyệt Đánh Giá Rèn Luyện</h1>
           <p className="text-sm text-gray-500 mt-1">Dữ liệu được lấy trực tiếp từ hệ thống theo tài khoản đang đăng nhập.</p>
         </div>
+        <button
+          type="button"
+          disabled={selectedClassIds.length === 0 || loading}
+          onClick={handleBulkFacultyApprove}
+          className="flex cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
+        >
+          <FileCheck size={16} />
+          {selectedClassIds.length > 0 ? `Gửi Phòng Đào tạo (${selectedClassIds.length})` : 'Gửi Phòng Đào tạo'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -158,11 +206,11 @@ export function FacultyDashboard() {
 
         <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-            <CheckCircle2 size={24} />
+            <Check size={24} />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Khoa đã duyệt hoàn tất</p>
-            <p className="text-2xl font-bold text-emerald-600">{approvedClasses} Lớp</p>
+            <p className="text-xs text-gray-500 font-medium">Đã gửi PĐT</p>
+            <p className="text-2xl font-bold text-emerald-700">{approvedClasses} Lớp</p>
           </div>
         </div>
 
@@ -171,8 +219,8 @@ export function FacultyDashboard() {
             <Clock size={24} />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Chờ Khoa thẩm định</p>
-            <p className="text-2xl font-bold text-amber-600">{pendingClasses} Lớp</p>
+            <p className="text-xs text-gray-500 font-medium">Chờ Khoa gửi PĐT</p>
+            <p className="text-2xl font-bold text-amber-700">{pendingClasses} Lớp</p>
           </div>
         </div>
       </div>
@@ -183,10 +231,10 @@ export function FacultyDashboard() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 justify-between items-center bg-gray-50/50">
-          <div className="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
-            <div className="relative w-full sm:w-72">
+      <div className="flex flex-col gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+            <div className="relative flex-1 min-w-[240px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
                 type="text"
@@ -205,8 +253,8 @@ export function FacultyDashboard() {
                 className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
               >
                 <option value="ALL">Tất cả trạng thái</option>
-                <option value="PENDING_FACULTY">Chờ Khoa duyệt</option>
-                <option value="FACULTY_APPROVED">Khoa đã duyệt</option>
+                <option value="PENDING_FACULTY">Chờ Khoa gửi PĐT</option>
+                <option value="FACULTY_APPROVED">Đã gửi PĐT</option>
                 <option value="IN_PROGRESS">Đang xử lý cấp lớp</option>
               </select>
             </div>
@@ -219,8 +267,8 @@ export function FacultyDashboard() {
               label="In danh sách"
               summaryStats={[
                 { label: 'Tổng số lớp', value: `${totalClasses} Lớp` },
-                { label: 'Khoa đã duyệt', value: `${approvedClasses} Lớp` },
-                { label: 'Chờ Khoa thẩm định', value: `${pendingClasses} Lớp` },
+                { label: 'Đã gửi PĐT', value: `${approvedClasses} Lớp` },
+                { label: 'Chờ Khoa gửi PĐT', value: `${pendingClasses} Lớp` },
               ]}
               signatures={{ leftLabel: 'Người lập báo cáo', rightLabel: 'Trưởng Khoa' }}
               data={filteredClasses}
@@ -230,11 +278,11 @@ export function FacultyDashboard() {
                 { header: 'Sĩ số', accessorKey: 'totalStudents', align: 'center', render: (c) => `${c.totalStudents} SV` },
                 { header: 'Đã nộp phiếu', align: 'center', render: (c) => `${c.submittedCount}/${c.totalStudents}` },
                 {
-                  header: 'Trạng thái Khoa',
+                  header: 'Trạng thái gửi PĐT',
                   align: 'left',
                   render: (c) => {
-                    if (c.status === 'FACULTY_APPROVED') return 'Khoa đã duyệt';
-                    if (c.status === 'PENDING_FACULTY') return 'Chờ Khoa duyệt';
+                    if (c.status === 'FACULTY_APPROVED') return 'Đã gửi PĐT';
+                    if (c.status === 'PENDING_FACULTY') return 'Chờ Khoa gửi PĐT';
                     return 'Đang làm việc cấp Lớp';
                   },
                 },
@@ -248,31 +296,48 @@ export function FacultyDashboard() {
           <table className="w-full min-w-[960px] border-collapse text-left text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs font-semibold uppercase">
+                <th className="py-3.5 px-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllClassesSelected}
+                    onChange={handleToggleSelectAllClasses}
+                    className="h-4 w-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary cursor-pointer"
+                  />
+                </th>
                 <th className="py-3.5 px-4">Tên Lớp</th>
                 <th className="py-3.5 px-4">Lớp trưởng</th>
                 <th className="py-3.5 px-4 text-center">Sĩ số</th>
                 <th className="py-3.5 px-4 text-center">Đã nộp phiếu</th>
-                <th className="py-3.5 px-4">Trạng thái Khoa</th>
+                <th className="py-3.5 px-4">Trạng thái gửi PĐT</th>
                 <th className="py-3.5 px-4">Ngày chuyển</th>
                 <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Đang tải dữ liệu...</td></tr>
+                <tr><td colSpan={8} className="py-12 text-center text-sm text-gray-400">Đang tải dữ liệu...</td></tr>
               ) : !facultyId ? (
-                <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Tài khoản này chưa được gán khoa phụ trách.</td></tr>
+                <tr><td colSpan={8} className="py-12 text-center text-sm text-gray-400">Tài khoản này chưa được gán khoa phụ trách.</td></tr>
               ) : filteredClasses.length === 0 ? (
-                <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Không có dữ liệu lớp từ API.</td></tr>
+                <tr><td colSpan={8} className="py-12 text-center text-sm text-gray-400">Không có dữ liệu lớp từ API.</td></tr>
               ) : filteredClasses.map((c) => (
-                <tr key={c.id} className="transition-colors hover:bg-brand-secondary/5">
+                <tr key={c.id} className={`transition-colors hover:bg-brand-secondary/5 ${selectedClassIds.includes(c.id) ? 'bg-brand-primary/5' : ''}`}>
+                  <td className="py-3.5 px-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedClassIds.includes(c.id)}
+                      onChange={() => handleToggleSelectClass(c.id)}
+                      disabled={c.status !== 'PENDING_FACULTY'}
+                      className="h-4 w-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    />
+                  </td>
                   <td className="py-3.5 px-4 font-bold text-gray-900">{c.className}</td>
                   <td className="py-3.5 px-4 text-gray-700">{c.leader}</td>
                   <td className="py-3.5 px-4 text-center font-medium">{c.totalStudents} SV</td>
                   <td className="py-3.5 px-4 text-center font-semibold text-brand-secondary">{c.submittedCount}/{c.totalStudents}</td>
                   <td className="py-3.5 px-4">
-                    {c.status === 'FACULTY_APPROVED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200"><Check size={12} /> Khoa đã duyệt</span>}
-                    {c.status === 'PENDING_FACULTY' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 rounded-full border border-amber-200"><Clock size={12} /> Chờ Khoa duyệt</span>}
+                    {c.status === 'FACULTY_APPROVED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200"><Check size={12} /> Đã gửi PĐT</span>}
+                    {c.status === 'PENDING_FACULTY' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 rounded-full border border-amber-200"><Clock size={12} /> Chờ Khoa gửi PĐT</span>}
                     {c.status === 'IN_PROGRESS' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-100 rounded-full">Đang làm việc cấp Lớp</span>}
                   </td>
                   <td className="py-3.5 px-4 text-gray-500 text-xs">{c.date}</td>

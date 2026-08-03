@@ -4,11 +4,45 @@ import type { AuthState } from '../types';
 import { API_Auth } from '../api/API_Auth';
 import type { Student, Admin } from '../types';
 
+function normalizeManagedClass(item: any) {
+  const classInfo = item?.class || item?.managedClass || item;
+  const faculty = classInfo?.faculty || item?.faculty;
+  const major = classInfo?.major || item?.major;
+
+  return {
+    ...classInfo,
+    id: classInfo?.id || item?.classId || item?.id || '',
+    classId: item?.classId || classInfo?.id || item?.id || '',
+    code: classInfo?.code || item?.classCode || item?.code,
+    classCode: item?.classCode || classInfo?.code || item?.code,
+    name: classInfo?.name || item?.className || item?.name || item?.classCode || classInfo?.code,
+    className: item?.className || classInfo?.name || item?.name || item?.classCode || classInfo?.code,
+    enrollmentYear: classInfo?.enrollmentYear || item?.enrollmentYear,
+    studentCount: classInfo?.studentCount ?? item?.studentCount,
+    major,
+    faculty,
+    facultyName: faculty?.name || classInfo?.facultyName || item?.facultyName,
+    assignedAt: item?.assignedAt,
+  };
+}
+
+function normalizeManagedClasses(profile: any) {
+  const sources = [
+    profile?.managedClasses,
+    profile?.advisorAssignments,
+    profile?.classLeaderAssignments,
+    profile?.assignments,
+  ].find((value) => Array.isArray(value) && value.length > 0);
+
+  return (sources || []).map(normalizeManagedClass).filter((item: any) => item.classId || item.id);
+}
+
 function normalizeProfile(profile: any) {
   const student = profile?.student;
   const classInfo = student?.class;
   const major = student?.major;
   const faculty = student?.faculty;
+  const managedClasses = normalizeManagedClasses(profile);
 
   return {
     ...profile,
@@ -20,7 +54,7 @@ function normalizeProfile(profile: any) {
     faculty: profile?.faculty ?? faculty,
     admissionYear: profile?.admissionYear ?? classInfo?.enrollmentYear,
     phoneNumber: profile?.phoneNumber ?? profile?.phone,
-    managedClasses: profile?.managedClasses ?? [],
+    managedClasses,
     managedFaculty: profile?.managedFaculty,
     managedFaculties: profile?.managedFaculties ?? (profile?.managedFaculty ? [profile.managedFaculty] : []),
   };

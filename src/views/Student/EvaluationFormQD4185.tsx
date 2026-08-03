@@ -16,6 +16,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { uploadEvidenceFile } from '../../services/cloudinaryUpload';
 import { useToast } from '../../components/common/ToastProvider';
 import { getUserFriendlyError } from '../../utils/errorHelper';
+import { CRITERIA_CODES } from '../../constants/evaluationEnums';
 
 // Sub-components
 import { EvaluationTableGrid } from '../../components/student/EvaluationTableGrid';
@@ -105,30 +106,24 @@ export const EvaluationFormQD4185 = () => {
     store.getState().batchSet({ uploadedFiles, fileProgress });
   }, [uploadedFiles, fileProgress, store]);
 
-		  const mapEvidenceCriteriaCode = (criteriaKey: string) => {
-	    if (criteriaKey.startsWith('sv_nckh') || criteriaKey.startsWith('sv_olympic') || criteriaKey.startsWith('sv_creative')) {
-	      return 'I.2';
-	    }
-	    if (criteriaKey.startsWith('sv_reward')) {
-	      return 'III.5';
-	    }
-	    if (criteriaKey.startsWith('sv_policy')) {
-	      return 'IV.1';
-	    }
-	    if (criteriaKey.startsWith('sv_solidarity')) {
-	      return 'IV.2';
-	    }
-	    if (criteriaKey.startsWith('sv_cadre')) {
-	      return 'V.A.2';
-	    }
-	    if (criteriaKey.startsWith('sv_special')) {
-	      return 'V.B.2';
-	    }
-		    return criteriaKey;
-		  };
+  const mapEvidenceCriteriaCode = (criteriaKey: string) => {
+    const map: Record<string, string> = {
+      sv_nckh: CRITERIA_CODES.SECTION_1.NCKH_PARTICIPATION,
+      sv_olympic: CRITERIA_CODES.SECTION_1.NCKH_PAPER_OLYMPIC,
+      sv_creative: CRITERIA_CODES.SECTION_1.NCKH_AWARD,
+      sv_reward: CRITERIA_CODES.SECTION_3.REWARD,
+      sv_policy: CRITERIA_CODES.SECTION_4.LAW_COMPLIANCE,
+      sv_solidarity: CRITERIA_CODES.SECTION_4.CHARITY_SOLIDARITY,
+      sv_cadre_perf: CRITERIA_CODES.SECTION_5.CADRE_PERFORMANCE,
+      sv_special_ach: CRITERIA_CODES.SECTION_5.SPECIAL_ACHIEVEMENT,
+    };
+
+    return map[criteriaKey] || criteriaKey;
+  };
 
   const normalizeEvidenceUrl = (value?: string | null) => {
     if (!value) return '';
+    if (/\/evidences\/link-url$/i.test(value)) return '';
     if (/^(https?:|blob:|data:)/i.test(value)) return value;
     const normalizedPath = value.startsWith('/') ? value : `/${value}`;
     if (/^https?:/i.test(API_URL)) {
@@ -150,6 +145,9 @@ export const EvaluationFormQD4185 = () => {
       ''
     ).toUpperCase();
 
+    if (code === 'I.2.A') return ['sv_nckh'];
+    if (code === 'I.2.B') return ['sv_olympic'];
+    if (code === 'I.2.C') return ['sv_creative'];
     if (code === 'TC1' || code === 'I.2') return ['sv_nckh', 'sv_olympic', 'sv_creative'];
     if (code === 'TC3' || code === 'III.5') return ['sv_reward'];
     if (code === 'TC4') return ['sv_policy', 'sv_solidarity'];
@@ -189,7 +187,14 @@ export const EvaluationFormQD4185 = () => {
     ];
 
     sourceItems.forEach((item: any) => {
-      const url = normalizeEvidenceUrl(item.url || item.imageUrl || item.secureUrl || item.fileUrl || item.downloadUrl || item.storageKey);
+      const url = normalizeEvidenceUrl(
+        item.imageUrl ||
+        item.secureUrl ||
+        item.fileUrl ||
+        item.downloadUrl ||
+        item.url ||
+        item.storageKey
+      );
       if (!url) return;
 
       const keys = getEvidenceFileKeys(item);
@@ -263,6 +268,7 @@ export const EvaluationFormQD4185 = () => {
 	    try {
 	      setUploadingEvidence(criteriaKey);
 	      setValidationError(null);
+        await ensureEvaluationDraftForEvidence();
 
 	      // Khởi tạo progress 0 cho tất cả file cùng lúc
 	      setFileProgress(prev => ({
@@ -282,11 +288,16 @@ export const EvaluationFormQD4185 = () => {
 	            },
 	          });
 
-	          await API_Student.linkEvidenceUrl({
-	            criteriaCode: mapEvidenceCriteriaCode(criteriaKey),
-	            imageUrl: secureUrl,
-	            publicId,
-	          });
+            const evidenceCriteriaCode = mapEvidenceCriteriaCode(criteriaKey);
+            try {
+              await API_Student.linkEvidenceUrl({
+                criteriaCode: evidenceCriteriaCode,
+                imageUrl: secureUrl,
+                publicId,
+              });
+            } catch (linkErr) {
+              console.warn('Backend linkEvidenceUrl failed, fallback to local draft state:', linkErr);
+            }
 
 	          // Đánh dấu file này đã xong
 	          setFileProgress(prev => ({
@@ -475,42 +486,56 @@ export const EvaluationFormQD4185 = () => {
   };
 
   // Mapping Helpers
+  const VALID_REGULAR_SCORE_LEVELS = [
+    'GTE_9',
+    'FROM_7_TO_UNDER_9',
+    'FROM_5_TO_UNDER_7',
+    'FROM_4_TO_UNDER_5',
+    'FROM_1_TO_UNDER_4',
+  ];
+
   const mapStudyAttitude = (val: string) => {
-    const dict = {
+    const dict: Record<string, string> = {
       very_good: 'GTE_9',
       good: 'FROM_7_TO_UNDER_9',
       fair: 'FROM_5_TO_UNDER_7',
       average: 'FROM_4_TO_UNDER_5',
       poor: 'FROM_1_TO_UNDER_4',
+      none: 'FROM_1_TO_UNDER_4',
     };
-    return dict[val as keyof typeof dict] || val || undefined;
+    const mapped = dict[val] || val;
+    return VALID_REGULAR_SCORE_LEVELS.includes(mapped) ? mapped : 'FROM_1_TO_UNDER_4';
   };
 
   const reverseMapStudyAttitude = (val: string) => {
-    const dict = {
-      very_good: 'GTE_9',
-      good: 'FROM_7_TO_UNDER_9',
-      fair: 'FROM_5_TO_UNDER_7',
-      average: 'FROM_4_TO_UNDER_5',
-      poor: 'FROM_1_TO_UNDER_4',
-    };
-    return dict[val as keyof typeof dict] || val || '';
+    return val || 'FROM_1_TO_UNDER_4';
   };
 
+  const VALID_ACADEMIC_RANKS = [
+    'EXCELLENT',
+    'GOOD',
+    'FAIR',
+    'AVERAGE',
+    'WEAK_NO_WARNING',
+    'WEAK_WARNING_FIRST',
+  ];
+
   const mapAcademicRank = (val: string) => {
-    const dict = {
+    const dict: Record<string, string> = {
+      excellent: 'EXCELLENT',
+      good: 'GOOD',
+      fair: 'FAIR',
+      average: 'AVERAGE',
       weak_no_warn: 'WEAK_NO_WARNING',
       weak_warn: 'WEAK_WARNING_FIRST',
+      none: 'WEAK_WARNING_FIRST',
     };
-    return dict[val as keyof typeof dict] || val || undefined;
+    const mapped = dict[val] || val;
+    return VALID_ACADEMIC_RANKS.includes(mapped) ? mapped : 'WEAK_WARNING_FIRST';
   };
 
   const reverseMapAcademicRank = (val: string) => {
-    const dict = {
-      weak_no_warn: 'WEAK_NO_WARNING',
-      weak_warn: 'WEAK_WARNING_FIRST',
-    };
-    return dict[val as keyof typeof dict] || val || '';
+    return val || 'WEAK_WARNING_FIRST';
   };
 
   const mapActivity1 = (val: string) => {
@@ -1286,7 +1311,11 @@ export const EvaluationFormQD4185 = () => {
       const s = store.getState();
 
       const compactPayload = (payload: Record<string, unknown>) =>
-        Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+        Object.fromEntries(
+          Object.entries(payload).filter(
+            ([, value]) => value !== undefined && value !== null && value !== ''
+          )
+        );
       const studyPayload = compactPayload({
         regularScoreLevel: mapStudyAttitude(s.svStudyAttitude),
         academicRank: mapAcademicRank(s.svAcademicRank),
@@ -1376,7 +1405,7 @@ export const EvaluationFormQD4185 = () => {
   const buildScorePayloads = () => {
     const s = store.getState();
     const compactPayload = (payload: Record<string, unknown>) =>
-      Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+      Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ''));
     const disciplineViolations = s.svDeductions.map((count, idx) => {
       const c = Math.round(Number(count) || 0);
       const weight = EVAL_DEDUCTION_WEIGHTS[idx] || 0;
@@ -1407,7 +1436,7 @@ export const EvaluationFormQD4185 = () => {
           { code: 'ACADEMIC_EVENT_PARTICIPATION', checked: s.svNckh },
           { code: 'SCIENTIFIC_PUBLICATION_OR_CONTEST', checked: s.svOlympic },
           { code: 'SCIENTIFIC_AWARD', checked: s.svCreative },
-        ],
+        ].filter((activity) => activity.checked),
       }),
       discipline: {
         baseScore: Math.min(25, Math.max(0, Number(s.svNoViolationScore) || 0)),
@@ -1427,6 +1456,24 @@ export const EvaluationFormQD4185 = () => {
       },
       role: rolePayload,
     };
+  };
+
+  const ensureEvaluationDraftForEvidence = async () => {
+    let currentId = evaluationId;
+
+    if (!currentId) {
+      const createRes = await API_Student.createEvaluation({ semester, academicYear });
+      const created = createRes.data || createRes;
+      currentId = created.id;
+      setEvaluationId(created.id);
+    }
+
+    await API_Student.updateEvaluationDraft(currentId!, {
+      phone: phoneNumber,
+      note,
+    });
+
+    return currentId!;
   };
 
   const persistScoreSection = async (section: 'study' | 'discipline' | 'activity' | 'community' | 'role') => {
