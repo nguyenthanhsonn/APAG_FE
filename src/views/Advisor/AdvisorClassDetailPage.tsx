@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { Search, X } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_Admin } from '@/api/API_Admin';
+import { API_Shared } from '@/api/API_Shared';
 import CustomSelect from '@/components/common/CustomSelect';
 import { useToast } from '@/components/common/ToastProvider';
 import { useAuthStore } from '@/store/authStore';
@@ -23,9 +24,16 @@ function toArray<T>(value: unknown): T[] {
   return [];
 }
 
+function unwrapData<T>(res: any): T {
+  if (res && typeof res === 'object' && 'data' in res && res.data !== null && res.data !== undefined) {
+    return res.data as T;
+  }
+  return res as T;
+}
+
 function toReviewStatus(status?: string): StudentReviewStatus {
   const normalized = String(status || '').toLowerCase();
-  if (['submitted', 'class_approved', 'finalized'].includes(normalized)) return 'submitted';
+  if (['submitted', 'class_leader_approved', 'class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normalized)) return 'submitted';
   return 'not_submitted';
 }
 
@@ -35,18 +43,19 @@ function normalizeKey(value: unknown) {
 
 function getStudentIdentityKeys(student: any) {
   return [
-    student.studentId, student.id, student.userId, student.user?.id,
-    student.email, student.user?.email, student.studentCode, student.code,
+    student.studentId, student.id, student.userId, student.user?.id, student.student?.id,
+    student.email, student.user?.email, student.studentCode, student.code, student.user?.studentCode, student.username, student.user?.username,
     student.fullName, student.name, student.user?.fullName,
   ].map(normalizeKey).filter(Boolean);
 }
 
 function getEvaluationIdentityKeys(evaluation: any) {
   return [
-    evaluation.studentId, evaluation.student?.id, evaluation.student?.userId,
-    evaluation.userId, evaluation.student?.email, evaluation.email,
-    evaluation.studentCode, evaluation.student?.studentCode,
-    evaluation.studentName, evaluation.student?.fullName,
+    evaluation.studentId, evaluation.student?.id, evaluation.student?.userId, evaluation.student?.user?.id,
+    evaluation.userId, evaluation.user?.id, evaluation.id,
+    evaluation.student?.email, evaluation.email, evaluation.user?.email,
+    evaluation.studentCode, evaluation.student?.studentCode, evaluation.student?.code, evaluation.student?.user?.studentCode, evaluation.student?.username, evaluation.username, evaluation.code,
+    evaluation.studentName, evaluation.student?.fullName, evaluation.student?.name, evaluation.fullName, evaluation.user?.fullName,
   ].map(normalizeKey).filter(Boolean);
 }
 
@@ -75,53 +84,77 @@ export default function AdvisorClassDetailPage() {
   const paramClassId = getParam(params?.classId);
   const userFirstClass = user?.managedClasses?.[0];
   const classId = paramClassId || userFirstClass?.classId || userFirstClass?.id || (user as any)?.classId || (user as any)?.class?.id || '';
+  const assignedClass = useMemo(
+    () =>
+      user?.managedClasses?.find((item) => {
+        const assignedId = item.classId || item.id;
+        return assignedId === classId;
+      }) || userFirstClass,
+    [classId, user?.managedClasses, userFirstClass],
+  );
+  const assignedClassCode = assignedClass?.classCode || assignedClass?.code || '';
+  const assignedClassName = assignedClass?.className || assignedClass?.name || assignedClassCode || 'Chi tiết lớp';
+  const assignedClassMajorName = assignedClass?.major?.name;
+  const assignedClassFacultyName = assignedClass?.faculty?.name || assignedClass?.facultyName;
+  const assignedClassEnrollmentYear = assignedClass?.enrollmentYear;
 
   const [loading, setLoading] = useState(true);
-  const [classDetail, setClassDetail] = useState<ClassMetadata | null>(null);
-  const [className, setClassName] = useState('Lớp phụ trách');
+  const [className, setClassName] = useState(assignedClassName);
+  const [classDetail, setClassDetail] = useState<ClassMetadata | null>(
+    assignedClass
+      ? {
+          code: assignedClassCode,
+          name: assignedClassName,
+          majorName: assignedClassMajorName,
+          facultyName: assignedClassFacultyName,
+          enrollmentYear: assignedClassEnrollmentYear,
+        }
+      : null,
+  );
   const [students, setStudents] = useState<CouncilStudentReview[]>([]);
   const [semester, setSemester] = useState('all');
   const [status, setStatus] = useState<ReviewStatusFilter>('all');
   const [keyword, setKeyword] = useState('');
+  const [submittingClass, setSubmittingClass] = useState(false);
 
   /* ── Data Fetch ── */
   useEffect(() => {
     let mounted = true;
-    const fallbackClass =
-      user?.managedClasses?.find((item) => (item.classId || item.id) === classId) ||
-      userFirstClass;
-    const fallbackName = fallbackClass?.className || fallbackClass?.name || fallbackClass?.classCode || fallbackClass?.code || 'Lớp phụ trách';
-    const fallbackCode = fallbackClass?.classCode || fallbackClass?.code || classId;
 
-    setClassName(fallbackName);
-    setClassDetail({
-      code: fallbackCode,
-      name: fallbackName,
-    });
-
-    const loadStudents = async () => {
+    const loadData = async () => {
       if (!classId) {
-        setStudents([]);
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        const [classDetailResult, studentsResult] = await Promise.all([
-          API_Admin.getAdvisorClassById(classId),
-          API_Admin.getClassStudents(classId, { page: 1, limit: 100 }),
-        ]);
+        const fallbackCode = assignedClassCode || `LỚP-${classId.slice(0, 8).toUpperCase()}`;
+        setClassName(assignedClassName);
+        setClassDetail({
+          code: fallbackCode,
+          name: assignedClassName,
+          majorName: assignedClassMajorName,
+          facultyName: assignedClassFacultyName,
+          enrollmentYear: assignedClassEnrollmentYear,
+        });
 
-        if (!mounted) return;
+        let detailResult: any = null;
+        let studentsResult: any = null;
+        let evaluationsResult: any = [];
 
-        const rawClass = (classDetailResult as any)?.data || classDetailResult;
-        if (rawClass) {
-          const code = rawClass.code || rawClass.classCode || fallbackCode;
-          const name = rawClass.name || rawClass.className || code;
-          const majorName = rawClass.major?.name || rawClass.majorName;
-          const facultyName = rawClass.faculty?.name || rawClass.major?.faculty?.name || rawClass.facultyName;
-          const enrollmentYear = rawClass.enrollmentYear || rawClass.academicYear;
+        try {
+          detailResult = await API_Shared.getClassDetails(classId);
+        } catch {
+          detailResult = null;
+        }
+
+        const classInfo = unwrapData<any>(detailResult);
+        if (classInfo && mounted) {
+          const code = classInfo.code || classInfo.classCode || fallbackCode;
+          const name = classInfo.name || classInfo.className || code;
+          const majorName = classInfo.major?.name || classInfo.majorName;
+          const facultyName = classInfo.faculty?.name || classInfo.major?.faculty?.name || classInfo.facultyName;
 
           setClassName(name);
           setClassDetail({
@@ -129,37 +162,31 @@ export default function AdvisorClassDetailPage() {
             name,
             majorName,
             facultyName,
-            enrollmentYear,
+            enrollmentYear: classInfo.enrollmentYear || classInfo.academicYear,
           });
         }
 
-        const classStudents = toArray<any>(studentsResult);
-        const evaluationsResult = await API_Admin.getAdminEvaluationList({
-          classId,
-          page: 1,
-          limit: Math.max(classStudents.length, 20),
-        });
+        try {
+          studentsResult = await API_Shared.getClassStudents(classId, { page: 1, limit: 100 });
+        } catch {
+          studentsResult = [];
+        }
+
+        const classStudents = toArray<any>(unwrapData<any>(studentsResult));
+
+        try {
+          evaluationsResult = await API_Shared.getTrainingEvaluations({
+            classId,
+            page: 1,
+            limit: 100,
+          });
+        } catch {
+          evaluationsResult = [];
+        }
 
         if (!mounted) return;
 
-        const evaluations = toArray<any>(evaluationsResult);
-        const firstEvalClass = evaluations[0]?.class;
-        if (firstEvalClass) {
-          const code = firstEvalClass.code || firstEvalClass.classCode || fallbackCode;
-          const name = firstEvalClass.name || firstEvalClass.className || code;
-          const majorName = firstEvalClass.major?.name || firstEvalClass.majorName;
-          const facultyName = firstEvalClass.faculty?.name || firstEvalClass.major?.faculty?.name || firstEvalClass.facultyName;
-
-          setClassName(name);
-          setClassDetail((prev) => ({
-            code: prev?.code || code,
-            name: name || prev?.name,
-            majorName: prev?.majorName || majorName,
-            facultyName: prev?.facultyName || facultyName,
-            enrollmentYear: prev?.enrollmentYear,
-          }));
-        }
-
+        const evaluations = toArray<any>(unwrapData<any>(evaluationsResult));
         const evaluationsByKey = new Map<string, any>();
         evaluations.forEach((evaluation) => {
           getEvaluationIdentityKeys(evaluation).forEach((key) => {
@@ -167,21 +194,84 @@ export default function AdvisorClassDetailPage() {
           });
         });
 
-        const mappedStudents = classStudents.map((student) => {
+        const sourceList =
+          classStudents.length > 0
+            ? classStudents
+            : evaluations.map((e) => ({
+                id: e.studentId || e.student?.id || e.user?.id || e.id,
+                studentCode:
+                  e.studentCode ||
+                  e.student?.studentCode ||
+                  e.student?.code ||
+                  e.user?.studentCode ||
+                  e.user?.code ||
+                  '-',
+                fullName: e.studentName || e.student?.fullName || e.user?.fullName || 'Sinh viên',
+                ...e.student,
+              }));
+
+        const mappedStudents = sourceList.map((student, idx) => {
           const studentId = student.studentId || student.id || student.userId || '';
-          const evaluation = getStudentIdentityKeys(student)
+          let evaluation = getStudentIdentityKeys(student)
             .map((key) => evaluationsByKey.get(key))
             .find(Boolean);
+
+          if (!evaluation && evaluations[idx]) {
+            const ev = evaluations[idx];
+            if (evaluations.length === sourceList.length || ev.studentId === studentId || ev.student?.id === studentId) {
+              evaluation = ev;
+            }
+          }
+
           const totalScore = evaluation?.totalScore ?? evaluation?.studentScore ?? evaluation?.selfScore ?? null;
+          const review = evaluation?.review || {};
+          const classScore =
+            typeof evaluation?.classScore === 'number'
+              ? evaluation.classScore
+              : typeof review.classScore === 'number'
+                ? review.classScore
+                : null;
+          const roleKey = user?.role === 'advisor' ? 'advisor' : 'class_leader';
+          const storedConfirmedAt =
+            typeof window !== 'undefined' && evaluation?.id
+              ? window.sessionStorage.getItem(`evaluation_review_confirmed:${roleKey}:${evaluation.id}`)
+              : null;
+
+          const isCLConfirmed = Boolean(
+            review.classLeaderReviewedAt ||
+            evaluation?.classLeaderReviewedAt ||
+            evaluation?.classLeaderConfirmedAt ||
+            evaluation?.reviewedAt ||
+            (roleKey === 'class_leader' && storedConfirmedAt) ||
+            evaluation?.isConfirmed ||
+            (evaluation && (evaluation.status === 'class_leader_approved' || evaluation.status === 'class_approved' || evaluation.status === 'faculty_approved' || evaluation.status === 'finalized'))
+          );
+
+          const isAdvConfirmed = Boolean(
+            review.classReviewedAt ||
+            evaluation?.classReviewedAt ||
+            evaluation?.advisorReviewedAt ||
+            evaluation?.advisorConfirmedAt ||
+            (roleKey === 'advisor' && storedConfirmedAt) ||
+            evaluation?.isConfirmed ||
+            (evaluation && (evaluation.status === 'class_approved' || evaluation.status === 'faculty_approved' || evaluation.status === 'finalized'))
+          );
+
+          const rawCLDate = review.classLeaderReviewedAt || evaluation?.classLeaderReviewedAt || evaluation?.classLeaderConfirmedAt || evaluation?.reviewedAt || storedConfirmedAt;
+          const rawAdvDate = review.classReviewedAt || evaluation?.classReviewedAt || evaluation?.advisorReviewedAt || storedConfirmedAt;
 
           return {
             id: evaluation?.id || studentId,
-            code: student.studentCode || student.code || '-',
-            fullName: student.fullName || student.name || student.user?.fullName || 'Sinh viên',
+            evaluationId: evaluation?.id,
+            code: student.studentCode || student.code || evaluation?.studentCode || evaluation?.student?.studentCode || '-',
+            fullName: student.fullName || student.name || student.user?.fullName || evaluation?.studentName || evaluation?.student?.fullName || 'Sinh viên',
             selfScore: typeof totalScore === 'number' ? totalScore : null,
+            classScore,
             status: evaluation ? toReviewStatus(evaluation.status) : 'not_submitted',
             workflowStatus: evaluation?.status || 'not_submitted',
             statusLabel: evaluation?.statusLabel,
+            classLeaderReviewedAt: isCLConfirmed ? (rawCLDate || new Date().toISOString()) : null,
+            classReviewedAt: isAdvConfirmed ? (rawAdvDate || new Date().toISOString()) : null,
           } satisfies CouncilStudentReview;
         });
 
@@ -189,15 +279,64 @@ export default function AdvisorClassDetailPage() {
       } catch (error: any) {
         if (!mounted) return;
         setStudents([]);
-        toast.error(getUserFriendlyError(error, 'Không tải được danh sách sinh viên của lớp.'));
+        const status = error?.response?.status || error?.statusCode || error?.status;
+        if (status !== 403 && status !== 404) {
+          toast.error(getUserFriendlyError(error, 'Không tải được danh sách sinh viên của lớp.'));
+        }
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
-    loadStudents();
-    return () => { mounted = false; };
-  }, [classId, toast, user?.managedClasses, userFirstClass]);
+    loadData();
+
+    const handleRefresh = () => {
+      loadData();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleRefresh);
+      window.addEventListener('evaluation_confirmed', handleRefresh);
+    }
+
+    return () => {
+      mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', handleRefresh);
+        window.removeEventListener('evaluation_confirmed', handleRefresh);
+      }
+    };
+  }, [assignedClassCode, assignedClassEnrollmentYear, assignedClassFacultyName, assignedClassMajorName, assignedClassName, classId, toast, user?.role]);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+
+  const isClassLeader = user?.role === 'class_leader';
+  const selectableStudents = useMemo(
+    () =>
+      students.filter((s) => {
+        const normWf = String(s.workflowStatus || s.status || '').toLowerCase();
+        if (isClassLeader) {
+          return normWf === 'submitted' && Boolean(s.classLeaderReviewedAt);
+        }
+        return normWf === 'class_leader_approved' && Boolean(s.classReviewedAt);
+      }),
+    [students, isClassLeader],
+  );
+
+  const handleToggleSelect = useCallback((studentId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId],
+    );
+  }, []);
+
+  const handleToggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const selectableIds = selectableStudents.map((s) => s.id);
+      const allSelected = selectableIds.length > 0 && selectableIds.every((id) => prev.includes(id));
+      return allSelected ? [] : selectableIds;
+    });
+  }, [selectableStudents]);
 
   /* ── Dynamic Document Title ── */
   useEffect(() => {
@@ -223,7 +362,6 @@ export default function AdvisorClassDetailPage() {
     });
   }, [students, status, keyword]);
 
-  const hasNotSubmitted = students.some((s) => s.status === 'not_submitted');
   const hasActiveFilter = semester !== 'all' || status !== 'all' || keyword.trim() !== '';
 
   const clearFilters = useCallback(() => {
@@ -237,8 +375,40 @@ export default function AdvisorClassDetailPage() {
       const basePath = user?.role === 'class_leader' ? '/class_leader' : '/advisor';
       router.push(`${basePath}/${classId}/${studentId}`);
     },
-    [classId, router, user?.role],
+    [classId, router, user],
   );
+
+  const handleSubmitClass = useCallback(async () => {
+    if (!classId || submittingClass || selectedIds.length === 0) {
+      return;
+    }
+
+    try {
+      setSubmittingClass(true);
+      const payload = { evaluationIds: selectedIds };
+      const result =
+        user?.role === 'class_leader'
+          ? await API_Admin.submitClassToAdvisor(classId, payload)
+          : await API_Admin.submitClassToFaculty(classId, payload);
+      const data = (result as any)?.data || result;
+      toast.success(data?.message || `Đã gửi ${selectedIds.length} phiếu đánh giá thành công.`);
+      setSelectedIds([]);
+      setConfirmModalOpen(false);
+
+      // Refresh list
+      setStudents((prev) =>
+        prev.map((s) => {
+          if (!selectedIds.includes(s.id)) return s;
+          const nextWf = user?.role === 'class_leader' ? 'class_leader_approved' : 'class_approved';
+          return { ...s, workflowStatus: nextWf, status: toReviewStatus(nextWf) };
+        }),
+      );
+    } catch (error: any) {
+      toast.error(getUserFriendlyError(error, 'Không gửi được danh sách phiếu đánh giá.'));
+    } finally {
+      setSubmittingClass(false);
+    }
+  }, [classId, selectedIds, submittingClass, toast, user]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -250,9 +420,21 @@ export default function AdvisorClassDetailPage() {
         facultyName={classDetail?.facultyName}
         enrollmentYear={classDetail?.enrollmentYear}
         totalStudents={students.length}
-        hasNotSubmitted={hasNotSubmitted}
+        hasNotSubmitted={selectedIds.length === 0}
+        submitting={submittingClass}
+        sendLabel={
+          user?.role === 'class_leader'
+            ? selectedIds.length > 0
+              ? `Gửi Cố vấn học tập (${selectedIds.length})`
+              : 'Gửi Cố vấn học tập'
+            : selectedIds.length > 0
+              ? `Gửi Khoa (${selectedIds.length})`
+              : 'Gửi Khoa'
+        }
         onSendToAdmin={() => {
-          toast.success('Đã gửi phiếu đánh giá của toàn bộ lớp lên Admin phê duyệt.');
+          if (selectedIds.length > 0) {
+            setConfirmModalOpen(true);
+          }
         }}
         hideBreadcrumb={user?.role === 'class_leader'}
       />
@@ -311,7 +493,41 @@ export default function AdvisorClassDetailPage() {
         onReview={handleReview}
         hasActiveFilter={hasActiveFilter}
         onClearFilters={clearFilters}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onToggleSelectAll={handleToggleSelectAll}
       />
+
+      {/* Confirmation Modal */}
+      {confirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-gray-900">Xác nhận gửi phiếu đánh giá</h3>
+            <p className="text-sm text-gray-600">
+              Bạn có chắc chắn muốn gửi <strong className="text-indigo-600 font-bold">{selectedIds.length}</strong> phiếu đánh giá đã chọn lên {user?.role === 'class_leader' ? 'Cố vấn học tập' : 'Khoa'} không?
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModalOpen(false)}
+                disabled={submittingClass}
+                className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSubmitClass()}
+                disabled={submittingClass}
+                className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg cursor-pointer transition-colors inline-flex items-center gap-1.5"
+              >
+                {submittingClass && <Loader2 size={14} className="animate-spin" />}
+                Xác nhận gửi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

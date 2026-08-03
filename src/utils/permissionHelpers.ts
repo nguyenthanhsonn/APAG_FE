@@ -1,0 +1,119 @@
+/**
+ * permissionHelpers.ts
+ *
+ * Helpers for Training Evaluation permissions matching exact backend business logic.
+ */
+
+export function isClassLeaderRole(role?: string): boolean {
+  const normRole = String(role || '').toLowerCase();
+  return (
+    normRole === 'class' ||
+    normRole === 'class_leader' ||
+    normRole === 'classleader'
+  );
+}
+
+export function isAdvisorRole(role?: string): boolean {
+  const normRole = String(role || '').toLowerCase();
+  return normRole === 'advisor' || normRole === 'adv';
+}
+
+export function canEditReviewScores(role?: string, status?: string): boolean {
+  const normStatus = String(status || '').trim().toLowerCase();
+  const isCL = isClassLeaderRole(role);
+  const isAdv = isAdvisorRole(role);
+
+  return (
+    (isCL && normStatus === 'submitted') ||
+    (isAdv && normStatus === 'class_leader_approved')
+  );
+}
+
+export function canConfirmReview(role?: string, form?: any): boolean {
+  if (!form) return false;
+  const normStatus = String(form?.status || form?.workflowStatus || '').trim().toLowerCase();
+  const isCL = isClassLeaderRole(role);
+  const isAdv = isAdvisorRole(role);
+
+  if (isCL) {
+    return normStatus === 'submitted';
+  }
+
+  if (isAdv) {
+    return normStatus === 'class_leader_approved';
+  }
+
+  return false;
+}
+
+export function canSelectForSubmitToAdvisor(role?: string, form?: any): boolean {
+  if (!form) return false;
+  const normStatus = String(form?.status || form?.workflowStatus || '').trim().toLowerCase();
+  const isCL = isClassLeaderRole(role) || (!isAdvisorRole(role) && String(role || '').toLowerCase() !== 'student');
+
+  const hasConfirmed = Boolean(
+    form?.classLeaderReviewedAt ||
+    form?.classLeaderConfirmedAt ||
+    form?.review?.classLeaderReviewedAt
+  );
+
+  return isCL && normStatus === 'submitted' && hasConfirmed;
+}
+
+export function canSelectForSubmitToFaculty(role?: string, form?: any): boolean {
+  if (!form) return false;
+  const normStatus = String(form?.status || form?.workflowStatus || '').trim().toLowerCase();
+  const isAdv = isAdvisorRole(role);
+
+  const hasConfirmed = Boolean(
+    form?.classReviewedAt ||
+    form?.advisorReviewedAt ||
+    form?.advisorConfirmedAt ||
+    form?.review?.classReviewedAt
+  );
+
+  return isAdv && normStatus === 'class_leader_approved' && hasConfirmed;
+}
+
+export function getCheckboxDisabledReason(role?: string, form?: any): string {
+  if (!form) return 'Không thể chọn phiếu này';
+  const normStatus = String(form?.status || form?.workflowStatus || '').trim().toLowerCase();
+  const isCL = isClassLeaderRole(role) || (!isAdvisorRole(role) && String(role || '').toLowerCase() !== 'student');
+  const isAdv = isAdvisorRole(role);
+
+  if (normStatus === 'not_submitted' || normStatus === 'draft') {
+    return 'Phiếu chưa nộp';
+  }
+
+  if (isCL) {
+    if (normStatus !== 'submitted') {
+      return 'Phiếu đã được gửi lên cấp tiếp theo';
+    }
+    const hasConfirmed = Boolean(
+      form?.classLeaderReviewedAt ||
+      form?.classLeaderConfirmedAt ||
+      form?.reviewedAt ||
+      form?.isConfirmed
+    );
+    if (!hasConfirmed) {
+      return 'Cần lớp trưởng xác nhận trước khi gửi CVHT';
+    }
+  }
+
+  if (isAdv) {
+    if (normStatus !== 'class_leader_approved') {
+      return 'Phiếu chưa ở trạng thái chờ CVHT xử lý';
+    }
+    const hasConfirmed = Boolean(
+      form?.classReviewedAt ||
+      form?.advisorReviewedAt ||
+      form?.advisorConfirmedAt ||
+      form?.isConfirmed
+    );
+    if (!hasConfirmed) {
+      return 'Cần CVHT xác nhận trước khi gửi khoa';
+    }
+  }
+
+  return 'Không thể chọn phiếu này';
+}

@@ -4,9 +4,11 @@ import { CheckCircle2, Circle, Clock3, XCircle } from 'lucide-react';
 import type { EvaluationStepStatus, EvaluationWorkflowStep, EvaluationStatusStepperProps } from '@/types/common';
 
 const defaultSteps: EvaluationWorkflowStep[] = [
-  { key: 'student_submit', label: 'Sinh viên nộp phiếu', status: 'pending' },
-  { key: 'class_review', label: 'Lớp/CVHT duyệt', status: 'pending' },
-  { key: 'admin_finalization', label: 'Admin phê duyệt', status: 'pending' },
+  { key: 'student_submit', label: '1. SV nộp phiếu', status: 'pending' },
+  { key: 'class_leader_review', label: '2. Lớp trưởng duyệt', status: 'pending' },
+  { key: 'advisor_review', label: '3. CVHT duyệt', status: 'pending' },
+  { key: 'faculty_review', label: '4. Khoa duyệt', status: 'pending' },
+  { key: 'admin_finalization', label: '5. PĐT duyệt cuối', status: 'pending' },
 ];
 
 export function normalizeEvaluationStatus(status?: string | null) {
@@ -18,8 +20,11 @@ export function getEvaluationStatusLabel(status?: string | null, fallback?: stri
   const labels: Record<string, string> = {
     not_submitted: 'Chưa nộp',
     draft: 'Đang điền',
-    submitted: 'Chờ Lớp/CVHT duyệt',
-    class_approved: 'Chờ Admin phê duyệt',
+    submitted: 'Chờ Lớp trưởng duyệt',
+    class_leader_approved: 'Chờ CVHT duyệt',
+    class_approved: 'Chờ Khoa duyệt',
+    advisor_approved: 'Chờ Khoa duyệt',
+    faculty_approved: 'Chờ PĐT duyệt cuối',
     finalized: 'Đã hoàn tất',
     rejected: 'Bị trả về',
   };
@@ -30,21 +35,35 @@ export function getEvaluationStatusLabel(status?: string | null, fallback?: stri
 export function deriveEvaluationSteps(status?: string | null): EvaluationWorkflowStep[] {
   const normalized = normalizeEvaluationStatus(status);
 
-  if (normalized === 'finalized') {
+  if (normalized === 'finalized' || normalized === 'admin_approved') {
     return defaultSteps.map((step) => ({ ...step, status: 'completed' }));
   }
 
-  if (normalized === 'class_approved') {
+  if (normalized === 'faculty_approved') {
     return defaultSteps.map((step) => ({
       ...step,
       status: step.key === 'admin_finalization' ? 'current' : 'completed',
     }));
   }
 
+  if (normalized === 'class_approved' || normalized === 'advisor_approved') {
+    return defaultSteps.map((step) => ({
+      ...step,
+      status: step.key === 'faculty_review' ? 'current' : step.key === 'admin_finalization' ? 'pending' : 'completed',
+    }));
+  }
+
+  if (normalized === 'class_leader_approved') {
+    return defaultSteps.map((step) => ({
+      ...step,
+      status: step.key === 'advisor_review' ? 'current' : ['faculty_review', 'admin_finalization'].includes(step.key) ? 'pending' : 'completed',
+    }));
+  }
+
   if (normalized === 'submitted') {
     return defaultSteps.map((step) => ({
       ...step,
-      status: step.key === 'student_submit' ? 'completed' : step.key === 'class_review' ? 'current' : 'pending',
+      status: step.key === 'student_submit' ? 'completed' : step.key === 'class_leader_review' ? 'current' : 'pending',
     }));
   }
 
@@ -126,7 +145,7 @@ export default function EvaluationStatusStepper({
         </div>
       )}
 
-      <div className={compact ? 'flex items-center gap-2' : 'grid gap-2 sm:grid-cols-3'}>
+      <div className={compact ? 'flex items-center gap-2' : 'grid gap-2 sm:grid-cols-5'}>
         {renderedSteps.map((step, index) => {
           const classes = getStepClasses(step.status);
           const Icon = classes.icon;

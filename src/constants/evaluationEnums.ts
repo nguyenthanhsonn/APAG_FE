@@ -3,8 +3,61 @@ export type EvaluationOption = {
   label: string;
 };
 
+export const CRITERIA_CODES = {
+  SECTION_1: {
+    STUDY_ATTITUDE: 'TC1',
+    NCKH_PARTICIPATION: 'TC1',
+    NCKH_PAPER_OLYMPIC: 'TC1',
+    NCKH_AWARD: 'TC1',
+    ACADEMIC_RANK: 'TC1',
+  },
+  SECTION_2: {
+    NO_VIOLATION: 'TC2',
+    ABSENCE_CLASS_MEETING: 'TC2',
+    LATE_CLASS_MEETING: 'TC2',
+    ABSENCE_EVENT: 'TC2',
+    NO_STUDENT_CARD: 'TC2',
+    PROPERTY_VIOLATION: 'TC2',
+    LATE_TUITION: 'TC2',
+    EXAM_WARNING: 'TC2',
+    EXAM_REPRIMAND: 'TC2',
+    EXAM_CAUTION: 'TC2',
+  },
+  SECTION_3: {
+    POLITICAL_CULTURE_SPORT: 'TC3',
+    SOCIAL_EVILS_PREVENTION: 'TC3',
+    UNION_CLASS_ACTIVITIES: 'TC3',
+    VOLUNTEER_COMMUNITY: 'TC3',
+    REWARD: 'TC3',
+  },
+  SECTION_4: {
+    LAW_COMPLIANCE: 'TC4',
+    CHARITY_SOLIDARITY: 'TC4',
+    COMMUNITY_PROPAGANDA: 'TC4',
+  },
+  SECTION_5: {
+    CADRE_RESPONSIBILITY: 'TC5',
+    CADRE_PERFORMANCE: 'TC5',
+    STUDENT_PARTICIPATION: 'TC5',
+    SPECIAL_ACHIEVEMENT: 'TC5',
+  },
+} as const;
+
+export type CriteriaCode =
+  | 'TC1'
+  | 'TC2'
+  | 'TC3'
+  | 'TC4'
+  | 'TC5';
+
+export const EVIDENCED_CRITERIA_CODES: CriteriaCode[] = [
+  CRITERIA_CODES.SECTION_1.STUDY_ATTITUDE,
+  CRITERIA_CODES.SECTION_3.REWARD,
+  CRITERIA_CODES.SECTION_4.LAW_COMPLIANCE,
+  CRITERIA_CODES.SECTION_5.CADRE_RESPONSIBILITY,
+];
+
 export const REGULAR_SCORE_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: '', label: '0.00 đ - Chưa chọn / Không đạt' },
   { value: 'GTE_9', label: '6.00 đ - Điểm TB học kỳ >= 9' },
   { value: 'FROM_7_TO_UNDER_9', label: '5.00 đ - Điểm TB học kỳ từ 7 đến cận 9' },
   { value: 'FROM_5_TO_UNDER_7', label: '4.00 đ - Điểm TB học kỳ từ 5 đến cận 7' },
@@ -13,7 +66,6 @@ export const REGULAR_SCORE_LEVEL_OPTIONS: EvaluationOption[] = [
 ];
 
 export const ACADEMIC_RANK_OPTIONS: EvaluationOption[] = [
-  { value: '', label: '0.00 đ - Chưa chọn / Không đạt' },
   { value: 'EXCELLENT', label: '8.00 đ - Loại xuất sắc' },
   { value: 'GOOD', label: '7.00 đ - Loại giỏi' },
   { value: 'FAIR', label: '6.00 đ - Loại khá' },

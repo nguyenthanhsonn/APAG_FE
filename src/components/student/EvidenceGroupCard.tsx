@@ -79,7 +79,12 @@ export const EvidenceGroupCard = ({
               </div>
 
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => evidence.url && window.open(evidence.url, '_blank', 'noopener,noreferrer')}
+                  disabled={!evidence.url}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                >
                   <Eye size={20} />
                 </button>
                 <button

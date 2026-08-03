@@ -1,8 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Bell, ClipboardCheck, Eye, FileSearch, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 import type { StudentReviewStatus, CouncilStudentReview } from '@/types/admin';
+import {
+  canEditReviewScores,
+  canSelectForSubmitToAdvisor,
+  canSelectForSubmitToFaculty,
+  getCheckboxDisabledReason,
+} from '@/utils/permissionHelpers';
 
 export type { StudentReviewStatus, CouncilStudentReview };
 
@@ -18,16 +25,31 @@ export function getWorkflowProgress(status?: string) {
         badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       };
     case 'class_approved':
+    case 'advisor_approved':
       return {
         percent: 66,
-        label: 'Chờ Admin duyệt',
+        label: 'Chờ Khoa duyệt',
         barColor: 'bg-indigo-500',
         badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      };
+    case 'class_leader_approved':
+      return {
+        percent: 50,
+        label: 'Chờ CVHT duyệt',
+        barColor: 'bg-blue-500',
+        badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
+      };
+    case 'faculty_approved':
+      return {
+        percent: 83,
+        label: 'Chờ PĐT duyệt cuối',
+        barColor: 'bg-purple-500',
+        badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
       };
     case 'submitted':
       return {
         percent: 33,
-        label: 'Chờ CVHT duyệt',
+        label: 'Chờ Lớp trưởng duyệt',
         barColor: 'bg-amber-500',
         badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
       };
@@ -80,6 +102,9 @@ export interface StudentProgressTableProps {
   onRemind?: (studentId: string) => void;
   hasActiveFilter?: boolean;
   onClearFilters?: () => void;
+  selectedIds?: string[];
+  onToggleSelect?: (studentId: string) => void;
+  onToggleSelectAll?: () => void;
 }
 
 export default function StudentProgressTable({
@@ -89,7 +114,11 @@ export default function StudentProgressTable({
   onRemind,
   hasActiveFilter = false,
   onClearFilters,
+  selectedIds = [],
+  onToggleSelect,
+  onToggleSelectAll,
 }: StudentProgressTableProps) {
+  const user = useAuthStore((state) => state.user);
   /* ── Pagination State ── */
   const PAGE_SIZE = 8;
   const [page, setPage] = useState(1);
@@ -100,6 +129,29 @@ export default function StudentProgressTable({
   useEffect(() => {
     setPage(1);
   }, [students.length]);
+
+  const isClassLeader = user?.role === 'class_leader';
+  const isAdvisor = user?.role === 'advisor';
+
+  const isStudentSelectable = useCallback((s: CouncilStudentReview) => {
+    if (isClassLeader) {
+      return canSelectForSubmitToAdvisor(user?.role, s);
+    }
+    if (isAdvisor) {
+      return canSelectForSubmitToFaculty(user?.role, s);
+    }
+    return false;
+  }, [isAdvisor, isClassLeader, user?.role]);
+
+  const getDisabledTooltip = (s: CouncilStudentReview) => {
+    return getCheckboxDisabledReason(user?.role, s);
+  };
+
+  const selectableStudents = useMemo(
+    () => students.filter(isStudentSelectable),
+    [students, isStudentSelectable],
+  );
+  const isAllSelected = selectableStudents.length > 0 && selectableStudents.every((s) => selectedIds.includes(s.id));
 
   /* ── Loading Skeleton State ── */
   if (loading) {
@@ -113,11 +165,12 @@ export default function StudentProgressTable({
             <table className="w-full min-w-[780px] text-sm text-left">
               <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-500">
                 <tr>
+                  <th scope="col" className="px-3 py-3.5 w-10 text-center"></th>
                   <th scope="col" className="px-4 py-3.5">STT</th>
                   <th scope="col" className="px-4 py-3.5">Mã SV</th>
                   <th scope="col" className="px-4 py-3.5">Họ tên</th>
                   <th scope="col" className="px-4 py-3.5">SV tự chấm</th>
-                  <th scope="col" className="px-4 py-3.5">Tiến trình</th>
+                  <th scope="col" className="px-4 py-3.5">Trạng thái</th>
                   <th scope="col" className="px-4 py-3.5 text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -168,6 +221,15 @@ export default function StudentProgressTable({
       <table className="w-full min-w-[780px] text-sm text-left border-collapse">
         <thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur-xs border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-500">
           <tr>
+            <th scope="col" className="px-3 py-3.5 w-10 text-center">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={onToggleSelectAll}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                aria-label="Chọn tất cả sinh viên"
+              />
+            </th>
             <th scope="col" className="px-4 py-3.5">STT</th>
             <th scope="col" className="px-4 py-3.5">Mã SV</th>
             <th scope="col" className="px-4 py-3.5">Họ tên</th>
@@ -179,14 +241,132 @@ export default function StudentProgressTable({
         <tbody className="divide-y divide-gray-100">
           {paginated.map((student, index) => {
             const rowIndex = (safeCurrentPage - 1) * PAGE_SIZE + index + 1;
+            const normWf = String(student.workflowStatus || student.status || '').toLowerCase();
+            const canSelect = isStudentSelectable(student);
+            const tooltip = getDisabledTooltip(student);
+
+            const isClassLeader = user?.role === 'class_leader';
+            const canScore = canEditReviewScores(user?.role, normWf);
+
+            const isNotSubmitted = normWf === 'not_submitted' || normWf === 'draft' || student.status === 'not_submitted';
+            const isApproved = ['class_approved', 'class_leader_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+
+            // Badge helper
+            const renderBadge = () => {
+              const hasReviewerScore = typeof student.classScore === 'number';
+
+              if (normWf === 'not_submitted' || normWf === 'draft') {
+                return (
+                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                    Chưa nộp
+                  </span>
+                );
+              }
+              if (normWf === 'rejected') {
+                return (
+                  <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+                    Bị trả về
+                  </span>
+                );
+              }
+              if (normWf === 'class_approved') {
+                return (
+                  <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+                    Đã gửi khoa
+                  </span>
+                );
+              }
+              if (normWf === 'faculty_approved') {
+                return (
+                  <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                    Đã gửi PĐT
+                  </span>
+                );
+              }
+              if (normWf === 'finalized') {
+                return (
+                  <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                    Đã hoàn tất
+                  </span>
+                );
+              }
+
+              if (isClassLeader) {
+                if (normWf === 'submitted') {
+                  const isCLConfirmed = Boolean(student.classLeaderReviewedAt || student.classLeaderConfirmedAt);
+                  return isCLConfirmed ? (
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                      Đã xác nhận
+                    </span>
+                  ) : hasReviewerScore ? (
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                      Đã chấm, chưa xác nhận
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                      Chưa chấm
+                    </span>
+                  );
+                }
+                if (normWf === 'class_leader_approved') {
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                      Đã gửi CVHT
+                    </span>
+                  );
+                }
+              } else {
+                if (normWf === 'submitted') {
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                      Chờ Lớp trưởng
+                    </span>
+                  );
+                }
+                if (normWf === 'class_leader_approved') {
+                  const isAdvConfirmed = Boolean(student.classReviewedAt || student.advisorReviewedAt || student.advisorConfirmedAt);
+                  return isAdvConfirmed ? (
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                      Đã xác nhận
+                    </span>
+                  ) : hasReviewerScore ? (
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                      Đã chấm, chưa xác nhận
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                      Chưa chấm
+                    </span>
+                  );
+                }
+              }
+
+              return (
+                <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                  {student.statusLabel || 'Đã nộp'}
+                </span>
+              );
+            };
 
             return (
               <tr
                 key={student.id}
                 className={`transition-colors hover:bg-indigo-50/40 ${
-                  index % 2 === 1 ? 'bg-gray-50/50' : 'bg-white'
+                  selectedIds.includes(student.id) ? 'bg-indigo-50/60' : index % 2 === 1 ? 'bg-gray-50/50' : 'bg-white'
                 }`}
               >
+                <td className="px-3 py-3.5 text-center">
+                  <div title={!canSelect ? tooltip : undefined}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(student.id)}
+                      onChange={() => onToggleSelect?.(student.id)}
+                      disabled={!canSelect}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={`Chọn sinh viên ${student.fullName}`}
+                    />
+                  </div>
+                </td>
                 <td className="px-4 py-3.5 text-xs font-medium text-gray-400">{rowIndex}</td>
                 <td className="px-4 py-3.5 font-semibold text-gray-900">{student.code}</td>
                 <td className="px-4 py-3.5 font-medium text-gray-800">{student.fullName}</td>
@@ -197,20 +377,10 @@ export default function StudentProgressTable({
                     <span className="text-gray-400 font-normal">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3.5">
-                  {student.status === 'submitted' ? (
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                      Đã nộp
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
-                      Chưa nộp
-                    </span>
-                  )}
-                </td>
+                <td className="px-4 py-3.5">{renderBadge()}</td>
                 <td className="px-4 py-3.5 text-right">
                   <div className="inline-flex items-center gap-1.5 justify-end">
-                    {student.status === 'submitted' ? (
+                    {canScore ? (
                       <button
                         type="button"
                         onClick={() => onReview(student.id)}
@@ -219,7 +389,18 @@ export default function StudentProgressTable({
                         className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
                       >
                         <ClipboardCheck size={15} />
-                        Chấm điểm
+                        {isApproved ? 'Chỉnh sửa' : 'Chấm điểm'}
+                      </button>
+                    ) : !isNotSubmitted ? (
+                      <button
+                        type="button"
+                        onClick={() => onReview(student.id)}
+                        aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
+                        title="Xem chi tiết phiếu đánh giá"
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 shadow-2xs"
+                      >
+                        <Eye size={15} />
+                        Xem chi tiết
                       </button>
                     ) : (
                       <>

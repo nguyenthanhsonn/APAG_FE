@@ -3,6 +3,13 @@ export type { Class, Faculty, Major, ClassLeader, ClassAdvisor, ClassTableRow } 
 export type { EvaluationReviewAction, EvaluationReviewPermission, EvaluationRow, ReviewStudent } from './evaluation-review.type';
 export type { StudentManagementItem, ClassListStudentItem } from './student-management.type';
 export type {
+  ReturnEvaluationToStudentPayload,
+  SubmitClassEvaluationPayload,
+  SubmitClassEvaluationResponse,
+  SubmitFacultyEvaluationPayload,
+  SubmitFacultyEvaluationResponse,
+} from './api.interface';
+export type {
   AddStudentToClassPayload,
   AdminSemester,
   AdminStudentListQuery,

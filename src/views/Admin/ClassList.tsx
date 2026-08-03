@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { API_Admin } from '../../api/API_Admin';
+import { API_Shared } from '../../api/API_Shared';
 import { ClassListStudentItem, Class, Faculty, Major, AdminClassListProps } from '../../types';
 import ModalConfirm from '../../components/common/modalConfirm';
 import SearchFilterBar from '../../components/admin/SearchFilterBar';
@@ -145,7 +146,7 @@ export const AdminClassList = ({ preSelectedClassId, onBack }: AdminClassListPro
     try {
       setStudentsLoading(true);
       setErrorMsg('');
-      const data = await API_Admin.getClassStudents(classId, { page: 1, limit: 1000 });
+      const data = await API_Shared.getClassStudents(classId, { page: 1, limit: 1000 });
       const normalized: ClassListStudentItem[] = toArray(data as any).map((s: any) => ({
         id: s.studentId || s.userId || s.id,
         studentCode: s.studentCode || '',

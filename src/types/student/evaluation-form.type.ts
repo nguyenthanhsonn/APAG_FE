@@ -16,14 +16,11 @@ import type {
 export type EvaluationStatus =
   | 'draft'
   | 'submitted'
+  | 'class_leader_approved'
   | 'class_approved'
+  | 'faculty_approved'
   | 'finalized'
-  | 'rejected'
-  | 'DRAFT'
-  | 'SUBMITTED'
-  | 'CLASS_APPROVED'
-  | 'FINALIZED'
-  | 'REJECTED';
+  | 'rejected';
 
 export interface EvaluationPeriod {
   semester: string;
