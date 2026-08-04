@@ -144,7 +144,7 @@ export function StudentListView() {
           const evaluation = getStudentIdentityKeys(student)
             .map((key) => evaluationsByKey.get(key))
             .find(Boolean);
-          const totalScore = evaluation?.totalScore ?? evaluation?.studentScore ?? evaluation?.selfScore ?? null;
+          const totalScore = evaluation?.studentScore ?? evaluation?.selfScore ?? evaluation?.totalScore ?? null;
 
           return {
             id: evaluation?.id || studentId,

@@ -120,6 +120,9 @@ export interface CouncilReviewState {
 
   /** No-op for interface compatibility with EvaluationTableGrid-like pattern */
   setIsClassEdited: (v: boolean) => void;
+
+  /** Reset store state back to initial defaults */
+  resetToDefault: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,15 +145,15 @@ const DEDUCTION_LABELS = [
 // ---------------------------------------------------------------------------
 // Score lookup tables (mirrors evaluationFormStore)
 // ---------------------------------------------------------------------------
-const STUDY_ATTITUDE_SCORES: Record<string, number> = { very_good: 6, good: 5, fair: 4, average: 2, poor: 1, none: 0 };
-const ACADEMIC_RANK_SCORES: Record<string, number> = { excellent: 8, good: 7, fair: 6, average: 4, weak_no_warn: 2, weak_warn: 1, none: 0 };
+const STUDY_ATTITUDE_SCORES: Record<string, number> = { GTE_9: 6, FROM_7_TO_UNDER_9: 5, FROM_5_TO_UNDER_7: 4, FROM_4_TO_UNDER_5: 2, FROM_1_TO_UNDER_4: 1, very_good: 6, good: 5, fair: 4, average: 2, poor: 1, none: 0, '': 0 };
+const ACADEMIC_RANK_SCORES: Record<string, number> = { EXCELLENT: 8, GOOD: 7, FAIR: 6, AVERAGE: 4, WEAK_NO_WARNING: 2, WEAK_WARNING_FIRST: 1, excellent: 8, good: 7, fair: 6, average: 4, weak_no_warn: 2, weak_warn: 1, none: 0, '': 0 };
 const ACTIVITY1_SCORES: Record<string, number> = { GOOD_PARTICIPATION: 5, ABSENT_ONCE: 3, ABSENT_TWICE: 2, ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED: 0, active: 5, full: 3, excused: 2, unexcused: 0 };
-const ACTIVITY2_SCORES: Record<string, number> = { many: 5, some: 3, active: 2, full: 1, none: 0 };
-const ACTIVITY3_SCORES: Record<string, number> = { prize_or_org: 5, active: 3, some: 2, full: 1, none: 0 };
-const ACTIVITY4_SCORES: Record<string, number> = { active: 3, full: 2, some: 1, none: 0 };
+const ACTIVITY2_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION: 5, EFFECTIVE_PARTICIPATION_FROM_HALF: 3, ENCOURAGED_OTHERS: 2, ABSENT_OVER_HALF: 1, NOT_PARTICIPATED: 0, many: 5, some: 3, active: 2, full: 1, none: 0 };
+const ACTIVITY3_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION: 5, ACTIVE_ONE_OR_MORE: 3, ACTIVE_SUPPORTER: 2, ABSENT_OVER_HALF: 1, NOT_PARTICIPATED: 0, prize_or_org: 5, active: 3, some: 2, full: 1, none: 0 };
+const ACTIVITY4_SCORES: Record<string, number> = { MULTIPLE_ACTIVITIES_OR_REPORTING: 3, ONE_EFFECTIVE_ACTIVITY: 2, AWARENESS_OR_SUPPORT: 1, REMINDED_VIOLATION: 0, active: 3, full: 2, some: 1, none: 0 };
 const POLICY_SCORES: Record<string, number> = { GOOD_WITH_REWARD: 10, GOOD: 8, AVERAGE: 5, VIOLATED: 0, excellent_propaganda: 10, good: 8, minor_violation: 5, none: 0 };
-const SOLIDARITY_SCORES: Record<string, number> = { excellent_achievements: 10, regular: 8, some: 5, none: 0 };
-const LOCALITY_SCORES: Record<string, number> = { GOOD: 5, ONE_WARNING: 1, TWO_WARNINGS: 0, good: 5, rewarded: 1, warned: 0 };
+const SOLIDARITY_SCORES: Record<string, number> = { ACTIVE_WITH_REWARD: 10, ACTIVE: 8, PARTICIPATED: 5, NOT_PARTICIPATED: 0, excellent_achievements: 10, regular: 8, some: 5, none: 0 };
+const LOCALITY_SCORES: Record<string, number> = { GOOD: 5, ONE_WARNING: 1, TWO_WARNINGS: 0, good: 5, rewarded: 1, warned: 0, warned1: 1, warned2: 0 };
 
 const clamp = (v: number, max: number) => Math.min(max, Math.max(0, Number.isFinite(v) ? v : 0));
 
@@ -206,21 +209,32 @@ export function computeCouncilScores(s: CouncilReviewState, isSv: boolean): Scor
   const isVio5 = isSv ? s.isSvViolationSec5 : s.isClassViolationSec5;
   let sec5 = 0;
   if (!isVio5) {
-    const roleType = isSv ? s.svRoleType : s.classRoleType;
-    if (roleType === 'cadre') {
+    const roleType = String(isSv ? s.svRoleType : s.classRoleType || '').toLowerCase();
+    if (roleType === 'cadre' || roleType === 'class_officer') {
       const pos = isSv ? s.svCadrePosition : s.classCadrePosition;
       const perf = isSv ? s.svCadrePerformance : s.classCadrePerformance;
       const mgmt = isSv ? s.svManagementLevel : s.classManagementLevel;
-      const perfMap = pos === 'a1'
-        ? { excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
-        : { excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
-      const mgmtMap: Record<string, number> = { head: 3, deputy: 2, member: 1, none: 0 };
+      const perfMap = pos === 'a1' || (pos as string) === 'LEADER_GROUP'
+        ? { EXCELLENT: 7, GOOD: 6, COMPLETED: 4, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
+        : { EXCELLENT: 6, GOOD: 5, COMPLETED: 3, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
+      const mgmtMap: Record<string, number> = { HEAD_POSITION: 3, DEPUTY_POSITION: 2, MEMBER_POSITION: 1, head: 3, deputy: 2, member: 1, none: 0, '': 0 };
       sec5 = clamp((perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0), 10);
     } else {
       const part = isSv ? s.svClassParticipation : s.classClassParticipation;
       const ach = isSv ? s.svSpecialAchievement : s.classSpecialAchievement;
-      const achMap: Record<string, number> = { national_intl: 7, provincial: 5, none: 0 };
-      sec5 = clamp(part + (achMap[ach] || 0), 10);
+      const achMap: Record<string, number> = {
+        SCHOOL_LEVEL_OR_HIGHER: 7,
+        FACULTY_LEVEL: 5,
+        NATIONAL_OR_INTL: 7,
+        PROVINCIAL_LEVEL: 5,
+        NONE: 0,
+        university_level: 7,
+        faculty_level: 5,
+        national_intl: 7,
+        provincial: 5,
+        none: 0,
+      };
+      sec5 = clamp((Number(part) || 0) + (achMap[ach] || 0), 10);
     }
   }
 
@@ -234,7 +248,7 @@ const noop = () => {};
 
 const DEFAULT_STATE: Omit<
   CouncilReviewState,
-  'setField' | 'batchSet' | 'handleDeductionChange' | 'setIsClassEdited'
+  'setField' | 'batchSet' | 'handleDeductionChange' | 'setIsClassEdited' | 'resetToDefault'
 > = {
   currentUserRole: 'class_leader',
   isReadOnly: false,
@@ -341,6 +355,8 @@ export const createCouncilReviewStore = () =>
     setIsClassEdited: () => {
       // No-op: council review does not track class-edited state
     },
+
+    resetToDefault: () => set({ ...DEFAULT_STATE, uploadedFiles: {} }),
   }));
 
 // ---------------------------------------------------------------------------

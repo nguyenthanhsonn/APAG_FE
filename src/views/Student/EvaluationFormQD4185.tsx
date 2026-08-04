@@ -703,7 +703,8 @@ export const EvaluationFormQD4185 = () => {
     const dict = {
       excellent: 'EXCELLENT',
       good: 'GOOD',
-      average: 'FAIR',
+      average: 'COMPLETED',
+      FAIR: 'COMPLETED',
       unsatisfactory: 'POOR',
     };
     return dict[val as keyof typeof dict] || val || 'POOR';
@@ -713,7 +714,8 @@ export const EvaluationFormQD4185 = () => {
     const dict = {
       excellent: 'EXCELLENT',
       good: 'GOOD',
-      average: 'FAIR',
+      average: 'COMPLETED',
+      FAIR: 'COMPLETED',
       unsatisfactory: 'POOR',
     };
     return dict[val as keyof typeof dict] || val || 'POOR';
@@ -753,6 +755,26 @@ export const EvaluationFormQD4185 = () => {
       none: 'NONE',
     };
     return dict[val as keyof typeof dict] || val || 'NONE';
+  };
+
+  const buildRolePayload = (s: ReturnType<typeof store.getState>) => {
+    const rawRoleType = String(s.svRoleType || '').toUpperCase();
+    const positionGroup = ['LEADER_GROUP', 'MEMBER_GROUP'].includes(String(s.svCadrePosition))
+      ? String(s.svCadrePosition)
+      : null;
+    const isOfficer = Boolean(positionGroup);
+    const officerRoleType = ['CLASS_OFFICER', 'UNION_OFFICER', 'CLUB_OFFICER'].includes(rawRoleType)
+      ? rawRoleType
+      : 'CLASS_OFFICER';
+
+    return {
+      studentRoleType: isOfficer ? officerRoleType : 'NORMAL_STUDENT',
+      positionGroup: isOfficer ? positionGroup : null,
+      taskCompletionLevel: isOfficer ? mapCadrePerformance(s.svCadrePerformance) : null,
+      managementSkillLevel: isOfficer ? mapManagementLevel(s.svManagementLevel) || null : null,
+      normalStudentActivityScore: Number(s.svClassParticipation) || 0,
+      specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement) || 'NONE',
+    };
   };
 
   // Reset fields function for fresh evaluations
@@ -872,25 +894,23 @@ export const EvaluationFormQD4185 = () => {
       }
 
       const disciplineViolations = Array.isArray(discData.violations) ? discData.violations : [];
+      const dec = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+      disciplineViolations.forEach((v: any) => {
+        const codeIndex = DISCIPLINE_VIOLATION_CODES.indexOf(v.code);
+        const legacyIndex = String(v.code || '').startsWith('DEDUCT_')
+          ? parseInt(String(v.code).replace('DEDUCT_', ''), 10) - 1
+          : -1;
+        const num = codeIndex >= 0 ? codeIndex : legacyIndex;
+        if (num >= 0 && num < 9) {
+          dec[num] = Number(v.count) || 0;
+        }
+      });
+      const computedNoViolationScore = discData.baseScore !== undefined
+        ? Math.min(25, Math.max(0, Number(discData.baseScore) || 0))
+        : 25;
 
-      if (discData.baseScore !== undefined) {
-        const hasDisciplineInput = Number(discData.score) > 0 || disciplineViolations.length > 0;
-        setSvNoViolationScore(hasDisciplineInput ? Math.min(25, Math.max(0, Number(discData.baseScore) || 0)) : 0);
-      }
-      if (discData.violations) {
-        const dec = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-        disciplineViolations.forEach((v: any) => {
-          const codeIndex = DISCIPLINE_VIOLATION_CODES.indexOf(v.code);
-          const legacyIndex = String(v.code || '').startsWith('DEDUCT_')
-            ? parseInt(String(v.code).replace('DEDUCT_', ''), 10) - 1
-            : -1;
-          const num = codeIndex >= 0 ? codeIndex : legacyIndex;
-          if (num >= 0 && num < 9) {
-            dec[num] = Number(v.count) || 0;
-          }
-        });
-        setSvDeductions(dec);
-      }
+      setSvNoViolationScore(computedNoViolationScore);
+      setSvDeductions(dec);
 
       if (actData.politicalActivityLevel) setSvActivity1(reverseMapActivity1(actData.politicalActivityLevel));
       if (actData.cultureSportLevel) setSvActivity2(reverseMapActivity2(actData.cultureSportLevel));
@@ -917,6 +937,8 @@ export const EvaluationFormQD4185 = () => {
         svOlympic: studyData.activities?.some((a: any) => a.code === 'SCIENTIFIC_PUBLICATION_OR_CONTEST') ?? false,
         svCreative: studyData.activities?.some((a: any) => a.code === 'SCIENTIFIC_AWARD') ?? false,
         svAcademicRank: studyData.academicRank ? reverseMapAcademicRank(studyData.academicRank) : '',
+        svNoViolationScore: computedNoViolationScore,
+        svDeductions: dec,
         svActivity1: actData.politicalActivityLevel ? reverseMapActivity1(actData.politicalActivityLevel) : 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
         svActivity2: actData.cultureSportLevel ? reverseMapActivity2(actData.cultureSportLevel) : 'NOT_PARTICIPATED',
         svActivity3: actData.clubActivityLevel ? reverseMapActivity3(actData.clubActivityLevel) : 'NOT_PARTICIPATED',
@@ -1325,18 +1347,7 @@ export const EvaluationFormQD4185 = () => {
           { code: 'SCIENTIFIC_AWARD', checked: s.svCreative },
         ].filter((activity) => activity.checked),
       });
-      const hasRolePart1 =
-        s.svRoleType === 'CLASS_OFFICER' ||
-        !['', 'POOR', 'unsatisfactory'].includes(s.svCadrePerformance) ||
-        !['', 'none'].includes(s.svManagementLevel);
-      const rolePayload = compactPayload({
-        studentRoleType: hasRolePart1 ? 'CLASS_OFFICER' : 'NORMAL_STUDENT',
-        positionGroup: hasRolePart1 ? s.svCadrePosition || null : null,
-        taskCompletionLevel: hasRolePart1 ? mapCadrePerformance(s.svCadrePerformance) : null,
-        managementSkillLevel: hasRolePart1 ? mapManagementLevel(s.svManagementLevel) || null : null,
-        normalStudentActivityScore: Number(s.svClassParticipation) || 0,
-        specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement) || null,
-      });
+      const rolePayload = buildRolePayload(s);
       const disciplineViolations = s.svDeductions.map((count, idx) => {
         const c = Math.round(Number(count) || 0);
         const weight = EVAL_DEDUCTION_WEIGHTS[idx] || 0;
@@ -1415,18 +1426,7 @@ export const EvaluationFormQD4185 = () => {
         deductScore: Math.round(c * weight),
       };
     });
-    const hasRolePart1 =
-      s.svRoleType === 'CLASS_OFFICER' ||
-      !['', 'POOR', 'unsatisfactory'].includes(s.svCadrePerformance) ||
-      !['', 'none'].includes(s.svManagementLevel);
-    const rolePayload = compactPayload({
-      studentRoleType: hasRolePart1 ? 'CLASS_OFFICER' : 'NORMAL_STUDENT',
-      positionGroup: hasRolePart1 ? s.svCadrePosition || null : null,
-      taskCompletionLevel: hasRolePart1 ? mapCadrePerformance(s.svCadrePerformance) : null,
-      managementSkillLevel: hasRolePart1 ? mapManagementLevel(s.svManagementLevel) || null : null,
-      normalStudentActivityScore: Number(s.svClassParticipation) || 0,
-      specialAchievementLevel: mapSpecialAchievement(s.svSpecialAchievement) || null,
-    });
+    const rolePayload = buildRolePayload(s);
 
     return {
       study: compactPayload({

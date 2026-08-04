@@ -9,11 +9,13 @@ import { API_Student } from '../../api/API_Student';
 import type { HeaderProps } from '@/types/common';
 import { hasAccessToken } from '@/utils/authToken';
 
+import { useToast } from '@/components/common/ToastProvider';
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuthStore();
   const router = useRouter();
+  const toast = useToast();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -42,8 +44,9 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Fetch unread count for bell badge
   const fetchUnreadCount = useCallback(async () => {
-    if (!user || user.role !== 'student') return;
+    if (!user) return;
     if (!hasAccessToken()) return;
     try {
       const unread = await API_Student.getUnreadCount();
@@ -53,12 +56,12 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     }
   }, [user]);
 
-  // Fetch notifications for student
+  // Fetch notifications for all roles
   const fetchNotifications = useCallback(async () => {
-    if (!user || user.role !== 'student') return;
+    if (!user) return;
     if (!hasAccessToken()) return;
     try {
-      const list = await API_Student.getNotifications({ page: 1, limit: 5 });
+      const list = await API_Student.getNotifications({ page: 1, limit: 10 });
       const items = Array.isArray((list as any)?.items)
         ? (list as any).items
         : Array.isArray((list as any)?.data?.items)
@@ -81,14 +84,17 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     }
   }, [user]);
 
-  const refreshNotifications = useCallback(() => {
+  const refreshNotifications = useCallback((data?: any) => {
     fetchUnreadCount();
-    if (bellOpenRef.current) {
-      fetchNotifications();
+    fetchNotifications();
+    if (data && (data.title || data.message || data.content)) {
+      const msg = data.title || 'Bạn có thông báo mới';
+      const desc = data.content || data.message || '';
+      toast.info(desc ? `${msg}: ${desc}` : msg);
     }
-  }, [fetchNotifications, fetchUnreadCount]);
+  }, [fetchNotifications, fetchUnreadCount, toast]);
 
-  useNotificationSocket(user?.role === 'student' ? refreshNotifications : undefined);
+  useNotificationSocket(refreshNotifications);
 
   useEffect(() => {
     fetchUnreadCount();

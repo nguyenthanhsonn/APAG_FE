@@ -159,7 +159,7 @@ const ACTIVITY3_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION:
 const ACTIVITY4_SCORES: Record<string, number> = { MULTIPLE_ACTIVITIES_OR_REPORTING: 3, ONE_EFFECTIVE_ACTIVITY: 2, AWARENESS_OR_SUPPORT: 1, REMINDED_VIOLATION: 0, active: 3, full: 2, some: 1, none: 0 };
 const POLICY_SCORES: Record<string, number> = { GOOD_WITH_REWARD: 10, GOOD: 8, AVERAGE: 5, VIOLATED: 0, excellent_propaganda: 10, good: 8, minor_violation: 5, none: 0 };
 const SOLIDARITY_SCORES: Record<string, number> = { ACTIVE_WITH_REWARD: 10, ACTIVE: 8, PARTICIPATED: 5, NOT_PARTICIPATED: 0, excellent_achievements: 10, regular: 8, some: 5, none: 0 };
-const LOCALITY_SCORES: Record<string, number> = { GOOD: 5, ONE_WARNING: 1, TWO_WARNINGS: 0, good: 5, rewarded: 1, warned: 0 };
+const LOCALITY_SCORES: Record<string, number> = { GOOD: 5, ONE_WARNING: 1, TWO_WARNINGS: 0, good: 5, rewarded: 1, warned: 0, warned1: 1, warned2: 0 };
 
 // ---------------------------------------------------------------------------
 // Pure score computation — exported so page controller and selectors can use it
@@ -224,13 +224,24 @@ export function computeEvaluationScores(s: EvaluationFormState, isSv: boolean): 
     let section5Part1 = 0;
     if (pos && pos !== 'NONE' && pos !== 'none') {
       const perfMap = pos === 'LEADER_GROUP' || pos === 'a1'
-        ? { EXCELLENT: 7, GOOD: 6, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
-        : { EXCELLENT: 6, GOOD: 5, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
+        ? { EXCELLENT: 7, GOOD: 6, COMPLETED: 4, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
+        : { EXCELLENT: 6, GOOD: 5, COMPLETED: 3, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
       const mgmtMap: Record<string, number> = { HEAD_POSITION: 3, DEPUTY_POSITION: 2, MEMBER_POSITION: 1, head: 3, deputy: 2, member: 1, none: 0, '': 0 };
       section5Part1 = (perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0);
     }
 
-    const achMap: Record<string, number> = { NATIONAL_OR_INTL: 7, PROVINCIAL_LEVEL: 5, NONE: 0, national_intl: 7, provincial: 5, none: 0 };
+    const achMap: Record<string, number> = {
+      SCHOOL_LEVEL_OR_HIGHER: 7,
+      FACULTY_LEVEL: 5,
+      NATIONAL_OR_INTL: 7,
+      PROVINCIAL_LEVEL: 5,
+      NONE: 0,
+      university_level: 7,
+      faculty_level: 5,
+      national_intl: 7,
+      provincial: 5,
+      none: 0,
+    };
     const section5Part2 = clamp(Number(part) || 0, 3) + (achMap[ach] || 0);
     sec5 = clamp(section5Part1 + section5Part2, 10);
   }
