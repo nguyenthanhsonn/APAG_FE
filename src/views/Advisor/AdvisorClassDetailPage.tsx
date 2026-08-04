@@ -112,10 +112,10 @@ export default function AdvisorClassDetailPage() {
       : null,
   );
   const [students, setStudents] = useState<CouncilStudentReview[]>([]);
+  const [submittingClass, setSubmittingClass] = useState(false);
   const [semester, setSemester] = useState('all');
   const [status, setStatus] = useState<ReviewStatusFilter>('all');
   const [keyword, setKeyword] = useState('');
-  const [submittingClass, setSubmittingClass] = useState(false);
 
   /* ── Data Fetch ── */
   useEffect(() => {
