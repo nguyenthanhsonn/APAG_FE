@@ -28,7 +28,7 @@ export const getSocketBaseUrl = () => {
   return window.location.origin;
 };
 
-export function useNotificationSocket(onRefresh?: () => void) {
+export function useNotificationSocket(onRefresh?: (data?: any) => void) {
   const { user } = useAuthStore();
   const onRefreshRef = useRef(onRefresh);
 
@@ -43,13 +43,15 @@ export function useNotificationSocket(onRefresh?: () => void) {
     let mounted = true;
     refCount++;
 
-    const handleRefresh = () => {
-      onRefreshRef.current?.();
+    const handleRefresh = (data?: any) => {
+      onRefreshRef.current?.(data);
     };
 
     const attachListeners = (socket: Socket) => {
       if (!mounted) return;
 
+      socket.off('notifications:refresh', handleRefresh);
+      socket.off('notifications:new', handleRefresh);
       socket.on('notifications:refresh', handleRefresh);
       socket.on('notifications:new', handleRefresh);
 

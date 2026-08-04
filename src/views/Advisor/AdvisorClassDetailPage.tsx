@@ -31,8 +31,22 @@ function unwrapData<T>(res: any): T {
   return res as T;
 }
 
+function normalizeWorkflowStatus(status?: string) {
+  const normalized = String(status || '').trim();
+  if (!normalized) return 'not_submitted';
+  const snake = normalized
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/-/g, '_')
+    .toLowerCase();
+
+  if (snake === 'classleaderapproved') return 'class_leader_approved';
+  if (snake === 'classapproved' || snake === 'advisor_approved') return 'class_approved';
+  if (snake === 'facultyapproved') return 'faculty_approved';
+  return snake;
+}
+
 function toReviewStatus(status?: string): StudentReviewStatus {
-  const normalized = String(status || '').toLowerCase();
+  const normalized = normalizeWorkflowStatus(status);
   if (['submitted', 'class_leader_approved', 'class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normalized)) return 'submitted';
   return 'not_submitted';
 }
@@ -237,6 +251,7 @@ export default function AdvisorClassDetailPage() {
               ? window.sessionStorage.getItem(`evaluation_review_confirmed:${roleKey}:${evaluation.id}`)
               : null;
 
+          const rawStatus = normalizeWorkflowStatus(evaluation?.status);
           const isCLConfirmed = Boolean(
             review.classLeaderReviewedAt ||
             evaluation?.classLeaderReviewedAt ||
@@ -244,7 +259,7 @@ export default function AdvisorClassDetailPage() {
             evaluation?.reviewedAt ||
             (roleKey === 'class_leader' && storedConfirmedAt) ||
             evaluation?.isConfirmed ||
-            (evaluation && (evaluation.status === 'class_leader_approved' || evaluation.status === 'class_approved' || evaluation.status === 'faculty_approved' || evaluation.status === 'finalized'))
+            ['class_leader_approved', 'class_approved', 'faculty_approved', 'finalized'].includes(rawStatus)
           );
 
           const isAdvConfirmed = Boolean(
@@ -254,11 +269,15 @@ export default function AdvisorClassDetailPage() {
             evaluation?.advisorConfirmedAt ||
             (roleKey === 'advisor' && storedConfirmedAt) ||
             evaluation?.isConfirmed ||
-            (evaluation && (evaluation.status === 'class_approved' || evaluation.status === 'faculty_approved' || evaluation.status === 'finalized'))
+            ['class_approved', 'faculty_approved', 'finalized'].includes(rawStatus)
           );
 
           const rawCLDate = review.classLeaderReviewedAt || evaluation?.classLeaderReviewedAt || evaluation?.classLeaderConfirmedAt || evaluation?.reviewedAt || storedConfirmedAt;
           const rawAdvDate = review.classReviewedAt || evaluation?.classReviewedAt || evaluation?.advisorReviewedAt || storedConfirmedAt;
+          const workflowStatus =
+            rawStatus === 'submitted' && isCLConfirmed
+              ? 'class_leader_approved'
+              : rawStatus;
 
           return {
             id: evaluation?.id || studentId,
@@ -267,8 +286,8 @@ export default function AdvisorClassDetailPage() {
             fullName: student.fullName || student.name || student.user?.fullName || evaluation?.studentName || evaluation?.student?.fullName || 'Sinh viên',
             selfScore: typeof totalScore === 'number' ? totalScore : null,
             classScore,
-            status: evaluation ? toReviewStatus(evaluation.status) : 'not_submitted',
-            workflowStatus: evaluation?.status || 'not_submitted',
+            status: evaluation ? toReviewStatus(workflowStatus) : 'not_submitted',
+            workflowStatus,
             statusLabel: evaluation?.statusLabel,
             classLeaderReviewedAt: isCLConfirmed ? (rawCLDate || new Date().toISOString()) : null,
             classReviewedAt: isAdvConfirmed ? (rawAdvDate || new Date().toISOString()) : null,

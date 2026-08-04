@@ -138,14 +138,14 @@ export const POSITION_GROUP_OPTIONS: EvaluationOption[] = [
 export const TASK_COMPLETION_LEVEL_A1_OPTIONS: EvaluationOption[] = [
   { value: 'EXCELLENT', label: '7đ - Xuất sắc' },
   { value: 'GOOD', label: '6đ - Tốt' },
-  { value: 'FAIR', label: '4đ - Đạt' },
+  { value: 'COMPLETED', label: '4đ - Đạt' },
   { value: 'POOR', label: '0đ - Không đạt' },
 ];
 
 export const TASK_COMPLETION_LEVEL_A2_OPTIONS: EvaluationOption[] = [
   { value: 'EXCELLENT', label: '6đ - Xuất sắc' },
   { value: 'GOOD', label: '5đ - Tốt' },
-  { value: 'FAIR', label: '3đ - Đạt' },
+  { value: 'COMPLETED', label: '3đ - Đạt' },
   { value: 'POOR', label: '0đ - Không đạt' },
 ];
 

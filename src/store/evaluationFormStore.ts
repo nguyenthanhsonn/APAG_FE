@@ -224,8 +224,8 @@ export function computeEvaluationScores(s: EvaluationFormState, isSv: boolean): 
     let section5Part1 = 0;
     if (pos && pos !== 'NONE' && pos !== 'none') {
       const perfMap = pos === 'LEADER_GROUP' || pos === 'a1'
-        ? { EXCELLENT: 7, GOOD: 6, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
-        : { EXCELLENT: 6, GOOD: 5, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
+        ? { EXCELLENT: 7, GOOD: 6, COMPLETED: 4, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
+        : { EXCELLENT: 6, GOOD: 5, COMPLETED: 3, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
       const mgmtMap: Record<string, number> = { HEAD_POSITION: 3, DEPUTY_POSITION: 2, MEMBER_POSITION: 1, head: 3, deputy: 2, member: 1, none: 0, '': 0 };
       section5Part1 = (perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0);
     }
