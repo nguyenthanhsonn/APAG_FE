@@ -872,25 +872,23 @@ export const EvaluationFormQD4185 = () => {
       }
 
       const disciplineViolations = Array.isArray(discData.violations) ? discData.violations : [];
+      const dec = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+      disciplineViolations.forEach((v: any) => {
+        const codeIndex = DISCIPLINE_VIOLATION_CODES.indexOf(v.code);
+        const legacyIndex = String(v.code || '').startsWith('DEDUCT_')
+          ? parseInt(String(v.code).replace('DEDUCT_', ''), 10) - 1
+          : -1;
+        const num = codeIndex >= 0 ? codeIndex : legacyIndex;
+        if (num >= 0 && num < 9) {
+          dec[num] = Number(v.count) || 0;
+        }
+      });
+      const computedNoViolationScore = discData.baseScore !== undefined
+        ? Math.min(25, Math.max(0, Number(discData.baseScore) || 0))
+        : 25;
 
-      if (discData.baseScore !== undefined) {
-        const hasDisciplineInput = Number(discData.score) > 0 || disciplineViolations.length > 0;
-        setSvNoViolationScore(hasDisciplineInput ? Math.min(25, Math.max(0, Number(discData.baseScore) || 0)) : 0);
-      }
-      if (discData.violations) {
-        const dec = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-        disciplineViolations.forEach((v: any) => {
-          const codeIndex = DISCIPLINE_VIOLATION_CODES.indexOf(v.code);
-          const legacyIndex = String(v.code || '').startsWith('DEDUCT_')
-            ? parseInt(String(v.code).replace('DEDUCT_', ''), 10) - 1
-            : -1;
-          const num = codeIndex >= 0 ? codeIndex : legacyIndex;
-          if (num >= 0 && num < 9) {
-            dec[num] = Number(v.count) || 0;
-          }
-        });
-        setSvDeductions(dec);
-      }
+      setSvNoViolationScore(computedNoViolationScore);
+      setSvDeductions(dec);
 
       if (actData.politicalActivityLevel) setSvActivity1(reverseMapActivity1(actData.politicalActivityLevel));
       if (actData.cultureSportLevel) setSvActivity2(reverseMapActivity2(actData.cultureSportLevel));
@@ -917,6 +915,8 @@ export const EvaluationFormQD4185 = () => {
         svOlympic: studyData.activities?.some((a: any) => a.code === 'SCIENTIFIC_PUBLICATION_OR_CONTEST') ?? false,
         svCreative: studyData.activities?.some((a: any) => a.code === 'SCIENTIFIC_AWARD') ?? false,
         svAcademicRank: studyData.academicRank ? reverseMapAcademicRank(studyData.academicRank) : '',
+        svNoViolationScore: computedNoViolationScore,
+        svDeductions: dec,
         svActivity1: actData.politicalActivityLevel ? reverseMapActivity1(actData.politicalActivityLevel) : 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
         svActivity2: actData.cultureSportLevel ? reverseMapActivity2(actData.cultureSportLevel) : 'NOT_PARTICIPATED',
         svActivity3: actData.clubActivityLevel ? reverseMapActivity3(actData.clubActivityLevel) : 'NOT_PARTICIPATED',

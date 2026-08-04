@@ -223,7 +223,7 @@ export default function AdvisorClassDetailPage() {
             }
           }
 
-          const totalScore = evaluation?.totalScore ?? evaluation?.studentScore ?? evaluation?.selfScore ?? null;
+          const totalScore = evaluation?.studentScore ?? evaluation?.selfScore ?? evaluation?.totalScore ?? null;
           const review = evaluation?.review || {};
           const classScore =
             typeof evaluation?.classScore === 'number'
