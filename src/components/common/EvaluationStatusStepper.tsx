@@ -42,6 +42,13 @@ export function deriveEvaluationSteps(status?: string | null): EvaluationWorkflo
   if (normalized === 'faculty_approved') {
     return defaultSteps.map((step) => ({
       ...step,
+      status: step.key === 'faculty_review' ? 'current' : step.key === 'admin_finalization' ? 'pending' : 'completed',
+    }));
+  }
+
+  if (normalized === 'faculty_approved') {
+    return defaultSteps.map((step) => ({
+      ...step,
       status: step.key === 'admin_finalization' ? 'current' : 'completed',
     }));
   }

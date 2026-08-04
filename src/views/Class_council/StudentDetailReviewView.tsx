@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, FileText, Loader2, Paperclip, RotateCcw, X } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { CheckCircle2, FileText, Loader2, Paperclip, RefreshCw, RotateCcw, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_Admin } from '@/api/API_Admin';
 import { API_Shared } from '@/api/API_Shared';
@@ -58,58 +58,94 @@ function toArray<T>(value: unknown): T[] {
 }
 
 const reverseMapStudyAttitude = (value?: string | null) => {
-  const map: Record<string, string> = {
-    GTE_9: 'very_good',
-    FROM_7_TO_UNDER_9: 'good',
-    FROM_5_TO_UNDER_7: 'fair',
-    FROM_4_TO_UNDER_5: 'average',
-    FROM_1_TO_UNDER_4: 'poor',
+  if (!value) return 'FROM_1_TO_UNDER_4';
+  const val = String(value).toUpperCase();
+  const valid = ['GTE_9', 'FROM_7_TO_UNDER_9', 'FROM_5_TO_UNDER_7', 'FROM_4_TO_UNDER_5', 'FROM_1_TO_UNDER_4'];
+  if (valid.includes(val)) return val;
+  const legacyMap: Record<string, string> = {
+    VERY_GOOD: 'GTE_9',
+    GOOD: 'FROM_7_TO_UNDER_9',
+    FAIR: 'FROM_5_TO_UNDER_7',
+    AVERAGE: 'FROM_4_TO_UNDER_5',
+    POOR: 'FROM_1_TO_UNDER_4',
   };
-  return value ? map[value] || 'none' : 'none';
+  return legacyMap[val] || val;
 };
 
-const reverseMapAcademicRank = (value?: string | null) => String(value || 'none').toLowerCase();
+const reverseMapAcademicRank = (value?: string | null) => {
+  if (!value) return 'WEAK_WARNING_FIRST';
+  const val = String(value).toUpperCase();
+  const valid = ['EXCELLENT', 'GOOD', 'FAIR', 'AVERAGE', 'WEAK_NO_WARNING', 'WEAK_WARNING_FIRST'];
+  if (valid.includes(val)) return val;
+  const legacyMap: Record<string, string> = {
+    WEAK_WARN: 'WEAK_WARNING_FIRST',
+    WEAK_NO_WARN: 'WEAK_NO_WARNING',
+  };
+  return legacyMap[val] || val;
+};
+
+const reverseMapActivity1 = (value?: string | null) => {
+  if (!value) return 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED';
+  const val = String(value).toUpperCase();
+  if (['GOOD_PARTICIPATION', 'FULL', 'ACTIVE', 'VERY_GOOD'].includes(val)) return 'GOOD_PARTICIPATION';
+  if (['ABSENT_ONCE', 'ABSENT1', 'EXCUSED'].includes(val)) return 'ABSENT_ONCE';
+  if (['ABSENT_TWICE', 'ABSENT2'].includes(val)) return 'ABSENT_TWICE';
+  return 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED';
+};
 
 const reverseMapActivity2 = (value?: string | null) => {
-  const map: Record<string, string> = {
-    FULL_EFFECTIVE_PARTICIPATION: 'many',
-    EFFECTIVE_PARTICIPATION_FROM_HALF: 'some',
-    ENCOURAGED_OTHERS: 'active',
-    ABSENT_OVER_HALF: 'full',
-    NOT_PARTICIPATED: 'none',
-  };
-  return value ? map[value] || 'none' : 'none';
+  if (!value) return 'none';
+  const val = String(value).toLowerCase();
+  if (['full_effective_participation', 'many', 'over50', 'excellent'].includes(val)) return 'many';
+  if (['effective_participation_from_half', 'some', '50'].includes(val)) return 'some';
+  if (['encouraged_others', 'active', 'encourage'].includes(val)) return 'active';
+  if (['absent_over_half', 'full', 'under50'].includes(val)) return 'full';
+  return 'none';
 };
 
 const reverseMapActivity3 = (value?: string | null) => {
-  const map: Record<string, string> = {
-    FULL_EFFECTIVE_PARTICIPATION: 'prize_or_org',
-    ACTIVE_ONE_OR_MORE: 'active',
-    ACTIVE_SUPPORTER: 'some',
-    ABSENT_OVER_HALF: 'full',
-    NOT_PARTICIPATED: 'none',
-  };
-  return value ? map[value] || 'none' : 'none';
+  if (!value) return 'none';
+  const val = String(value).toLowerCase();
+  if (['full_effective_participation', 'prize_or_org', 'leader'].includes(val)) return 'prize_or_org';
+  if (['active_one_or_more', 'active', 'member'].includes(val)) return 'active';
+  if (['active_supporter', 'some'].includes(val)) return 'some';
+  if (['absent_over_half', 'full', 'under50'].includes(val)) return 'full';
+  return 'none';
 };
 
 const reverseMapActivity4 = (value?: string | null) => {
-  const map: Record<string, string> = {
-    MULTIPLE_ACTIVITIES_OR_REPORTING: 'active',
-    ONE_EFFECTIVE_ACTIVITY: 'full',
-    AWARENESS_OR_SUPPORT: 'some',
-    REMINDED_VIOLATION: 'none',
-  };
-  return value ? map[value] || 'none' : 'none';
+  if (!value) return 'none';
+  const val = String(value).toLowerCase();
+  if (['multiple_activities_or_reporting', 'active', 'very_active'].includes(val)) return 'active';
+  if (['one_effective_activity', 'full'].includes(val)) return 'full';
+  if (['awareness_or_support', 'some', 'aware'].includes(val)) return 'some';
+  return 'none';
+};
+
+const reverseMapPolicy = (value?: string | null) => {
+  if (!value) return 'VIOLATED';
+  const val = String(value).toUpperCase();
+  if (['GOOD_WITH_REWARD', 'EXCELLENT_PROPAGANDA', 'AWARDED'].includes(val)) return 'GOOD_WITH_REWARD';
+  if (['GOOD', 'GOOD_PROPAGANDA', 'COMPLY'].includes(val)) return 'GOOD';
+  if (['AVERAGE', 'MINOR_VIOLATION'].includes(val)) return 'AVERAGE';
+  return 'VIOLATED';
 };
 
 const reverseMapSolidarity = (value?: string | null) => {
-  const map: Record<string, string> = {
-    ACTIVE_WITH_REWARD: 'excellent_achievements',
-    ACTIVE: 'regular',
-    PARTICIPATED: 'some',
-    NOT_PARTICIPATED: 'none',
-  };
-  return value ? map[value] || 'none' : 'none';
+  if (!value) return 'none';
+  const val = String(value).toLowerCase();
+  if (['active_with_reward', 'excellent_achievements', 'awarded'].includes(val)) return 'excellent_achievements';
+  if (['active', 'regular', 'good'].includes(val)) return 'regular';
+  if (['participated', 'some', 'aware'].includes(val)) return 'some';
+  return 'none';
+};
+
+const reverseMapLocality = (value?: string | null) => {
+  if (!value) return 'TWO_WARNINGS';
+  const val = String(value).toUpperCase();
+  if (['GOOD', 'REWARDED'].includes(val)) return 'GOOD';
+  if (['ONE_WARNING', 'WARNED1', 'WARNED'].includes(val)) return 'ONE_WARNING';
+  return 'TWO_WARNINGS';
 };
 
 const reverseMapCadrePerformance = (value?: string | null) => {
@@ -119,7 +155,7 @@ const reverseMapCadrePerformance = (value?: string | null) => {
     FAIR: 'average',
     POOR: 'unsatisfactory',
   };
-  return value ? map[value] || 'unsatisfactory' : 'unsatisfactory';
+  return value ? map[value] || value : 'unsatisfactory';
 };
 
 const reverseMapManagementLevel = (value?: string | null) => {
@@ -128,16 +164,19 @@ const reverseMapManagementLevel = (value?: string | null) => {
     DEPUTY_POSITION: 'deputy',
     MEMBER_POSITION: 'member',
   };
-  return value ? map[value] || 'none' : 'none';
+  return value ? map[value] || value : 'none';
 };
 
 const reverseMapSpecialAchievement = (value?: string | null) => {
-  const map: Record<string, string> = {
-    NATIONAL_OR_INTL: 'national_intl',
-    PROVINCIAL_LEVEL: 'provincial',
-    NONE: 'none',
-  };
-  return value ? map[value] || 'none' : 'none';
+  if (!value) return 'NONE';
+  const val = String(value).toUpperCase();
+  if (['SCHOOL_LEVEL_OR_HIGHER', 'NATIONAL_OR_INTL', 'UNIVERSITY_LEVEL', 'NATIONAL_INTL'].includes(val)) {
+    return 'SCHOOL_LEVEL_OR_HIGHER';
+  }
+  if (['FACULTY_LEVEL', 'PROVINCIAL_LEVEL', 'PROVINCIAL'].includes(val)) {
+    return 'FACULTY_LEVEL';
+  }
+  return val;
 };
 
 export function StudentDetailReviewView() {
@@ -167,161 +206,166 @@ export function StudentDetailReviewView() {
   const deductionWeights = useMemo(() => [10, 3, 5, 5, 5, 5, 5, 10, 20], []);
   // deductionLabels moved to councilReviewStore (DEDUCTION_LABELS constant)
 
+  const loadEvaluationDetail = useCallback(async () => {
+    if (!evaluationId || !classId) {
+      setStudent(null);
+      setHasEvaluation(false);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      store.getState().resetToDefault();
+      setEvidences([]);
+      const [detailResult, listResult] = await Promise.all([
+        API_Admin.getEvaluationDetail(evaluationId),
+        API_Admin.getAdminEvaluationList({ classId, page: 1, limit: 100 }),
+      ]);
+
+      const detail = unwrapData<any>(detailResult);
+      const list = toArray<any>(unwrapData<any>(listResult));
+      const listItem = list.find((item) => item.id === evaluationId);
+      const studentInfo = detail.student || listItem?.student || {};
+      const extractedCode =
+        detail.studentCode ||
+        studentInfo.studentCode ||
+        studentInfo.code ||
+        studentInfo.username ||
+        studentInfo.user?.username ||
+        studentInfo.user?.studentCode ||
+        '';
+
+      setStudent({
+        id: detail.studentId || studentInfo.id || evaluationId,
+        code: extractedCode && !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(extractedCode) ? extractedCode : '-',
+        fullName: studentInfo.fullName || detail.studentName || detail.fullName || 'Sinh viên',
+      });
+      const study = detail.sections?.study || detail.study || detail.studyScoreSection || {};
+      const discipline = detail.sections?.discipline || detail.discipline || detail.disciplineScoreSection || {};
+      const activity = detail.sections?.activity || detail.activity || detail.activityScoreSection || {};
+      const community = detail.sections?.community || detail.community || detail.communityScoreSection || {};
+      const role = detail.sections?.role || detail.role || detail.roleScoreSection || {};
+
+      const activities = Array.isArray(study.activities) ? study.activities : [];
+      const hasAcademicEvent = Boolean(
+        activities.some((item: any) => item.code === 'ACADEMIC_EVENT_PARTICIPATION' && item.checked !== false) ||
+        study.nckh || study.hasAcademicEvent || Number(study.scientificResearchScore) > 0
+      );
+      const hasPublication = Boolean(
+        activities.some((item: any) => item.code === 'SCIENTIFIC_PUBLICATION_OR_CONTEST' && item.checked !== false) ||
+        study.olympic || study.hasPublication || Number(study.olympicScore) > 0
+      );
+      const hasAward = Boolean(
+        activities.some((item: any) => item.code === 'SCIENTIFIC_AWARD' && item.checked !== false) ||
+        study.creative || study.hasAward || Number(study.creativeScore) > 0
+      );
+
+      const violations = Array.isArray(discipline.violations) ? discipline.violations : [];
+      const deductionCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+      violations.forEach((violation: any) => {
+        const codeIndex = (DISCIPLINE_VIOLATION_CODES as readonly string[]).indexOf(violation.code);
+        const legacyIndex = String(violation.code || '').startsWith('DEDUCT_')
+          ? parseInt(String(violation.code).replace('DEDUCT_', ''), 10) - 1
+          : -1;
+        const weightIndex = deductionWeights.findIndex((weight) => weight === Number(violation.deductScore));
+        const index = codeIndex >= 0 ? codeIndex : legacyIndex >= 0 ? legacyIndex : weightIndex;
+
+        if (index >= 0 && index < deductionCounts.length) {
+          deductionCounts[index] = Number(violation.count) || 0;
+        }
+      });
+      const baseScore = discipline.baseScore !== undefined
+        ? Math.min(25, Math.max(0, Number(discipline.baseScore) || 0))
+        : 25;
+
+      const roleTypeVal = String(role.studentRoleType || role.roleType || '').toUpperCase();
+      const isClassOfficer = ['CLASS_OFFICER', 'CLASS_LEADER', 'CLASS_MONITOR', 'CADRE', 'OFFICER'].includes(roleTypeVal);
+      const posStr = String(role.positionGroup || role.position || '').toUpperCase();
+      const position = ['LEADER_GROUP', 'A1', 'LEADER', 'PRESIDENT', 'MONITOR'].includes(posStr) ? 'a1' : 'a2';
+
+      const evidenceItems = Array.isArray(detail.evidences) ? detail.evidences : [];
+      setEvidences(
+        evidenceItems.map((evidence: any) => ({
+          id: evidence.id,
+          fileName: evidence.fileName || evidence.originalName || evidence.publicId || 'Minh chứng',
+          fileType: String(evidence.mimeType || evidence.fileType || evidence.imageUrl || '').includes('pdf') ? 'pdf' : 'image',
+          url: getEvidenceViewUrl(evidence),
+          status: evidence.status || 'pending',
+        }))
+      );
+
+      setHasEvaluation(true);
+
+      const wfStatus = String(detail.status || listItem?.status || 'submitted').toLowerCase();
+      setWorkflowStatus(wfStatus);
+
+      const userRole = String(user?.role || '').toLowerCase();
+      const isCL = userRole === 'class_leader';
+      const isAdv = userRole === 'advisor';
+      const isStudentUser = userRole === 'student';
+
+      const review = detail.review || {};
+      const confirmed = isCL
+        ? Boolean(review.classLeaderReviewedAt || detail.classLeaderReviewedAt || detail.classLeaderConfirmedAt)
+        : isAdv
+          ? Boolean(review.classReviewedAt || detail.classReviewedAt || detail.advisorReviewedAt || detail.advisorConfirmedAt)
+          : false;
+      setIsConfirmed(confirmed);
+
+      // Determine store role so council review columns follow the current workflow step.
+      const storeRole = isAdv
+        ? 'advisor'
+        : isStudentUser
+          ? 'student'
+          : 'class_leader';
+
+      // Push all loaded values into the Zustand store at once so
+      // CouncilCriteriaReviewTable can read from store without props
+      const svStudyAtStr = reverseMapStudyAttitude(study.regularScoreLevel);
+      const svAcademicRankStr = reverseMapAcademicRank(study.academicRank);
+      const roleType: 'cadre' | 'student' = isClassOfficer ? 'cadre' : 'student';
+      store.getState().batchSet({
+        currentUserRole: storeRole as any,
+        workflowStatus: wfStatus,
+        svStudyAttitude: svStudyAtStr,
+        classStudyAttitude: svStudyAtStr,
+        svAcademicRank: svAcademicRankStr,
+        classAcademicRank: svAcademicRankStr,
+        svNckh: hasAcademicEvent, classNckh: hasAcademicEvent,
+        svOlympic: hasPublication, classOlympic: hasPublication,
+        svCreative: hasAward, classCreative: hasAward,
+        svNoViolationScore: baseScore, classNoViolationScore: baseScore,
+        svDeductions: [...deductionCounts], classDeductions: [...deductionCounts],
+        svActivity1: reverseMapActivity1(activity.politicalActivityLevel),
+        classActivity1: reverseMapActivity1(activity.politicalActivityLevel),
+        svActivity2: reverseMapActivity2(activity.cultureSportLevel), classActivity2: reverseMapActivity2(activity.cultureSportLevel),
+        svActivity3: reverseMapActivity3(activity.clubActivityLevel), classActivity3: reverseMapActivity3(activity.clubActivityLevel),
+        svActivity4: reverseMapActivity4(activity.socialPreventionLevel), classActivity4: reverseMapActivity4(activity.socialPreventionLevel),
+        svRewardPoints: Number(activity.rewardScore) || 0, classRewardPoints: Number(activity.rewardScore) || 0,
+        svPolicy: reverseMapPolicy(community.lawComplianceLevel), classPolicy: reverseMapPolicy(community.lawComplianceLevel),
+        svSolidarity: reverseMapSolidarity(community.volunteerActivityLevel), classSolidarity: reverseMapSolidarity(community.volunteerActivityLevel),
+        svLocality: reverseMapLocality(community.communityRelationshipLevel), classLocality: reverseMapLocality(community.communityRelationshipLevel),
+        svRoleType: roleType, classRoleType: roleType,
+        svCadrePosition: position, classCadrePosition: position,
+        svCadrePerformance: reverseMapCadrePerformance(role.taskCompletionLevel), classCadrePerformance: reverseMapCadrePerformance(role.taskCompletionLevel),
+        svManagementLevel: reverseMapManagementLevel(role.managementSkillLevel), classManagementLevel: reverseMapManagementLevel(role.managementSkillLevel),
+        svClassParticipation: Number(role.normalStudentActivityScore) || 0, classClassParticipation: Number(role.normalStudentActivityScore) || 0,
+        svSpecialAchievement: reverseMapSpecialAchievement(role.specialAchievementLevel), classSpecialAchievement: reverseMapSpecialAchievement(role.specialAchievementLevel),
+      } as any);
+
+    } catch (error: any) {
+      setStudent(null);
+      setHasEvaluation(false);
+      toast.error(getUserFriendlyError(error, 'Không tải được phiếu đánh giá.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [classId, deductionWeights, evaluationId, store, toast, user]);
+
   useEffect(() => {
-    let mounted = true;
-
-    const loadEvaluationDetail = async () => {
-      if (!evaluationId || !classId) {
-        setStudent(null);
-        setHasEvaluation(false);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const [detailResult, listResult] = await Promise.all([
-          API_Admin.getEvaluationDetail(evaluationId),
-          API_Admin.getAdminEvaluationList({ classId, page: 1, limit: 100 }),
-        ]);
-
-        if (!mounted) return;
-
-        const detail = unwrapData<any>(detailResult);
-        const list = toArray<any>(unwrapData<any>(listResult));
-        const listItem = list.find((item) => item.id === evaluationId);
-        const studentInfo = detail.student || listItem?.student || {};
-        const extractedCode =
-          detail.studentCode ||
-          studentInfo.studentCode ||
-          studentInfo.code ||
-          studentInfo.username ||
-          studentInfo.user?.username ||
-          studentInfo.user?.studentCode ||
-          '';
-
-        setStudent({
-          id: detail.studentId || studentInfo.id || evaluationId,
-          code: extractedCode && !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(extractedCode) ? extractedCode : '-',
-          fullName: studentInfo.fullName || detail.studentName || detail.fullName || 'Sinh viên',
-        });
-        const study = detail.sections?.study || {};
-        const discipline = detail.sections?.discipline || {};
-        const activity = detail.sections?.activity || {};
-        const community = detail.sections?.community || {};
-        const role = detail.sections?.role || {};
-
-        const activities = Array.isArray(study.activities) ? study.activities : [];
-        const hasAcademicEvent = activities.some((item: any) => item.code === 'ACADEMIC_EVENT_PARTICIPATION' && item.checked !== false);
-        const hasPublication = activities.some((item: any) => item.code === 'SCIENTIFIC_PUBLICATION_OR_CONTEST' && item.checked !== false);
-        const hasAward = activities.some((item: any) => item.code === 'SCIENTIFIC_AWARD' && item.checked !== false);
-
-        const violations = Array.isArray(discipline.violations) ? discipline.violations : [];
-        const deductionCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-        violations.forEach((violation: any) => {
-          const codeIndex = (DISCIPLINE_VIOLATION_CODES as readonly string[]).indexOf(violation.code);
-          const legacyIndex = String(violation.code || '').startsWith('DEDUCT_')
-            ? parseInt(String(violation.code).replace('DEDUCT_', ''), 10) - 1
-            : -1;
-          const weightIndex = deductionWeights.findIndex((weight) => weight === Number(violation.deductScore));
-          const index = codeIndex >= 0 ? codeIndex : legacyIndex >= 0 ? legacyIndex : weightIndex;
-
-          if (index >= 0 && index < deductionCounts.length) {
-            deductionCounts[index] = Number(violation.count) || 0;
-          }
-        });
-        const hasDisciplineInput = Number(discipline.score) > 0 || violations.length > 0;
-        const baseScore = hasDisciplineInput ? Math.min(25, Math.max(0, Number(discipline.baseScore) || 0)) : 0;
-
-        const isClassOfficer = role.studentRoleType === 'CLASS_OFFICER';
-        const position = role.positionGroup === 'LEADER_GROUP' ? 'a1' : 'a2';
-
-        const evidenceItems = Array.isArray(detail.evidences) ? detail.evidences : [];
-        setEvidences(
-          evidenceItems.map((evidence: any) => ({
-            id: evidence.id,
-            fileName: evidence.fileName || evidence.originalName || evidence.publicId || 'Minh chứng',
-            fileType: String(evidence.mimeType || evidence.fileType || evidence.imageUrl || '').includes('pdf') ? 'pdf' : 'image',
-            url: getEvidenceViewUrl(evidence),
-            status: evidence.status || 'pending',
-          }))
-        );
-
-        setHasEvaluation(true);
-
-        const wfStatus = String(detail.status || listItem?.status || 'submitted').toLowerCase();
-        setWorkflowStatus(wfStatus);
-
-        const userRole = String(user?.role || '').toLowerCase();
-        const isCL = userRole === 'class_leader';
-        const isAdv = userRole === 'advisor';
-        const isStudentUser = userRole === 'student';
-
-        const review = detail.review || {};
-        const confirmed = isCL
-          ? Boolean(review.classLeaderReviewedAt || detail.classLeaderReviewedAt || detail.classLeaderConfirmedAt)
-          : isAdv
-            ? Boolean(review.classReviewedAt || detail.classReviewedAt || detail.advisorReviewedAt || detail.advisorConfirmedAt)
-            : false;
-        setIsConfirmed(confirmed);
-
-        // Determine store role so council review columns follow the current workflow step.
-        const storeRole = isAdv
-          ? 'advisor'
-          : isStudentUser
-            ? 'student'
-            : 'class_leader';
-
-        // Push all loaded values into the Zustand store at once so
-        // CouncilCriteriaReviewTable can read from store without props
-        const svStudyAtStr = reverseMapStudyAttitude(study.regularScoreLevel);
-        const svAcademicRankStr = reverseMapAcademicRank(study.academicRank);
-        const roleType: 'cadre' | 'student' = isClassOfficer ? 'cadre' : 'student';
-        store.getState().batchSet({
-          currentUserRole: storeRole as any,
-          workflowStatus: wfStatus,
-          svStudyAttitude: svStudyAtStr,
-          classStudyAttitude: svStudyAtStr,
-          svAcademicRank: svAcademicRankStr,
-          classAcademicRank: svAcademicRankStr,
-          svNckh: hasAcademicEvent, classNckh: hasAcademicEvent,
-          svOlympic: hasPublication, classOlympic: hasPublication,
-          svCreative: hasAward, classCreative: hasAward,
-          svNoViolationScore: baseScore, classNoViolationScore: baseScore,
-          svDeductions: [...deductionCounts], classDeductions: [...deductionCounts],
-          svActivity1: activity.politicalActivityLevel || 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
-          classActivity1: activity.politicalActivityLevel || 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
-          svActivity2: reverseMapActivity2(activity.cultureSportLevel), classActivity2: reverseMapActivity2(activity.cultureSportLevel),
-          svActivity3: reverseMapActivity3(activity.clubActivityLevel), classActivity3: reverseMapActivity3(activity.clubActivityLevel),
-          svActivity4: reverseMapActivity4(activity.socialPreventionLevel), classActivity4: reverseMapActivity4(activity.socialPreventionLevel),
-          svRewardPoints: Number(activity.rewardScore) || 0, classRewardPoints: Number(activity.rewardScore) || 0,
-          svPolicy: community.lawComplianceLevel || 'VIOLATED', classPolicy: community.lawComplianceLevel || 'VIOLATED',
-          svSolidarity: reverseMapSolidarity(community.volunteerActivityLevel), classSolidarity: reverseMapSolidarity(community.volunteerActivityLevel),
-          svLocality: community.communityRelationshipLevel || 'TWO_WARNINGS', classLocality: community.communityRelationshipLevel || 'TWO_WARNINGS',
-          svRoleType: roleType, classRoleType: roleType,
-          svCadrePosition: position, classCadrePosition: position,
-          svCadrePerformance: reverseMapCadrePerformance(role.taskCompletionLevel), classCadrePerformance: reverseMapCadrePerformance(role.taskCompletionLevel),
-          svManagementLevel: reverseMapManagementLevel(role.managementSkillLevel), classManagementLevel: reverseMapManagementLevel(role.managementSkillLevel),
-          svClassParticipation: Number(role.normalStudentActivityScore) || 0, classClassParticipation: Number(role.normalStudentActivityScore) || 0,
-          svSpecialAchievement: reverseMapSpecialAchievement(role.specialAchievementLevel), classSpecialAchievement: reverseMapSpecialAchievement(role.specialAchievementLevel),
-        } as any);
-
-      } catch (error: any) {
-        if (!mounted) return;
-        setStudent(null);
-        setHasEvaluation(false);
-        toast.error(getUserFriendlyError(error, 'Không tải được phiếu đánh giá.'));
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
     loadEvaluationDetail();
-
-    return () => {
-      mounted = false;
-    };
-  }, [classId, deductionWeights, evaluationId, store, toast, user?.role]);
+  }, [loadEvaluationDetail]);
 
   // uploadedFiles, handleDeductionChange, handleFileUpload, removeFile are
   // now handled inside CouncilCriteriaReviewTable via councilReviewStore.
@@ -476,15 +520,28 @@ export function StudentDetailReviewView() {
                 Cột Điểm SV tự đánh giá hiển thị điểm của sinh viên; Cán bộ chấm điểm chỉnh sửa cột Điểm Lớp đánh giá.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setEvidenceModalOpen(true)}
-              aria-label="Xem các minh chứng đính kèm của sinh viên"
-              className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
-            >
-              <Paperclip size={15} />
-              Xem minh chứng đính kèm
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={loadEvaluationDetail}
+                disabled={loading}
+                aria-label="Tải lại dữ liệu ban đầu từ máy chủ"
+                title="Tải lại dữ liệu gốc ban đầu"
+                className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                Tải lại dữ liệu ban đầu
+              </button>
+              <button
+                type="button"
+                onClick={() => setEvidenceModalOpen(true)}
+                aria-label="Xem các minh chứng đính kèm của sinh viên"
+                className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+              >
+                <Paperclip size={15} />
+                Xem minh chứng đính kèm
+              </button>
+            </div>
           </div>
 
           {/* ── CouncilCriteriaReviewTable: all state sourced from Zustand store ── */}
