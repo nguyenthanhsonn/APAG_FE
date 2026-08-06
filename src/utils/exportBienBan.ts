@@ -29,6 +29,7 @@ export interface BienBanStudentRow {
 export interface BienBanFormData {
   khoa: string;
   lop: string;
+  diaDanh?: string;
   ngayHop: string; // dd/MM/yyyy
   thang: string;
   nam: string;
@@ -56,8 +57,15 @@ function getClassificaionCounts(students: BienBanStudentRow[]) {
   };
 }
 
-function txt(text: string, bold = false, size = 24, italic = false): TextRun {
-  return new TextRun({ text, bold, size, italics: italic, font: 'Times New Roman' });
+function txt(text: string, bold = false, size = 24, italic = false, underline = false): TextRun {
+  return new TextRun({
+    text,
+    bold,
+    size,
+    italics: italic,
+    font: 'Times New Roman',
+    underline: underline ? { type: 'single' } : undefined,
+  });
 }
 
 function para(
@@ -120,8 +128,7 @@ export async function exportBienBanDocx(data: BienBanFormData) {
           }),
           new TableCell({
             children: [
-              para([txt('ĐẢNG CỘNG SẢN VIỆT NAM', true)], AlignmentType.CENTER),
-              para([txt('– – – – – – – – – –', false, 22)], AlignmentType.CENTER, 0, 0),
+              para([txt('ĐẢNG CỘNG SẢN VIỆT NAM', true, 24, false, true)], AlignmentType.CENTER),
             ],
             width: { size: 50, type: WidthType.PERCENTAGE },
             borders: {
@@ -240,7 +247,7 @@ export async function exportBienBanDocx(data: BienBanFormData) {
           para([]),
           // Dòng ngày tháng — căn phải, in nghiêng
           para(
-            [txt(`Quảng Nam, ngày ${data.ngayHop} tháng ${data.thang} năm ${data.nam}`, false, 24, true)],
+            [txt(`${data.diaDanh || 'Đà Nẵng'}, ngày ${data.ngayHop} tháng ${data.thang} năm ${data.nam}`, false, 24, true)],
             AlignmentType.RIGHT,
             0,
             160,

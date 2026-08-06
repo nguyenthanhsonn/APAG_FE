@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Building2,
-  Users,
-  CheckCircle2,
   Clock,
   AlertCircle,
   Search,
@@ -32,15 +30,88 @@ interface Props {
   classId: string;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  APPROVED: 'Đã gửi PĐT',
-  WAITING_APPROVAL: 'Đang trong luồng duyệt',
-  REJECTED: 'Trả về',
-  NOT_SUBMITTED: 'Chưa nộp',
-};
+
 
 function normalizeKey(value: unknown) {
   return String(value || '').trim().toLowerCase();
+}
+
+function getRawStatusLabel(rawStatus: string, status: string): string {
+  const norm = String(rawStatus || '').trim().toLowerCase();
+  switch (norm) {
+    case 'submitted':
+      return 'Chờ Lớp trưởng duyệt';
+    case 'class_leader_approved':
+      return 'Chờ CVHT duyệt';
+    case 'class_approved':
+      return 'Chờ Khoa duyệt';
+    case 'faculty_approved':
+      return 'Đã gửi PĐT';
+    case 'finalized':
+      return 'PĐT đã duyệt';
+    case 'rejected':
+      return 'Trả về';
+    case 'draft':
+    default:
+      return status === 'APPROVED' ? 'Đã gửi PĐT' : 'Chưa nộp';
+  }
+}
+
+function renderStatusBadge(rawStatus: string, status: string) {
+  const norm = String(rawStatus || '').trim().toLowerCase();
+
+  switch (norm) {
+    case 'submitted':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-800 bg-amber-50 rounded-full border border-amber-300">
+          <Clock size={12} /> Chờ Lớp trưởng duyệt
+        </span>
+      );
+    case 'class_leader_approved':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-orange-800 bg-orange-50 rounded-full border border-orange-300">
+          <Clock size={12} /> Chờ CVHT duyệt
+        </span>
+      );
+    case 'class_approved':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-800 bg-blue-50 rounded-full border border-blue-300">
+          <Clock size={12} /> Chờ Khoa duyệt
+        </span>
+      );
+    case 'faculty_approved':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">
+          <Check size={12} /> Đã gửi PĐT
+        </span>
+      );
+    case 'finalized':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-teal-800 bg-teal-50 rounded-full border border-teal-300">
+          <Check size={12} /> PĐT đã duyệt
+        </span>
+      );
+    case 'rejected':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 rounded-full border border-rose-200">
+          <AlertCircle size={12} /> Trả về
+        </span>
+      );
+    case 'draft':
+    default:
+      if (status === 'APPROVED') {
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">
+            <Check size={12} /> Đã gửi PĐT
+          </span>
+        );
+      }
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-100 rounded-full">
+          Chưa nộp
+        </span>
+      );
+  }
 }
 
 function getStudentIdentityKeys(student: any) {
@@ -177,15 +248,18 @@ export function FacultyClassDetailView({ classId }: Props) {
     const matchesSearch =
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
+    const rawLower = String(s.rawStatus || '').toLowerCase();
+    const filterLower = statusFilter.toLowerCase();
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      s.status === statusFilter ||
+      rawLower === filterLower ||
+      (filterLower === 'faculty_approved' && s.status === 'APPROVED') ||
+      (filterLower === 'draft' && s.status === 'NOT_SUBMITTED');
     return matchesSearch && matchesStatus;
   }), [students, searchTerm, statusFilter]);
 
   const totalCount = students.length;
-  const approvedCount = students.filter((s) => s.status === 'APPROVED').length;
-  const waitingCount = students.filter((s) => s.status === 'WAITING_APPROVAL').length;
-  const notSubmittedCount = students.filter((s) => s.status === 'NOT_SUBMITTED').length;
-  const rejectedCount = students.filter((s) => s.status === 'REJECTED').length;
   const classStatus = classInfo?.status ?? 'IN_PROGRESS';
   const managedFaculty =
     (user as any)?.managedFaculty ||
@@ -293,25 +367,6 @@ export function FacultyClassDetailView({ classId }: Props) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-brand-secondary/10 text-brand-secondary rounded-xl"><Users size={22} /></div>
-          <div><p className="text-xs text-gray-500 font-medium">Số phiếu</p><p className="text-xl font-bold text-gray-900">{totalCount} Phiếu</p></div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle2 size={22} /></div>
-          <div><p className="text-xs text-gray-500 font-medium">Đã gửi PĐT</p><p className="text-xl font-bold text-emerald-600">{approvedCount} Phiếu</p></div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><Clock size={22} /></div>
-          <div><p className="text-xs text-gray-500 font-medium">Đang trong luồng</p><p className="text-xl font-bold text-amber-600">{waitingCount} Phiếu</p></div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-rose-50 text-rose-600 rounded-xl"><AlertCircle size={22} /></div>
-          <div><p className="text-xs text-gray-500 font-medium">Chưa nộp / Trả về</p><p className="text-xl font-bold text-rose-600">{notSubmittedCount + rejectedCount} Phiếu</p></div>
-        </div>
-      </div>
-
       <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 justify-between items-center bg-gray-50/50">
           <div className="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
@@ -334,10 +389,13 @@ export function FacultyClassDetailView({ classId }: Props) {
                 className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
               >
                 <option value="ALL">Tất cả trạng thái</option>
-                <option value="APPROVED">Đã gửi PĐT</option>
-                <option value="WAITING_APPROVAL">Đang trong luồng</option>
-                <option value="REJECTED">Trả về</option>
-                <option value="NOT_SUBMITTED">Chưa nộp</option>
+                <option value="submitted">Chờ Lớp trưởng duyệt</option>
+                <option value="class_leader_approved">Chờ CVHT duyệt</option>
+                <option value="class_approved">Chờ Khoa duyệt</option>
+                <option value="faculty_approved">Đã gửi PĐT</option>
+                <option value="finalized">PĐT đã duyệt</option>
+                <option value="rejected">Trả về</option>
+                <option value="draft">Chưa nộp</option>
               </select>
             </div>
           </div>
@@ -347,12 +405,6 @@ export function FacultyClassDetailView({ classId }: Props) {
               title={`DANH SÁCH PHIẾU LỚP ${classInfo?.className || classId}`}
               subtitle={`${managedFacultyName} | Dữ liệu API`}
               label="In danh sách"
-              summaryStats={[
-                { label: 'Số phiếu', value: `${totalCount} Phiếu` },
-                { label: 'Đã gửi PĐT', value: `${approvedCount} Phiếu` },
-                { label: 'Đang trong luồng', value: `${waitingCount} Phiếu` },
-                { label: 'Chưa nộp / Trả về', value: `${notSubmittedCount + rejectedCount} Phiếu` },
-              ]}
               signatures={{ leftLabel: 'Cố vấn học tập (CVHT)', rightLabel: 'Trưởng Khoa' }}
               data={filteredStudents}
               columns={[
@@ -360,7 +412,7 @@ export function FacultyClassDetailView({ classId }: Props) {
                 { header: 'Họ và tên', accessorKey: 'name' },
                 { header: 'Điểm', accessorKey: 'score', align: 'center', render: (s) => (s.score > 0 ? s.score : '-') },
                 { header: 'Xếp loại', accessorKey: 'rank', align: 'center' },
-                { header: 'Trạng thái', align: 'left', render: (s) => STATUS_LABEL[s.status] ?? s.status },
+                { header: 'Trạng thái', align: 'left', render: (s) => getRawStatusLabel(s.rawStatus, s.status) },
                 { header: 'Ngày nộp', accessorKey: 'date' },
               ]}
             />
@@ -392,12 +444,7 @@ export function FacultyClassDetailView({ classId }: Props) {
                   <td className="py-3.5 px-4 text-center">
                     {st.rank !== '-' ? <span className="inline-block px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-md">{st.rank}</span> : <span className="text-gray-400">-</span>}
                   </td>
-                  <td className="py-3.5 px-4">
-                    {st.status === 'APPROVED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200"><Check size={12} /> Đã gửi PĐT</span>}
-                    {st.status === 'WAITING_APPROVAL' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 rounded-full border border-amber-200"><Clock size={12} /> Đang trong luồng</span>}
-                    {st.status === 'REJECTED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 rounded-full border border-rose-200"><AlertCircle size={12} /> Trả về</span>}
-                    {st.status === 'NOT_SUBMITTED' && <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-100 rounded-full">Chưa nộp</span>}
-                  </td>
+                  <td className="py-3.5 px-4">{renderStatusBadge(st.rawStatus, st.status)}</td>
                   <td className="py-3.5 px-4 text-gray-500 text-xs">{st.date}</td>
                 </tr>
               ))}

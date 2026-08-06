@@ -158,7 +158,7 @@ const ACTIVITY2_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION:
 const ACTIVITY3_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION: 5, ACTIVE_ONE_OR_MORE: 3, ACTIVE_SUPPORTER: 2, ABSENT_OVER_HALF: 1, NOT_PARTICIPATED: 0, prize_or_org: 5, active: 3, some: 2, full: 1, none: 0 };
 const ACTIVITY4_SCORES: Record<string, number> = { MULTIPLE_ACTIVITIES_OR_REPORTING: 3, ONE_EFFECTIVE_ACTIVITY: 2, AWARENESS_OR_SUPPORT: 1, REMINDED_VIOLATION: 0, active: 3, full: 2, some: 1, none: 0 };
 const POLICY_SCORES: Record<string, number> = { GOOD_WITH_REWARD: 10, GOOD: 8, AVERAGE: 5, VIOLATED: 0, excellent_propaganda: 10, good: 8, minor_violation: 5, none: 0 };
-const SOLIDARITY_SCORES: Record<string, number> = { ACTIVE_WITH_REWARD: 10, ACTIVE: 8, PARTICIPATED: 5, NOT_PARTICIPATED: 0, excellent_achievements: 10, regular: 8, some: 5, none: 0 };
+const SOLIDARITY_SCORES: Record<string, number> = { ACTIVE_WITH_REWARD: 10, ACTIVE: 8, PARTICIPATED: 5, DISUNITY: 0, NOT_PARTICIPATED: 0, excellent_achievements: 10, regular: 8, some: 5, minor_violation: 0, none: 0 };
 const LOCALITY_SCORES: Record<string, number> = { GOOD: 5, ONE_WARNING: 1, TWO_WARNINGS: 0, good: 5, rewarded: 1, warned: 0, warned1: 1, warned2: 0 };
 
 // ---------------------------------------------------------------------------
@@ -275,9 +275,9 @@ const DEFAULT_STATE: Omit<
   isSvViolationSec1: false,
   isClassViolationSec1: false,
 
-  svNoViolationScore: 0,
+  svNoViolationScore: 25,
   svDeductions: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-  classNoViolationScore: 0,
+  classNoViolationScore: 25,
   classDeductions: [0, 0, 0, 0, 0, 0, 0, 0, 0],
   deductionLabels: DEDUCTION_LABELS,
   isSvViolationSec2: false,

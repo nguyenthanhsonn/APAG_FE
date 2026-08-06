@@ -96,9 +96,9 @@ export const EvaluationSection5 = ({
         <div>
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-pink-500"></span>
-            Mục V: Tham gia BCS lớp, BCH Đoàn Hội, Câu lạc bộ
+            Mục V: Đánh giá về ý thức và kết quả tham gia Ban cán sự lớp, BCH Đoàn, Ban chủ nhiệm các Ban, CLB, Đội, Hội, Nhóm được thành lập theo quy định.
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Điểm tối đa: 10đ</p>
+          <p className="text-xs text-gray-500 mt-0.5">Thang điểm: Từ 0÷10 điểm</p>
         </div>
 
         <div className="flex items-center gap-3 mt-2 sm:mt-0 select-none">
@@ -147,35 +147,35 @@ export const EvaluationSection5 = ({
 
           {/* BCS & Staff Type selector */}
           <div className="border-b pb-4">
-            <h3 className="text-sm font-bold text-gray-800">5.1 Phân loại vai trò chức vụ (Điểm tối đa: 10đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">1. BCS lớp, BCH các tổ chức Đảng, Đoàn thanh niên, Hội sinh viên, chi bộ sinh viên, các CLB và các tổ chức khác trong Học viện/Phân viện được thành lập theo quy định. (Thang điểm: 7đ)</h3>
             <p className="text-xs text-gray-500 mt-0.5">Lựa chọn đúng nhóm đối tượng để thiết lập bộ điểm rèn luyện.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               {/* SV Column */}
               <div>
                 <label className="block text-xs font-bold text-blue-700 mb-1.5">Sinh viên tự chọn</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-2 text-xs font-bold text-gray-700 cursor-pointer">
                     <input
                       type="radio"
                       name="svRoleType"
                       checked={svRoleType === 'cadre'}
                       onChange={() => setSvRoleType('cadre')}
                       disabled={currentUserRole !== 'student' || isSvViolationSec5}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 mt-0.5 shrink-0"
                     />
-                    Nhóm 1: Ban cán sự / Ban chấp hành
+                    Nhóm 1: Lớp trưởng, Lớp phó; Bí thư, Phó Bí thư; Chủ nhiệm các Ban, CLB...
                   </label>
-                  <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                  <label className="flex items-start gap-2 text-xs font-bold text-gray-700 cursor-pointer">
                     <input
                       type="radio"
                       name="svRoleType"
                       checked={svRoleType === 'student'}
                       onChange={() => setSvRoleType('student')}
                       disabled={currentUserRole !== 'student' || isSvViolationSec5}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 mt-0.5 shrink-0"
                     />
-                    Nhóm 2: Sinh viên thường còn lại
+                    Nhóm 2: Tất cả các sinh viên trong lớp còn lại
                   </label>
                 </div>
               </div>
@@ -183,8 +183,8 @@ export const EvaluationSection5 = ({
               {/* Class Column */}
               <div>
                 <label className="block text-xs font-bold text-indigo-700 mb-1.5">Lớp đánh giá chọn</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-2 text-xs font-bold text-gray-700 cursor-pointer">
                     <input
                       type="radio"
                       name="classRoleType"
@@ -194,11 +194,11 @@ export const EvaluationSection5 = ({
                         setClassRoleType('cadre');
                       }}
                       disabled={currentUserRole !== 'class' || isClassViolationSec5}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mt-0.5 shrink-0"
                     />
-                    Nhóm 1: Ban cán sự / Ban chấp hành
+                    Nhóm 1: Lớp trưởng, Lớp phó; Bí thư, Phó Bí thư; Chủ nhiệm các Ban, CLB...
                   </label>
-                  <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                  <label className="flex items-start gap-2 text-xs font-bold text-gray-700 cursor-pointer">
                     <input
                       type="radio"
                       name="classRoleType"
@@ -208,9 +208,9 @@ export const EvaluationSection5 = ({
                         setClassRoleType('student');
                       }}
                       disabled={currentUserRole !== 'class' || isClassViolationSec5}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mt-0.5 shrink-0"
                     />
-                    Nhóm 2: Sinh viên thường còn lại
+                    Nhóm 2: Tất cả các sinh viên trong lớp còn lại
                   </label>
                 </div>
               </div>
@@ -220,7 +220,7 @@ export const EvaluationSection5 = ({
           {/* Condition 1: BCS / BCH option */}
           {((currentUserRole === 'student' && svRoleType === 'cadre') || (currentUserRole === 'class' && classRoleType === 'cadre')) && (
             <div className="p-4 bg-gray-50 rounded-xl space-y-4 border border-gray-200">
-              <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wide">Thiết lập dành cho Ban cán sự / Ban chấp hành (V.1)</h4>
+              <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wide">Thiết lập dành cho Ban cán sự / Ban chấp hành (Mục 1)</h4>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* SV details */}
@@ -229,15 +229,15 @@ export const EvaluationSection5 = ({
                     <h5 className="text-xs font-bold text-blue-700">Sinh viên tự chấm</h5>
                     
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">V.1a Phân loại chức danh vai trò</label>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">a) Ý thức, tinh thần, thái độ, uy tín và hiệu quả công việc được phân công</label>
                       <select
                         value={svCadrePosition}
                         onChange={(e) => setSvCadrePosition(e.target.value as 'a1' | 'a2')}
                         disabled={isSvViolationSec5}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       >
-                        <option value="a1">a1: Lớp trưởng, Bí thư, CN CLB, Ủy viên BCH Đoàn Học viện (Max 7đ)</option>
-                        <option value="a2">a2: Lớp phó, Phó bí thư, UV Chi đoàn, Chi ủy viên, UV CLB (Max 6đ)</option>
+                        <option value="a1">Lớp trưởng, Lớp phó; Bí thư, Phó Bí thư; Chủ nhiệm, Phó Chủ nhiệm các Ban, CLB... (Max 7đ)</option>
+                        <option value="a2">Ủy viên BCH chi đoàn; Chi ủy viên; Tổ trưởng, tổ phó các lớp; Ủy viên các Ban, CLB... (Max 6đ)</option>
                       </select>
                     </div>
 
@@ -249,13 +249,13 @@ export const EvaluationSection5 = ({
                         disabled={isSvViolationSec5}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       >
-                        <option value="excellent">Hoàn thành xuất sắc nhiệm vụ (Khen thưởng) {svCadrePosition === 'a1' ? '(7 điểm)' : '(6 điểm)'}</option>
+                        <option value="excellent">Hoàn thành xuất sắc nhiệm vụ (được khen thưởng hoặc được lãnh đạo các đơn vị, CVHT, tập thể ghi nhận) {svCadrePosition === 'a1' ? '(7 điểm)' : '(6 điểm)'}</option>
                         <option value="good">Hoàn thành tốt nhiệm vụ {svCadrePosition === 'a1' ? '(6 điểm)' : '(5 điểm)'}</option>
                         <option value="average">Hoàn thành nhiệm vụ {svCadrePosition === 'a1' ? '(4 điểm)' : '(3 điểm)'}</option>
                         <option value="unsatisfactory">Không hoàn thành nhiệm vụ (0 điểm)</option>
                       </select>
                       {svCadrePerformance === 'excellent' && (
-                        <p className="text-[10px] text-amber-600 font-bold mt-1">* Yêu cầu tải lên minh chứng Hoàn thành xuất sắc (giấy khen)</p>
+                        <p className="text-[10px] text-amber-600 font-bold mt-1">* Yêu cầu tải lên minh chứng Hoàn thành xuất sắc (giấy khen/giấy xác nhận)</p>
                       )}
                     </div>
 
@@ -286,17 +286,17 @@ export const EvaluationSection5 = ({
                     )}
 
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">V.1b Kỹ năng tổ chức, quản lý (Tối đa 3đ)</label>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">b) Kỹ năng tổ chức, quản lý lớp, quản lý các tổ chức Đảng, Đoàn, Hội, CLB... (Tối đa 3đ)</label>
                       <select
                         value={svManagementLevel}
                         onChange={(e) => setSvManagementLevel(e.target.value)}
                         disabled={isSvViolationSec5}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       >
-                        <option value="head">Cấp Trưởng (Liên chi đoàn/Lớp/Chi đoàn/Chi bộ/Chủ nhiệm CLB) (3 điểm)</option>
-                        <option value="deputy">Cấp Phó ban/Phó bí thư/Lớp phó (2 điểm)</option>
-                        <option value="member">Ủy viên BCH Đoàn / Hội / CLB / Đội (1 điểm)</option>
-                        <option value="none">Không giữ cấp quản lý hoạt động (0 điểm)</option>
+                        <option value="head">Cấp trưởng: Liên chi đoàn, Lớp sinh viên, Lớp học phần, chi đoàn, chi bộ, chi hội, Chủ nhiệm các CLB, Đội (3 điểm)</option>
+                        <option value="deputy">Cấp Phó: Liên chi đoàn, Lớp sinh viên, chi đoàn, chi bộ, chi hội, các CLB, Đội (2 điểm)</option>
+                        <option value="member">Ủy viên: BCH Đoàn, Hội, CLB, Đội (1 điểm)</option>
+                        <option value="none">Không giữ cấp quản lý (0 điểm)</option>
                       </select>
                     </div>
                   </div>
@@ -308,7 +308,7 @@ export const EvaluationSection5 = ({
                     <h5 className="text-xs font-bold text-indigo-700">Lớp đánh giá</h5>
                     
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">V.1a Phân loại chức danh vai trò</label>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">a) Ý thức, tinh thần, thái độ, uy tín và hiệu quả công việc được phân công</label>
                       <select
                         value={classCadrePosition}
                         onChange={(e) => {
@@ -318,8 +318,8 @@ export const EvaluationSection5 = ({
                         disabled={isClassViolationSec5}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       >
-                        <option value="a1">a1: Lớp trưởng, Bí thư, CN CLB, Ủy viên BCH Đoàn Học viện (Max 7đ)</option>
-                        <option value="a2">a2: Lớp phó, Phó bí thư, UV Chi đoàn, Chi ủy viên, UV CLB (Max 6đ)</option>
+                        <option value="a1">Lớp trưởng, Lớp phó; Bí thư, Phó Bí thư; Chủ nhiệm, Phó Chủ nhiệm các Ban, CLB... (Max 7đ)</option>
+                        <option value="a2">Ủy viên BCH chi đoàn; Chi ủy viên; Tổ trưởng, tổ phó các lớp; Ủy viên các Ban, CLB... (Max 6đ)</option>
                       </select>
                     </div>
 
@@ -334,7 +334,7 @@ export const EvaluationSection5 = ({
                         disabled={isClassViolationSec5}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       >
-                        <option value="excellent">Hoàn thành xuất sắc nhiệm vụ (Khen thưởng) {classCadrePosition === 'a1' ? '(7 điểm)' : '(6 điểm)'}</option>
+                        <option value="excellent">Hoàn thành xuất sắc nhiệm vụ (được khen thưởng hoặc được lãnh đạo các đơn vị, CVHT, tập thể ghi nhận) {classCadrePosition === 'a1' ? '(7 điểm)' : '(6 điểm)'}</option>
                         <option value="good">Hoàn thành tốt nhiệm vụ {classCadrePosition === 'a1' ? '(6 điểm)' : '(5 điểm)'}</option>
                         <option value="average">Hoàn thành nhiệm vụ {classCadrePosition === 'a1' ? '(4 điểm)' : '(3 điểm)'}</option>
                         <option value="unsatisfactory">Không hoàn thành nhiệm vụ (0 điểm)</option>
@@ -342,7 +342,7 @@ export const EvaluationSection5 = ({
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">V.1b Kỹ năng tổ chức, quản lý (Tối đa 3đ)</label>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">b) Kỹ năng tổ chức, quản lý lớp, quản lý các tổ chức Đảng, Đoàn, Hội, CLB... (Tối đa 3đ)</label>
                       <select
                         value={classManagementLevel}
                         onChange={(e) => {
@@ -352,10 +352,10 @@ export const EvaluationSection5 = ({
                         disabled={isClassViolationSec5}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       >
-                        <option value="head">Cấp Trưởng (Liên chi đoàn/Lớp/Chi đoàn/Chi bộ/Chủ nhiệm CLB) (3 điểm)</option>
-                        <option value="deputy">Cấp Phó ban/Phó bí thư/Lớp phó (2 điểm)</option>
-                        <option value="member">Ủy viên BCH Đoàn / Hội / CLB / Đội (1 điểm)</option>
-                        <option value="none">Không giữ cấp quản lý hoạt động (0 điểm)</option>
+                        <option value="head">Cấp trưởng: Liên chi đoàn, Lớp sinh viên, Lớp học phần, chi đoàn, chi bộ, chi hội, Chủ nhiệm các CLB, Đội (3 điểm)</option>
+                        <option value="deputy">Cấp Phó: Liên chi đoàn, Lớp sinh viên, chi đoàn, chi bộ, chi hội, các CLB, Đội (2 điểm)</option>
+                        <option value="member">Ủy viên: BCH Đoàn, Hội, CLB, Đội (1 điểm)</option>
+                        <option value="none">Không giữ cấp quản lý (0 điểm)</option>
                       </select>
                     </div>
                   </div>
@@ -367,7 +367,7 @@ export const EvaluationSection5 = ({
           {/* Condition 2: Regular student option */}
           {((currentUserRole === 'student' && svRoleType === 'student') || (currentUserRole === 'class' && classRoleType === 'student')) && (
             <div className="p-4 bg-gray-50 rounded-xl space-y-4 border border-gray-200">
-              <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wide">Thiết lập dành cho Sinh viên thường còn lại (V.2)</h4>
+              <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wide">Thiết lập dành cho Tất cả các sinh viên trong lớp (Mục 2)</h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* SV details */}
@@ -376,20 +376,20 @@ export const EvaluationSection5 = ({
                     <h5 className="text-xs font-bold text-blue-700">Sinh viên tự chấm</h5>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">V.2a Tham gia đầy đủ sinh hoạt lớp/khoa/Học viện (1-3 điểm)</label>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">a) Sinh viên tham gia đầy đủ các hoạt động, sinh hoạt của lớp, khoa, Học viện, có ý kiến tham gia xây dựng tập thể vững mạnh (trừ đối tượng ở tiểu mục 1, 2, 3 mục 5) (0-3 điểm)</label>
                       <input
                         type="number"
                         max={3}
-                        min={1}
+                        min={0}
                         value={svClassParticipation}
-                        onChange={(e) => setSvClassParticipation(Math.min(3, Math.max(1, parseInt(e.target.value) || 1)))}
+                        onChange={(e) => setSvClassParticipation(Math.min(3, Math.max(0, parseInt(e.target.value) || 0)))}
                         disabled={isSvViolationSec5}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">V.2b Thành tích đặc biệt / dũng cảm cứu người / giấy khen</label>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">b) Sinh viên đạt được các thành tích đặc biệt trong học tập, rèn luyện, dũng cảm cứu người được cấp giấy chứng nhận hoặc có giấy khen</label>
                       <select
                         value={svSpecialAchievement}
                         onChange={(e) => setSvSpecialAchievement(e.target.value)}
@@ -397,8 +397,8 @@ export const EvaluationSection5 = ({
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       >
                         <option value="none">Không có thành tích đặc biệt (0 điểm)</option>
-                        <option value="national_intl">Được khen từ cấp Học viện trở lên (+7 điểm)</option>
-                        <option value="provincial">Được khen từ cấp Khoa trở lên (+5 điểm)</option>
+                        <option value="national_intl">Được khen thưởng từ cấp Học viện trở lên (+7 điểm)</option>
+                        <option value="provincial">Đạt khen thưởng từ cấp Khoa trở lên (+5 điểm)</option>
                       </select>
                       {svSpecialAchievement !== 'none' && (
                         <p className="text-[10px] text-amber-600 font-bold mt-1">* Yêu cầu tải lên minh chứng (Giấy khen/giấy xác nhận)</p>
@@ -439,15 +439,15 @@ export const EvaluationSection5 = ({
                     <h5 className="text-xs font-bold text-indigo-700">Lớp đánh giá</h5>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">V.2a Tham gia đầy đủ sinh hoạt lớp/khoa/Học viện (1-3 điểm)</label>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">a) Sinh viên tham gia đầy đủ các hoạt động, sinh hoạt của lớp, khoa, Học viện, có ý kiến tham gia xây dựng tập thể vững mạnh (trừ đối tượng ở tiểu mục 1, 2, 3 mục 5) (0-3 điểm)</label>
                       <input
                         type="number"
                         max={3}
-                        min={1}
+                        min={0}
                         value={classClassParticipation}
                         onChange={(e) => {
                           setIsClassEdited(true);
-                          setClassClassParticipation(Math.min(3, Math.max(1, parseInt(e.target.value) || 1)));
+                          setClassClassParticipation(Math.min(3, Math.max(0, parseInt(e.target.value) || 0)));
                         }}
                         disabled={isClassViolationSec5}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
@@ -455,7 +455,7 @@ export const EvaluationSection5 = ({
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">V.2b Thành tích đặc biệt / dũng cảm cứu người / giấy khen</label>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">b) Sinh viên đạt được các thành tích đặc biệt trong học tập, rèn luyện, dũng cảm cứu người được cấp giấy chứng nhận hoặc có giấy khen</label>
                       <select
                         value={classSpecialAchievement}
                         onChange={(e) => {
@@ -466,8 +466,8 @@ export const EvaluationSection5 = ({
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none h-11 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                       >
                         <option value="none">Không có thành tích đặc biệt (0 điểm)</option>
-                        <option value="national_intl">Được khen từ cấp Học viện trở lên (+7 điểm)</option>
-                        <option value="provincial">Được khen từ cấp Khoa trở lên (+5 điểm)</option>
+                        <option value="national_intl">Được khen thưởng từ cấp Học viện trở lên (+7 điểm)</option>
+                        <option value="provincial">Đạt khen thưởng từ cấp Khoa trở lên (+5 điểm)</option>
                       </select>
                     </div>
                   </div>

@@ -75,53 +75,54 @@ export const ACADEMIC_RANK_OPTIONS: EvaluationOption[] = [
 ];
 
 export const POLITICAL_ACTIVITY_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'GOOD_PARTICIPATION', label: '5đ - Tham gia tốt, đầy đủ' },
-  { value: 'ABSENT_ONCE', label: '3đ - Vắng 1 lần' },
-  { value: 'ABSENT_TWICE', label: '2đ - Vắng 2 lần' },
-  { value: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED', label: '0đ - Vắng trên 2 lần hoặc không tham gia' },
+  { value: 'GOOD_PARTICIPATION', label: '5đ - Tham gia và chấp hành tốt các hoạt động' },
+  { value: 'ABSENT_ONCE', label: '3đ - Vắng 01 buổi không có lý do' },
+  { value: 'ABSENT_TWICE', label: '2đ - Vắng 02 buổi không có lý do' },
+  { value: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED', label: '0đ - Vắng từ 02 buổi trở lên không có lý do hoặc không tham gia' },
 ];
 
 export const CULTURE_SPORT_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'FULL_EFFECTIVE_PARTICIPATION', label: '5đ - Tham gia đầy đủ, hiệu quả' },
-  { value: 'EFFECTIVE_PARTICIPATION_FROM_HALF', label: '3đ - Tham gia hiệu quả từ một nửa hoạt động' },
-  { value: 'ENCOURAGED_OTHERS', label: '2đ - Tích cực vận động, tuyên truyền' },
-  { value: 'ABSENT_OVER_HALF', label: '1đ - Vắng trên một nửa hoạt động' },
+  { value: 'FULL_EFFECTIVE_PARTICIPATION', label: '5đ - Tham gia đầy đủ, có hiệu quả các hoạt động lớp hoặc các đơn vị tổ chức ghi nhận' },
+  { value: 'EFFECTIVE_PARTICIPATION_FROM_HALF', label: '3đ - Tham gia có hiệu quả từ 50% các hoạt động trở lên được lớp hoặc đơn vị tổ chức ghi nhận' },
+  { value: 'ENCOURAGED_OTHERS', label: '2đ - Tích cực vận động mọi người tham gia hoặc hưởng ứng tích cực các phong trào' },
+  { value: 'ABSENT_OVER_HALF', label: '1đ - Vắng trên 50% số buổi của các hoạt động' },
   { value: 'NOT_PARTICIPATED', label: '0đ - Không tham gia' },
 ];
 
 export const CLUB_ACTIVITY_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'FULL_EFFECTIVE_PARTICIPATION', label: '5đ - Đạt giải / tổ chức / tham gia đầy đủ' },
-  { value: 'ACTIVE_ONE_OR_MORE', label: '3đ - Tích cực tham gia một hoặc nhiều CLB/Đội/Nhóm' },
-  { value: 'ACTIVE_SUPPORTER', label: '2đ - Có hỗ trợ, tham gia một phần' },
-  { value: 'ABSENT_OVER_HALF', label: '1đ - Vắng trên một nửa hoạt động' },
+  { value: 'FULL_EFFECTIVE_PARTICIPATION', label: '5đ - Tham gia đầy đủ, có hiệu quả các hoạt động' },
+  { value: 'ACTIVE_ONE_OR_MORE', label: '3đ - Tham gia tích cực, có hiệu quả từ 01 hoạt động trở lên' },
+  { value: 'ACTIVE_SUPPORTER', label: '2đ - Là thành viên tích cực hưởng ứng các hoạt động' },
+  { value: 'ABSENT_OVER_HALF', label: '1đ - Vắng trên 50% số buổi của các hoạt động' },
   { value: 'NOT_PARTICIPATED', label: '0đ - Không tham gia' },
 ];
 
 export const SOCIAL_PREVENTION_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'MULTIPLE_ACTIVITIES_OR_REPORTING', label: '3đ - Tham gia nhiều hoạt động / báo cáo đúng' },
-  { value: 'ONE_EFFECTIVE_ACTIVITY', label: '2đ - Tham gia 1 hoạt động hiệu quả' },
-  { value: 'AWARENESS_OR_SUPPORT', label: '1đ - Có ý thức / hỗ trợ' },
-  { value: 'REMINDED_VIOLATION', label: '0đ - Vi phạm / bị nhắc nhở' },
+  { value: 'MULTIPLE_ACTIVITIES_OR_REPORTING', label: '3đ - Tham gia tích cực nhiều hoạt động hoặc có ý thức tố giác các TNXH' },
+  { value: 'ONE_EFFECTIVE_ACTIVITY', label: '2đ - Tham gia một hoạt động đạt hiệu quả' },
+  { value: 'AWARENESS_OR_SUPPORT', label: '1đ - Có ý thức tham gia hoặc hưởng ứng các hoạt động tuyên truyền phòng, chống TNXH' },
+  { value: 'REMINDED_VIOLATION', label: '0đ - Bị nhắc nhở 1 lần do vi phạm các TNXH (chưa đến mức xử lý kỷ luật)' },
 ];
 
 export const LAW_COMPLIANCE_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'GOOD_WITH_REWARD', label: '10đ - Chấp hành tốt, có khen thưởng' },
-  { value: 'GOOD', label: '8đ - Chấp hành tốt' },
-  { value: 'AVERAGE', label: '5đ - Chấp hành trung bình' },
-  { value: 'VIOLATED', label: '0đ - Vi phạm' },
+  { value: 'GOOD_WITH_REWARD', label: '10đ - Chấp hành đúng và tham gia tuyên truyền tốt, được khen thưởng' },
+  { value: 'GOOD', label: '8đ - Chấp hành đúng và tham gia tuyên truyền tốt' },
+  { value: 'AVERAGE', label: '5đ - Chấp hành đúng các quy định' },
+  { value: 'VIOLATED', label: '0đ - Bị nhắc nhở, lập biên bản do vi phạm các quy định' },
 ];
 
 export const VOLUNTEER_ACTIVITY_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'ACTIVE_WITH_REWARD', label: '10đ - Tích cực, có khen thưởng / thành tích đặc biệt' },
-  { value: 'ACTIVE', label: '8đ - Tham gia tích cực' },
-  { value: 'PARTICIPATED', label: '5đ - Có tham gia / hỗ trợ' },
+  { value: 'ACTIVE_WITH_REWARD', label: '10đ - Tích cực, nhiệt tình tham gia các hoạt động đạt hiệu quả được Học viện, các tổ chức khen thưởng' },
+  { value: 'ACTIVE', label: '8đ - Tham gia tích cực các hoạt động được lớp hoặc tập thể ghi nhận' },
+  { value: 'PARTICIPATED', label: '5đ - Có ý thức tham gia hoặc hưởng ứng các hoạt động' },
+  { value: 'DISUNITY', label: '0đ - Tham gia các hoạt động nhưng gây mất đoàn kết' },
   { value: 'NOT_PARTICIPATED', label: '0đ - Không tham gia' },
 ];
 
 export const COMMUNITY_RELATIONSHIP_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'GOOD', label: '5đ - Khai báo/cư trú đúng quy định' },
-  { value: 'ONE_WARNING', label: '1đ - Bị nhắc nhở/kiểm điểm 1 lần' },
-  { value: 'TWO_WARNINGS', label: '0đ - Bị nhắc nhở/kiểm điểm từ 2 lần' },
+  { value: 'GOOD', label: '5đ - Có ý thức xây dựng tập thể lớp đoàn kết, giữ gìn giảng đường, nơi cư trú văn minh, sạch đẹp, thực hiện tốt văn hóa học đường' },
+  { value: 'ONE_WARNING', label: '1đ - Bị nhắc nhở hoặc kiểm điểm 1 lần' },
+  { value: 'TWO_WARNINGS', label: '0đ - Bị nhắc nhở hoặc kiểm điểm 2 lần' },
 ];
 
 export const STUDENT_ROLE_TYPE_OPTIONS: EvaluationOption[] = [
@@ -130,29 +131,29 @@ export const STUDENT_ROLE_TYPE_OPTIONS: EvaluationOption[] = [
 ];
 
 export const POSITION_GROUP_OPTIONS: EvaluationOption[] = [
-  { value: 'LEADER_GROUP', label: 'A1 (Lớp trưởng/Bí thư)' },
-  { value: 'MEMBER_GROUP', label: 'A2 (Phó lớp, Chi hội trưởng...)' },
+  { value: 'LEADER_GROUP', label: 'Lớp trưởng, Lớp phó; Bí thư, Phó Bí thư; Chủ nhiệm, Phó Chủ nhiệm các Ban, CLB...' },
+  { value: 'MEMBER_GROUP', label: 'Ủy viên BCH chi đoàn; Chi ủy viên; Tổ trưởng, tổ phó các lớp; Ủy viên các Ban, CLB, Đội' },
   { value: 'NONE', label: 'Không giữ chức vụ' },
 ];
 
 export const TASK_COMPLETION_LEVEL_A1_OPTIONS: EvaluationOption[] = [
-  { value: 'EXCELLENT', label: '7đ - Xuất sắc' },
-  { value: 'GOOD', label: '6đ - Tốt' },
-  { value: 'COMPLETED', label: '4đ - Đạt' },
-  { value: 'POOR', label: '0đ - Không đạt' },
+  { value: 'EXCELLENT', label: '7đ - Hoàn thành xuất sắc nhiệm vụ (được khen thưởng hoặc được lãnh đạo các đơn vị, CVHT, tập thể ghi nhận)' },
+  { value: 'GOOD', label: '6đ - Hoàn thành tốt nhiệm vụ' },
+  { value: 'COMPLETED', label: '4đ - Hoàn thành nhiệm vụ' },
+  { value: 'POOR', label: '0đ - Không hoàn thành nhiệm vụ' },
 ];
 
 export const TASK_COMPLETION_LEVEL_A2_OPTIONS: EvaluationOption[] = [
-  { value: 'EXCELLENT', label: '6đ - Xuất sắc' },
-  { value: 'GOOD', label: '5đ - Tốt' },
-  { value: 'COMPLETED', label: '3đ - Đạt' },
-  { value: 'POOR', label: '0đ - Không đạt' },
+  { value: 'EXCELLENT', label: '6đ - Hoàn thành xuất sắc nhiệm vụ (được khen thưởng hoặc được lãnh đạo các đơn vị, CVHT, tập thể ghi nhận)' },
+  { value: 'GOOD', label: '5đ - Hoàn thành tốt nhiệm vụ' },
+  { value: 'COMPLETED', label: '3đ - Hoàn thành nhiệm vụ' },
+  { value: 'POOR', label: '0đ - Không hoàn thành nhiệm vụ' },
 ];
 
 export const MANAGEMENT_SKILL_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'HEAD_POSITION', label: '3đ - Trưởng ban' },
-  { value: 'DEPUTY_POSITION', label: '2đ - Phó ban' },
-  { value: 'MEMBER_POSITION', label: '1đ - Thành viên' },
+  { value: 'HEAD_POSITION', label: '3đ - Cấp trưởng: Liên chi đoàn, Lớp sinh viên, Lớp học phần, chi đoàn, chi bộ, chi hội, Chủ nhiệm các CLB, Đội' },
+  { value: 'DEPUTY_POSITION', label: '2đ - Cấp Phó: Liên chi đoàn, Lớp sinh viên, chi đoàn, chi bộ, chi hội, các CLB, Đội' },
+  { value: 'MEMBER_POSITION', label: '1đ - Ủy viên: BCH Đoàn, Hội, CLB, Đội' },
   { value: '', label: '0đ - Không' },
 ];
 

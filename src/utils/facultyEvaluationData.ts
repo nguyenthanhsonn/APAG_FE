@@ -111,6 +111,9 @@ export function mapEvaluationToFacultyStudent(item: AdminEvaluationItem): Facult
 }
 
 export function groupFacultyEvaluationsByClass(items: AdminEvaluationItem[]): FacultyClassRecord[] {
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  console.time('[groupFacultyEvaluationsByClass]');
+
   const grouped = new Map<string, FacultyClassRecord>();
 
   items.forEach((item) => {
@@ -136,7 +139,7 @@ export function groupFacultyEvaluationsByClass(items: AdminEvaluationItem[]): Fa
     });
   });
 
-  return Array.from(grouped.values()).map((record) => {
+  const result = Array.from(grouped.values()).map((record) => {
     const totalStudents = record.evaluations.length;
     const approvedCount = record.evaluations.filter((item) => item.status === 'APPROVED').length;
     const submittedCount = record.evaluations.filter((item) => item.status !== 'NOT_SUBMITTED').length;
@@ -144,19 +147,30 @@ export function groupFacultyEvaluationsByClass(items: AdminEvaluationItem[]): Fa
       (item) => item.rawStatus.toLowerCase() === 'class_approved',
     ).length;
 
+    const status = (
+      pendingCount > 0
+        ? 'PENDING_FACULTY'
+        : totalStudents > 0 && approvedCount === totalStudents
+          ? 'FACULTY_APPROVED'
+          : 'IN_PROGRESS'
+    ) as 'PENDING_FACULTY' | 'FACULTY_APPROVED' | 'IN_PROGRESS';
+
     return {
       ...record,
       totalStudents,
       submittedCount,
       approvedCount,
-      status:
-        pendingCount > 0
-          ? 'PENDING_FACULTY'
-          : totalStudents > 0 && approvedCount === totalStudents
-            ? 'FACULTY_APPROVED'
-            : 'IN_PROGRESS',
+      status,
     };
   });
+
+  const endTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  console.timeEnd('[groupFacultyEvaluationsByClass]');
+  console.log(
+    `⏱️ [groupFacultyEvaluationsByClass] Đã xử lý ${items.length} phần tử thành ${result.length} nhóm lớp trong ${(endTime - startTime).toFixed(2)}ms`,
+  );
+
+  return result;
 }
 
 export function getEvaluationIdentityKeys(item: any): string[] {

@@ -78,13 +78,13 @@ export interface CouncilReviewState {
 
   // --- Section 5: Role (max 10) ---
   svRoleType: 'cadre' | 'student';
-  svCadrePosition: 'a1' | 'a2';
+  svCadrePosition: string;
   svCadrePerformance: string;
   svManagementLevel: string;
   svClassParticipation: number;
   svSpecialAchievement: string;
   classRoleType: 'cadre' | 'student';
-  classCadrePosition: 'a1' | 'a2';
+  classCadrePosition: string;
   classCadrePerformance: string;
   classManagementLevel: string;
   classClassParticipation: number;
@@ -94,6 +94,10 @@ export interface CouncilReviewState {
 
   // Council view: evidence as map of string arrays (file names / URLs)
   uploadedFiles: Record<string, string[]>;
+
+  // DB-consistent totals for read-only display
+  dbStudentTotalScore?: number | null;
+  dbClassTotalScore?: number | null;
 
   /**
    * File upload handler — injected by the page controller after store creation.
@@ -209,33 +213,35 @@ export function computeCouncilScores(s: CouncilReviewState, isSv: boolean): Scor
   const isVio5 = isSv ? s.isSvViolationSec5 : s.isClassViolationSec5;
   let sec5 = 0;
   if (!isVio5) {
-    const roleType = String(isSv ? s.svRoleType : s.classRoleType || '').toLowerCase();
-    if (roleType === 'cadre' || roleType === 'class_officer') {
-      const pos = isSv ? s.svCadrePosition : s.classCadrePosition;
-      const perf = isSv ? s.svCadrePerformance : s.classCadrePerformance;
-      const mgmt = isSv ? s.svManagementLevel : s.classManagementLevel;
-      const perfMap = pos === 'a1' || (pos as string) === 'LEADER_GROUP'
-        ? { EXCELLENT: 7, GOOD: 6, COMPLETED: 4, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
-        : { EXCELLENT: 6, GOOD: 5, COMPLETED: 3, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
+    const pos = isSv ? s.svCadrePosition : s.classCadrePosition;
+    const perf = isSv ? s.svCadrePerformance : s.classCadrePerformance;
+    const mgmt = isSv ? s.svManagementLevel : s.classManagementLevel;
+    const part = isSv ? s.svClassParticipation : s.classClassParticipation;
+    const ach = isSv ? s.svSpecialAchievement : s.classSpecialAchievement;
+
+    let section5Part1 = 0;
+    if (pos && pos !== 'NONE' && pos !== 'none') {
+      const perfMap = pos === 'LEADER_GROUP' || pos === 'a1'
+        ? { EXCELLENT: 7, GOOD: 6, COMPLETE: 4, COMPLETED: 4, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
+        : { EXCELLENT: 6, GOOD: 5, COMPLETE: 3, COMPLETED: 3, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
       const mgmtMap: Record<string, number> = { HEAD_POSITION: 3, DEPUTY_POSITION: 2, MEMBER_POSITION: 1, head: 3, deputy: 2, member: 1, none: 0, '': 0 };
-      sec5 = clamp((perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0), 10);
-    } else {
-      const part = isSv ? s.svClassParticipation : s.classClassParticipation;
-      const ach = isSv ? s.svSpecialAchievement : s.classSpecialAchievement;
-      const achMap: Record<string, number> = {
-        SCHOOL_LEVEL_OR_HIGHER: 7,
-        FACULTY_LEVEL: 5,
-        NATIONAL_OR_INTL: 7,
-        PROVINCIAL_LEVEL: 5,
-        NONE: 0,
-        university_level: 7,
-        faculty_level: 5,
-        national_intl: 7,
-        provincial: 5,
-        none: 0,
-      };
-      sec5 = clamp((Number(part) || 0) + (achMap[ach] || 0), 10);
+      section5Part1 = (perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0);
     }
+
+    const achMap: Record<string, number> = {
+      SCHOOL_LEVEL_OR_HIGHER: 7,
+      FACULTY_LEVEL: 5,
+      NATIONAL_OR_INTL: 7,
+      PROVINCIAL_LEVEL: 5,
+      NONE: 0,
+      university_level: 7,
+      faculty_level: 5,
+      national_intl: 7,
+      provincial: 5,
+      none: 0,
+    };
+    const section5Part2 = clamp(Number(part) || 0, 3) + (achMap[ach] || 0);
+    sec5 = clamp(section5Part1 + section5Part2, 10);
   }
 
   return { sec1, sec2, sec3, sec4, sec5, total: clamp(sec1 + sec2 + sec3 + sec4 + sec5, 100) };
@@ -266,9 +272,9 @@ const DEFAULT_STATE: Omit<
   isSvViolationSec1: false,
   isClassViolationSec1: false,
 
-  svNoViolationScore: 0,
+  svNoViolationScore: 25,
   svDeductions: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-  classNoViolationScore: 0,
+  classNoViolationScore: 25,
   classDeductions: [0, 0, 0, 0, 0, 0, 0, 0, 0],
   deductionLabels: DEDUCTION_LABELS,
   isSvViolationSec2: false,
@@ -312,6 +318,8 @@ const DEFAULT_STATE: Omit<
   isClassViolationSec5: false,
 
   uploadedFiles: {},
+  dbStudentTotalScore: null,
+  dbClassTotalScore: null,
 
   handleFileUploadAction: noop,
   removeFileAction: noop,

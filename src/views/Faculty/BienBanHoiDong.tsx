@@ -8,9 +8,9 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { API_Shared } from '@/api/API_Shared';
 import { API_Admin } from '@/api/API_Admin';
 import { getUserFriendlyError } from '@/utils/errorHelper';
-import type { AdminClass, AdminEvaluationItem, AdminMajor } from '@/types';
 import {
   resolveFacultyId,
   toArray,
@@ -52,7 +52,6 @@ export function BienBanHoiDongView() {
   const [error, setError] = useState('');
 
   /* ─── Form Data & Row State ─── */
-  const [apiRows, setApiRows] = useState<any[]>([]); // holds raw evaluations
   const [classStudents, setClassStudents] = useState<any[]>([]); // holds class students list
   const [formData, setFormData] = useState({
     qdSo: '',
@@ -114,20 +113,27 @@ export function BienBanHoiDongView() {
     setLoadingClasses(true);
     setError('');
     try {
-      const majorsResult = await API_Admin.getFacultyMajors(facultyId, { page: 1, limit: 100, isActive: true, includeDeleted: false });
-      const majors = toArray<AdminMajor>(majorsResult);
-      const classesByMajor = await Promise.all(
-        majors.map((major) =>
-          API_Admin.getMajorClasses(major.id, { page: 1, limit: 100, isActive: true, includeDeleted: false }),
-        ),
-      );
-      const facultyClasses = classesByMajor.flatMap((result) => toArray<AdminClass>(result));
-      const cleanClasses = facultyClasses.map((c) => ({
+      let items: any[] = [];
+      try {
+        const statsResult = await API_Shared.getFacultyClassStats(facultyId);
+        items = toArray<any>(statsResult);
+      } catch {
+        const majorsResult = await API_Shared.getFacultyMajors(facultyId, { page: 1, limit: 100 });
+        const majors = toArray<any>(majorsResult);
+        const classesByMajor = await Promise.all(
+          majors.map((major) =>
+            API_Shared.getMajorClasses(major.id, { page: 1, limit: 100 }),
+          ),
+        );
+        items = classesByMajor.flatMap((result) => toArray<any>(result));
+      }
+
+      const cleanClasses = items.map((c) => ({
         id: c.id,
-        className: c.name || c.code || 'Lớp chưa xác định',
+        className: c.className || c.name || c.classCode || c.code || 'Lớp chưa xác định',
       }));
       setClasses(cleanClasses);
-      if (cleanClasses.length > 0) {
+      if (cleanClasses.length > 0 && !selectedClassId) {
         setSelectedClassId(cleanClasses[0].id);
       }
     } catch (err: any) {
@@ -135,7 +141,7 @@ export function BienBanHoiDongView() {
     } finally {
       setLoadingClasses(false);
     }
-  }, [facultyId]);
+  }, [facultyId, selectedClassId]);
 
   useEffect(() => {
     void loadClasses();
@@ -147,28 +153,43 @@ export function BienBanHoiDongView() {
     setLoadingStudents(true);
     setError('');
     try {
-      const [studentsResult, evaluationsResult] = await Promise.all([
-        API_Admin.getClassStudents(selectedClassId),
-        API_Admin.getFacultyEvaluations(facultyId, { classId: selectedClassId, limit: 100 }),
-      ]);
-
-      const cStudents = toArray<any>(studentsResult);
-      const evs = toArray<AdminEvaluationItem>(evaluationsResult);
-
-      setClassStudents(cStudents);
-      setApiRows(evs);
-
-      if (evs.length > 0) {
-        const first = evs[0];
-        const semesterValue = typeof first.semester === 'object'
-          ? first.semester?.semester || first.semester?.name || first.semester?.id
-          : first.semester;
-        setFormData((p) => ({
-          ...p,
-          hocKy: semesterValue || p.hocKy,
-          namHoc: first.academicYear || p.namHoc,
-        }));
+      let items: any[] = [];
+      try {
+        const res = await API_Shared.getFacultyCouncilReview(facultyId, selectedClassId);
+        items = res?.items || [];
+      } catch (e) {
+        console.warn('getFacultyCouncilReview failed, using fallback APIs:', e);
       }
+
+      if (items.length === 0) {
+        const [studentsRes, evalsRes] = await Promise.all([
+          API_Shared.getClassStudents(selectedClassId).catch(() => []),
+          API_Admin.getFacultyEvaluations(facultyId, { classId: selectedClassId, limit: 100 }).catch(() => []),
+        ]);
+        const classStudentsList = toArray<any>(studentsRes);
+        const evalsList = toArray<any>(evalsRes);
+        const evalsByStudentId = new Map(evalsList.map((e: any) => [e.studentId || e.student?.id || e.id, e]));
+
+        items = classStudentsList.map((st: any, idx: number) => {
+          const stId = st.studentId || st.userId || st.id;
+          const ev = evalsByStudentId.get(stId);
+          return {
+            stt: idx + 1,
+            studentId: stId,
+            studentCode: st.studentCode || st.code || st.username || '—',
+            fullName: st.fullName || st.name || '—',
+            dateOfBirth: st.dateOfBirth || st.student?.dateOfBirth || '',
+            evaluationId: ev?.id || null,
+            status: ev?.status || 'draft',
+            classScore: ev?.classScore ?? ev?.finalScore ?? ev?.studentScore ?? 0,
+            facultyScore: ev?.finalScore ?? ev?.classScore ?? 0,
+            classification: ev?.classification || ev?.rank || '',
+            note: ev?.note || '',
+          };
+        });
+      }
+
+      setClassStudents(items);
     } catch (err: any) {
       setError(getUserFriendlyError(err, 'Không tải được sinh viên lớp được chọn.'));
     } finally {
@@ -183,22 +204,15 @@ export function BienBanHoiDongView() {
   /* ─── Map students to minutes student rows ─── */
   const studentRows = useMemo<BienBanHoiDongStudentRow[]>(() => {
     return classStudents.map((student, idx) => {
-      // Find matching evaluation
-      const evalItem = apiRows.find((ev: any) => {
-        const studentId = student.studentId || student.userId || student.id || '';
-        const evStudentId = ev.studentId || ev.student?.id || ev.userId || '';
-        return String(studentId) === String(evStudentId);
-      }) as any;
-
-      const drlLop = evalItem ? Number(evalItem.classScore ?? evalItem.totalScore ?? 0) : 0;
-      const drlKhoa = evalItem ? Number(evalItem.finalScore ?? evalItem.classScore ?? evalItem.totalScore ?? 0) : 0;
-      const birthDateRaw = evalItem?.student?.dateOfBirth || evalItem?.student?.birthDate || student.dateOfBirth || student.birthDate || '';
+      const drlLop = Number(student.classScore ?? 0);
+      const drlKhoa = Number(student.facultyScore ?? student.classScore ?? 0);
+      const birthDateRaw = student.dateOfBirth || '';
       const birthDate = birthDateRaw ? getBirthDate(birthDateRaw) : '';
-      const xepLoai = drlKhoa > 0 ? calcXepLoai(drlKhoa) : '';
-      const ghiChu = evalItem?.note || '';
+      const xepLoai = student.classification || (drlKhoa > 0 ? calcXepLoai(drlKhoa) : '—');
+      const ghiChu = student.note || '';
 
       return {
-        stt: idx + 1,
+        stt: student.stt || idx + 1,
         maSV: student.studentCode || student.code || '—',
         hoTen: student.fullName || student.name || 'Sinh viên chưa xác định',
         ngaySinh: birthDate,
@@ -208,7 +222,7 @@ export function BienBanHoiDongView() {
         ghiChu,
       };
     });
-  }, [classStudents, apiRows]);
+  }, [classStudents]);
 
   /* ─── Counts ─── */
   const counts = useMemo(() => ({
@@ -297,7 +311,7 @@ export function BienBanHoiDongView() {
           <button
             type="button"
             onClick={() => setShowPreview(true)}
-            disabled={loadingStudents || !selectedClassId || studentRows.length === 0}
+            disabled={loadingStudents || !selectedClassId}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 transition disabled:opacity-50"
           >
             <Eye size={15} />
@@ -306,7 +320,7 @@ export function BienBanHoiDongView() {
           <button
             type="button"
             onClick={handlePrint}
-            disabled={loadingStudents || !selectedClassId || studentRows.length === 0}
+            disabled={loadingStudents || !selectedClassId}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50"
           >
             <Printer size={15} />
@@ -324,11 +338,11 @@ export function BienBanHoiDongView() {
         {/* Tiêu đề & Quốc hiệu */}
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start text-xs sm:text-sm border-b border-gray-100 pb-6 mb-6">
           <div className="space-y-1">
-            <p className="font-bold text-gray-900 leading-tight uppercase">
+            <p className="font-bold text-gray-900 leading-tight uppercase text-center sm:text-left">
               PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ
             </p>
-            <p className="font-bold text-gray-900 leading-tight uppercase">
-              QUẢN TRỊ CÔNG TẠI TỈNH QUẢNG NAM
+            <p className="font-bold text-gray-900 leading-tight uppercase text-center">
+              QUẢN TRỊ CÔNG TẠI ĐÀ NẴNG
             </p>
             <div className="flex items-center gap-1">
               <span className="font-semibold tracking-wide">KHOA:</span>
@@ -336,11 +350,12 @@ export function BienBanHoiDongView() {
             </div>
             <p className="text-center font-bold text-gray-400 mt-1">*</p>
           </div>
-          <div className="text-center space-y-1 sm:text-right">
-            <p className="font-bold uppercase tracking-wider text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
-            <div className="w-24 h-0.5 bg-gray-900 mx-auto sm:mr-0 my-1"></div>
+          <div className="text-center space-y-1 sm:text-right flex flex-col items-center sm:items-end">
+            <div className="inline-block border-b-2 border-gray-900 pb-0.5">
+              <p className="font-bold uppercase tracking-wider text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
+            </div>
             <p className="italic text-gray-500 mt-2">
-              Quảng Nam, ngày <input type="text" value={formData.ngayHop} onChange={(e) => handleField('ngayHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" /> tháng <input type="text" value={formData.thangHop} onChange={(e) => handleField('thangHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" /> năm 20<input type="text" value={formData.namHop} onChange={(e) => handleField('namHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
+              Đà Nẵng, ngày <input type="text" value={formData.ngayHop} onChange={(e) => handleField('ngayHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" /> tháng <input type="text" value={formData.thangHop} onChange={(e) => handleField('thangHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" /> năm 20<input type="text" value={formData.namHop} onChange={(e) => handleField('namHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
             </p>
           </div>
         </div>
@@ -353,9 +368,9 @@ export function BienBanHoiDongView() {
             <span className="font-semibold text-gray-950">{selectedClassName}</span>
           </div>
           <div className="flex flex-wrap justify-center items-center gap-1.5 italic text-gray-600 text-sm">
-            <span>học kỳ:</span>
+            <span>Học kỳ:</span>
             <input type="text" value={formData.hocKy} onChange={(e) => handleField('hocKy', e.target.value)} className="w-12 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
-            <span>năm học:</span>
+            <span>Năm học:</span>
             <input type="text" value={formData.namHoc} onChange={(e) => handleField('namHoc', e.target.value)} className="w-24 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
           </div>
           <div className="w-32 border-b border-dashed border-gray-300 mx-auto mt-2"></div>

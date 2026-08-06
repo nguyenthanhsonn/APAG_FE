@@ -54,7 +54,9 @@ export function canSelectForSubmitToAdvisor(role?: string, form?: any): boolean 
   const hasConfirmed = Boolean(
     form?.classLeaderReviewedAt ||
     form?.classLeaderConfirmedAt ||
-    form?.review?.classLeaderReviewedAt
+    form?.review?.classLeaderReviewedAt ||
+    form?.isConfirmed ||
+    form?.statusLabel === 'Đã xác nhận'
   );
 
   return isCL && normStatus === 'submitted' && hasConfirmed;
@@ -65,14 +67,19 @@ export function canSelectForSubmitToFaculty(role?: string, form?: any): boolean 
   const normStatus = String(form?.status || form?.workflowStatus || '').trim().toLowerCase();
   const isAdv = isAdvisorRole(role);
 
-  const hasConfirmed = Boolean(
+  const isConfirmed = Boolean(
+    form?.classLeaderReviewedAt ||
+    form?.classLeaderConfirmedAt ||
     form?.classReviewedAt ||
     form?.advisorReviewedAt ||
     form?.advisorConfirmedAt ||
-    form?.review?.classReviewedAt
+    form?.isConfirmed ||
+    form?.statusLabel === 'Đã xác nhận'
   );
 
-  return isAdv && normStatus === 'class_leader_approved' && hasConfirmed;
+  const isValidStatus = ['submitted', 'class_leader_approved'].includes(normStatus);
+
+  return isAdv && isValidStatus && isConfirmed;
 }
 
 export function getCheckboxDisabledReason(role?: string, form?: any): string {
@@ -101,17 +108,20 @@ export function getCheckboxDisabledReason(role?: string, form?: any): string {
   }
 
   if (isAdv) {
-    if (normStatus !== 'class_leader_approved') {
+    const isValidStatus = ['submitted', 'class_leader_approved'].includes(normStatus);
+    if (!isValidStatus) {
       return 'Phiếu chưa ở trạng thái chờ CVHT xử lý';
     }
-    const hasConfirmed = Boolean(
+    const isConfirmed = Boolean(
+      form?.classLeaderReviewedAt ||
+      form?.classLeaderConfirmedAt ||
       form?.classReviewedAt ||
       form?.advisorReviewedAt ||
       form?.advisorConfirmedAt ||
       form?.isConfirmed
     );
-    if (!hasConfirmed) {
-      return 'Cần CVHT xác nhận trước khi gửi khoa';
+    if (!isConfirmed) {
+      return 'Cần xác nhận điểm trước khi gửi Khoa';
     }
   }
 

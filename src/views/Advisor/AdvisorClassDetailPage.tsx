@@ -89,6 +89,13 @@ interface ClassMetadata {
   enrollmentYear?: string | number;
 }
 
+// In-memory module cache to eliminate loading flicker on navigation back
+const classDataCache = new Map<string, {
+  className: string;
+  classDetail: ClassMetadata | null;
+  students: CouncilStudentReview[];
+}>();
+
 /* ── Main Component ── */
 export default function AdvisorClassDetailPage() {
   const router = useRouter();
@@ -112,10 +119,12 @@ export default function AdvisorClassDetailPage() {
   const assignedClassFacultyName = assignedClass?.faculty?.name || assignedClass?.facultyName;
   const assignedClassEnrollmentYear = assignedClass?.enrollmentYear;
 
-  const [loading, setLoading] = useState(true);
-  const [className, setClassName] = useState(assignedClassName);
+  const cachedData = classId ? classDataCache.get(classId) : null;
+
+  const [loading, setLoading] = useState(!cachedData);
+  const [className, setClassName] = useState(cachedData?.className || assignedClassName);
   const [classDetail, setClassDetail] = useState<ClassMetadata | null>(
-    assignedClass
+    cachedData?.classDetail || (assignedClass
       ? {
           code: assignedClassCode,
           name: assignedClassName,
@@ -123,9 +132,9 @@ export default function AdvisorClassDetailPage() {
           facultyName: assignedClassFacultyName,
           enrollmentYear: assignedClassEnrollmentYear,
         }
-      : null,
+      : null)
   );
-  const [students, setStudents] = useState<CouncilStudentReview[]>([]);
+  const [students, setStudents] = useState<CouncilStudentReview[]>(cachedData?.students || []);
   const [submittingClass, setSubmittingClass] = useState(false);
   const [semester, setSemester] = useState('all');
   const [status, setStatus] = useState<ReviewStatusFilter>('all');
@@ -135,14 +144,14 @@ export default function AdvisorClassDetailPage() {
   useEffect(() => {
     let mounted = true;
 
-    const loadData = async () => {
+    const loadData = async (isSilent = false) => {
       if (!classId) {
         setLoading(false);
         return;
       }
 
       try {
-        setLoading(true);
+        if (!isSilent) setLoading(true);
         const fallbackCode = assignedClassCode || `LỚP-${classId.slice(0, 8).toUpperCase()}`;
         setClassName(assignedClassName);
         setClassDetail({
@@ -274,10 +283,7 @@ export default function AdvisorClassDetailPage() {
 
           const rawCLDate = review.classLeaderReviewedAt || evaluation?.classLeaderReviewedAt || evaluation?.classLeaderConfirmedAt || evaluation?.reviewedAt || storedConfirmedAt;
           const rawAdvDate = review.classReviewedAt || evaluation?.classReviewedAt || evaluation?.advisorReviewedAt || storedConfirmedAt;
-          const workflowStatus =
-            rawStatus === 'submitted' && isCLConfirmed
-              ? 'class_leader_approved'
-              : rawStatus;
+          const workflowStatus = rawStatus;
 
           return {
             id: evaluation?.id || studentId,
@@ -294,6 +300,19 @@ export default function AdvisorClassDetailPage() {
           } satisfies CouncilStudentReview;
         });
 
+        if (classId) {
+          classDataCache.set(classId, {
+            className: assignedClassName,
+            classDetail: {
+              code: assignedClassCode,
+              name: assignedClassName,
+              majorName: assignedClassMajorName,
+              facultyName: assignedClassFacultyName,
+              enrollmentYear: assignedClassEnrollmentYear,
+            },
+            students: mappedStudents,
+          });
+        }
         setStudents(mappedStudents);
       } catch (error: any) {
         if (!mounted) return;
@@ -307,25 +326,23 @@ export default function AdvisorClassDetailPage() {
       }
     };
 
-    loadData();
+    loadData(Boolean(cachedData));
 
     const handleRefresh = () => {
-      loadData();
+      loadData(true);
     };
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('focus', handleRefresh);
       window.addEventListener('evaluation_confirmed', handleRefresh);
     }
 
     return () => {
       mounted = false;
       if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', handleRefresh);
         window.removeEventListener('evaluation_confirmed', handleRefresh);
       }
     };
-  }, [assignedClassCode, assignedClassEnrollmentYear, assignedClassFacultyName, assignedClassMajorName, assignedClassName, classId, toast, user?.role]);
+  }, [classId, user?.role]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
