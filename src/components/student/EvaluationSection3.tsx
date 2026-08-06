@@ -88,9 +88,9 @@ export const EvaluationSection3 = ({
         <div>
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-            Mục III: Hoạt động chính trị, xã hội, văn hóa, thể thao
+            Mục III: Đánh giá về ý thức và kết quả tham gia các hoạt động chính trị, xã hội, văn hóa, văn nghệ, thể thao, phòng chống tệ nạn xã hội
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Điểm tối đa: 20đ</p>
+          <p className="text-xs text-gray-500 mt-0.5">Thang điểm: Từ 0÷20 điểm</p>
         </div>
 
         <div className="flex items-center gap-3 mt-2 sm:mt-0 select-none">
@@ -139,7 +139,7 @@ export const EvaluationSection3 = ({
 
           {/* Criteria 3.1 */}
           <div className="border-b pb-4">
-            <h3 className="text-sm font-bold text-gray-800">3.1 Hoạt động chính trị, xã hội tại giảng đường (Điểm tối đa: 5đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">3.1 Tham gia đầy đủ, tích cực các hoạt động chính trị, xã hội, các hoạt động tại giảng đường: nghe thời sự, học nghị quyết, tham gia các phong trào đoàn, hội ... (Điểm tối đa: 5đ)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               <div>
                 <label className="block text-xs font-bold text-blue-700 mb-1">Sinh viên tự chấm</label>
@@ -149,10 +149,10 @@ export const EvaluationSection3 = ({
                   disabled={currentUserRole !== 'student' || isSvViolationSec3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="active">Tham gia &amp; chấp hành tốt (5 điểm)</option>
-                  <option value="full">Vắng 1 buổi không lý do (3 điểm)</option>
-                  <option value="excused">Vắng 2 buổi không lý do (2 điểm)</option>
-                  <option value="unexcused">Vắng ≥ 2 buổi hoặc không tham gia (0 điểm)</option>
+                  <option value="active">Tham gia và chấp hành tốt các hoạt động (5 điểm)</option>
+                  <option value="full">Vắng 01 buổi không có lý do (3 điểm)</option>
+                  <option value="excused">Vắng 02 buổi không có lý do (2 điểm)</option>
+                  <option value="unexcused">Vắng từ 02 buổi trở lên không có lý do hoặc không tham gia (0 điểm)</option>
                 </select>
               </div>
               <div>
@@ -166,10 +166,10 @@ export const EvaluationSection3 = ({
                   disabled={currentUserRole !== 'class' || isClassViolationSec3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="active">Tham gia &amp; chấp hành tốt (5 điểm)</option>
-                  <option value="full">Vắng 1 buổi không lý do (3 điểm)</option>
-                  <option value="excused">Vắng 2 buổi không lý do (2 điểm)</option>
-                  <option value="unexcused">Vắng ≥ 2 buổi hoặc không tham gia (0 điểm)</option>
+                  <option value="active">Tham gia và chấp hành tốt các hoạt động (5 điểm)</option>
+                  <option value="full">Vắng 01 buổi không có lý do (3 điểm)</option>
+                  <option value="excused">Vắng 02 buổi không có lý do (2 điểm)</option>
+                  <option value="unexcused">Vắng từ 02 buổi trở lên không có lý do hoặc không tham gia (0 điểm)</option>
                 </select>
               </div>
             </div>
@@ -177,7 +177,7 @@ export const EvaluationSection3 = ({
 
           {/* Criteria 3.2 */}
           <div className="border-b pb-4">
-            <h3 className="text-sm font-bold text-gray-800">3.2 Hoạt động văn hóa, văn nghệ, thể thao (Điểm tối đa: 5đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">3.2 Ý thức tham gia các hoạt động văn hóa, văn nghệ, thể thao do Học viện/Phân viện, các tổ chức đoàn thể phát động (Điểm tối đa: 5đ)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               <div>
                 <label className="block text-xs font-bold text-blue-700 mb-1">Sinh viên tự chấm</label>
@@ -187,10 +187,10 @@ export const EvaluationSection3 = ({
                   disabled={currentUserRole !== 'student' || isSvViolationSec3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="many">Tham gia đầy đủ, có hiệu quả, được ghi nhận (5 điểm)</option>
-                  <option value="some">Tham gia hiệu quả ≥ 50% hoạt động (3 điểm)</option>
-                  <option value="active">Tích cực vận động người khác tham gia (2 điểm)</option>
-                  <option value="full">Vắng &gt; 50% số buổi (1 điểm)</option>
+                  <option value="many">Tham gia đầy đủ, có hiệu quả các hoạt động lớp hoặc các đơn vị tổ chức ghi nhận (5 điểm)</option>
+                  <option value="some">Tham gia có hiệu quả từ 50% các hoạt động trở lên được lớp hoặc đơn vị tổ chức ghi nhận (3 điểm)</option>
+                  <option value="active">Tích cực vận động mọi người tham gia hoặc hưởng ứng tích cực các phong trào (2 điểm)</option>
+                  <option value="full">Vắng trên 50% số buổi của các hoạt động (1 điểm)</option>
                   <option value="none">Không tham gia (0 điểm)</option>
                 </select>
               </div>
@@ -205,10 +205,10 @@ export const EvaluationSection3 = ({
                   disabled={currentUserRole !== 'class' || isClassViolationSec3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="many">Tham gia đầy đủ, có hiệu quả, được ghi nhận (5 điểm)</option>
-                  <option value="some">Tham gia hiệu quả ≥ 50% hoạt động (3 điểm)</option>
-                  <option value="active">Tích cực vận động người khác tham gia (2 điểm)</option>
-                  <option value="full">Vắng &gt; 50% số buổi (1 điểm)</option>
+                  <option value="many">Tham gia đầy đủ, có hiệu quả các hoạt động lớp hoặc các đơn vị tổ chức ghi nhận (5 điểm)</option>
+                  <option value="some">Tham gia có hiệu quả từ 50% các hoạt động trở lên được lớp hoặc đơn vị tổ chức ghi nhận (3 điểm)</option>
+                  <option value="active">Tích cực vận động mọi người tham gia hoặc hưởng ứng tích cực các phong trào (2 điểm)</option>
+                  <option value="full">Vắng trên 50% số buổi của các hoạt động (1 điểm)</option>
                   <option value="none">Không tham gia (0 điểm)</option>
                 </select>
               </div>
@@ -217,7 +217,7 @@ export const EvaluationSection3 = ({
 
           {/* Criteria 3.3 */}
           <div className="border-b pb-4">
-            <h3 className="text-sm font-bold text-gray-800">3.3 Tham gia Câu lạc bộ, Đội, Nhóm (Điểm tối đa: 5đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">3.3 Tham gia các câu lạc bộ, Đội, Nhóm được tổ chức theo qui định (ngoài học thuật, NCKH) (Điểm tối đa: 5đ)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               <div>
                 <label className="block text-xs font-bold text-blue-700 mb-1">Sinh viên tự chấm</label>
@@ -227,10 +227,10 @@ export const EvaluationSection3 = ({
                   disabled={currentUserRole !== 'student' || isSvViolationSec3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="prize_or_org">Tham gia đầy đủ, có hiệu quả (5 điểm)</option>
-                  <option value="active">Tích cực, hiệu quả ≥ 1 hoạt động (3 điểm)</option>
-                  <option value="some">Là thành viên tích cực (2 điểm)</option>
-                  <option value="full">Vắng &gt; 50% số buổi (1 điểm)</option>
+                  <option value="prize_or_org">Tham gia đầy đủ, có hiệu quả các hoạt động (5 điểm)</option>
+                  <option value="active">Tham gia tích cực, có hiệu quả từ 01 hoạt động trở lên (3 điểm)</option>
+                  <option value="some">Là thành viên tích cực hưởng ứng các hoạt động (2 điểm)</option>
+                  <option value="full">Vắng trên 50% số buổi của các hoạt động (1 điểm)</option>
                   <option value="none">Không tham gia (0 điểm)</option>
                 </select>
               </div>
@@ -245,10 +245,10 @@ export const EvaluationSection3 = ({
                   disabled={currentUserRole !== 'class' || isClassViolationSec3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="prize_or_org">Tham gia đầy đủ, có hiệu quả (5 điểm)</option>
-                  <option value="active">Tích cực, hiệu quả ≥ 1 hoạt động (3 điểm)</option>
-                  <option value="some">Là thành viên tích cực (2 điểm)</option>
-                  <option value="full">Vắng &gt; 50% số buổi (1 điểm)</option>
+                  <option value="prize_or_org">Tham gia đầy đủ, có hiệu quả các hoạt động (5 điểm)</option>
+                  <option value="active">Tham gia tích cực, có hiệu quả từ 01 hoạt động trở lên (3 điểm)</option>
+                  <option value="some">Là thành viên tích cực hưởng ứng các hoạt động (2 điểm)</option>
+                  <option value="full">Vắng trên 50% số buổi của các hoạt động (1 điểm)</option>
                   <option value="none">Không tham gia (0 điểm)</option>
                 </select>
               </div>
@@ -257,7 +257,7 @@ export const EvaluationSection3 = ({
 
           {/* Criteria 3.4 */}
           <div className="border-b pb-4">
-            <h3 className="text-sm font-bold text-gray-800">3.4 Tuyên truyền phòng chống tội phạm &amp; Tệ nạn xã hội (Điểm tối đa: 3đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">3.4 Tham gia tuyên truyền, phòng chống tội phạm và các TNXH (Điểm tối đa: 3đ)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               <div>
                 <label className="block text-xs font-bold text-blue-700 mb-1">Sinh viên tự chấm</label>
@@ -267,10 +267,10 @@ export const EvaluationSection3 = ({
                   disabled={currentUserRole !== 'student' || isSvViolationSec3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="active">Tham gia tích cực nhiều hoạt động / tố giác TNXH (3 điểm)</option>
-                  <option value="full">Tham gia 1 hoạt động đạt hiệu quả (2 điểm)</option>
-                  <option value="some">Có ý thức hưởng ứng (1 điểm)</option>
-                  <option value="none">Bị nhắc nhở do vi phạm TNXH (0 điểm)</option>
+                  <option value="active">Tham gia tích cực nhiều hoạt động hoặc có ý thức tố giác các TNXH (3 điểm)</option>
+                  <option value="full">Tham gia một hoạt động đạt hiệu quả (2 điểm)</option>
+                  <option value="some">Có ý thức tham gia hoặc hưởng ứng các hoạt động tuyên truyền phòng, chống TNXH (1 điểm)</option>
+                  <option value="none">Bị nhắc nhở 1 lần do vi phạm các TNXH (chưa đến mức xử lý kỷ luật) (0 điểm)</option>
                 </select>
               </div>
               <div>
@@ -284,10 +284,10 @@ export const EvaluationSection3 = ({
                   disabled={currentUserRole !== 'class' || isClassViolationSec3}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="active">Tham gia tích cực nhiều hoạt động / tố giác TNXH (3 điểm)</option>
-                  <option value="full">Tham gia 1 hoạt động đạt hiệu quả (2 điểm)</option>
-                  <option value="some">Có ý thức hưởng ứng (1 điểm)</option>
-                  <option value="none">Bị nhắc nhở do vi phạm TNXH (0 điểm)</option>
+                  <option value="active">Tham gia tích cực nhiều hoạt động hoặc có ý thức tố giác các TNXH (3 điểm)</option>
+                  <option value="full">Tham gia một hoạt động đạt hiệu quả (2 điểm)</option>
+                  <option value="some">Có ý thức tham gia hoặc hưởng ứng các hoạt động tuyên truyền phòng, chống TNXH (1 điểm)</option>
+                  <option value="none">Bị nhắc nhở 1 lần do vi phạm các TNXH (chưa đến mức xử lý kỷ luật) (0 điểm)</option>
                 </select>
               </div>
             </div>
@@ -295,7 +295,7 @@ export const EvaluationSection3 = ({
 
           {/* Criteria 3.5 */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-800">3.5 Được khen thưởng về các phong trào hoạt động (Điểm tối đa: 2đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">3.5 Được khen thưởng, biểu dương trong các hoạt động tại mục III (Điểm tối đa: 2đ)</h3>
             <p className="text-xs text-gray-500">Nhập điểm khen thưởng tự chọn (max 2đ). Yêu cầu đính kèm minh chứng nếu có điểm.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

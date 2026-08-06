@@ -176,7 +176,7 @@ export function StudentListView() {
     return () => {
       mounted = false;
     };
-  }, [classId, semester, toast, user?.managedClasses]);
+  }, [classId, semester]);
 
   const filteredStudents = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();

@@ -391,38 +391,36 @@ export const EvaluationFormQD4185 = () => {
   // Class (Monitor) score states are NOT kept locally — they are written directly to store
   // by the auto-propagate effect below and managed there by EvaluationTableGrid.
 
-  // Auto-propagate student inputs to class columns in store if class hasn't been edited
-  const [isClassEdited, setIsClassEdited] = useState(false);
+  // Sync student local state to store sv fields without touching class fields
   useEffect(() => {
-    if (!isClassEdited && currentUserRole === 'student') {
-      // Write class values directly into store (no local class state needed)
+    if (currentUserRole === 'student') {
       store.getState().batchSet({
-        classStudyAttitude: svStudyAttitude,
-        classNckh: svNckh,
-        classOlympic: svOlympic,
-        classCreative: svCreative,
-        classAcademicRank: svAcademicRank,
-        classNoViolationScore: svNoViolationScore,
-        classDeductions: [...svDeductions],
-        classActivity1: svActivity1,
-        classActivity2: svActivity2,
-        classActivity3: svActivity3,
-        classActivity4: svActivity4,
-        classRewardPoints: svRewardPoints,
-        classPolicy: svPolicy,
-        classSolidarity: svSolidarity,
-        classLocality: svLocality,
-        classRoleType: svRoleType,
-        classCadrePosition: svCadrePosition,
-        classCadrePerformance: svCadrePerformance,
-        classManagementLevel: svManagementLevel,
-        classClassParticipation: svClassParticipation,
-        classSpecialAchievement: svSpecialAchievement,
-        isClassViolationSec1: isSvViolationSec1,
-        isClassViolationSec2: isSvViolationSec2,
-        isClassViolationSec3: isSvViolationSec3,
-        isClassViolationSec4: isSvViolationSec4,
-        isClassViolationSec5: isSvViolationSec5,
+        svStudyAttitude,
+        svNckh,
+        svOlympic,
+        svCreative,
+        svAcademicRank,
+        svNoViolationScore,
+        svDeductions: [...svDeductions],
+        svActivity1,
+        svActivity2,
+        svActivity3,
+        svActivity4,
+        svRewardPoints,
+        svPolicy,
+        svSolidarity,
+        svLocality,
+        svRoleType,
+        svCadrePosition,
+        svCadrePerformance,
+        svManagementLevel,
+        svClassParticipation,
+        svSpecialAchievement,
+        isSvViolationSec1,
+        isSvViolationSec2,
+        isSvViolationSec3,
+        isSvViolationSec4,
+        isSvViolationSec5,
       });
     }
   }, [
@@ -431,7 +429,7 @@ export const EvaluationFormQD4185 = () => {
     svPolicy, svSolidarity, svLocality, svRoleType, svCadrePosition, svCadrePerformance,
     svManagementLevel, svClassParticipation, svSpecialAchievement,
     isSvViolationSec1, isSvViolationSec2, isSvViolationSec3, isSvViolationSec4, isSvViolationSec5,
-    isClassEdited, currentUserRole, store
+    currentUserRole, store
   ]);
 
 
@@ -748,13 +746,19 @@ export const EvaluationFormQD4185 = () => {
     return dict[val as keyof typeof dict] || val || 'NONE';
   };
 
-  const reverseMapSpecialAchievement = (val: string) => {
-    const dict = {
-      national_intl: 'NATIONAL_OR_INTL',
-      provincial: 'PROVINCIAL_LEVEL',
+  const reverseMapSpecialAchievement = (val?: string | null) => {
+    if (!val) return 'NONE';
+    const upper = String(val).trim().toUpperCase();
+    if (['NONE', '0', 'NULL', 'UNDEFINED', ''].includes(upper)) return 'NONE';
+    const dict: Record<string, string> = {
+      NATIONAL_INTL: 'NATIONAL_OR_INTL',
+      PROVINCIAL: 'PROVINCIAL_LEVEL',
+      SCHOOL_LEVEL_OR_HIGHER: 'SCHOOL_LEVEL_OR_HIGHER',
+      FACULTY_LEVEL: 'FACULTY_LEVEL',
+      NONE: 'NONE',
       none: 'NONE',
     };
-    return dict[val as keyof typeof dict] || val || 'NONE';
+    return dict[val as keyof typeof dict] || dict[upper] || 'NONE';
   };
 
   const buildRolePayload = (s: ReturnType<typeof store.getState>) => {
@@ -833,7 +837,6 @@ export const EvaluationFormQD4185 = () => {
 
 	    setNote('');
 	    setEvaluationWorkflow(null);
-	    setIsClassEdited(false);
     setIsSvViolationSec1(false);
     setIsSvViolationSec2(false);
     setIsSvViolationSec3(false);
@@ -907,7 +910,7 @@ export const EvaluationFormQD4185 = () => {
       });
       const computedNoViolationScore = discData.baseScore !== undefined
         ? Math.min(25, Math.max(0, Number(discData.baseScore) || 0))
-        : 25;
+        : 0;
 
       setSvNoViolationScore(computedNoViolationScore);
       setSvDeductions(dec);
@@ -1616,7 +1619,7 @@ export const EvaluationFormQD4185 = () => {
               <div className="text-xs sm:text-sm leading-snug text-gray-800 font-semibold max-w-[45%]">
                 <p className="uppercase font-black text-xs sm:text-sm text-gray-900">HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
                 <p className="text-xs font-semibold text-gray-700">PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
-                <p className="text-xs font-semibold text-gray-700">TẠI TỈNH QUẢNG NAM</p>
+                <p className="text-xs font-semibold text-gray-700">THÀNH PHỐ ĐÀ NẴNG</p>
                 <p className="text-xs mt-1">──────</p>
               </div>
               <div className="text-xs sm:text-sm leading-snug text-gray-800 font-semibold max-w-[45%] text-center">

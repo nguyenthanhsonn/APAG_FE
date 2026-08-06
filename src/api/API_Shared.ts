@@ -108,6 +108,21 @@ export const API_Shared = {
     });
   },
 
+  /** 3b. Lấy danh sách thống kê lớp thuộc khoa cho Dashboard Khoa (Dùng cho Khoa, Admin) */
+  getFacultyClassStats: (facultyId: string, semesterId?: string) => {
+    return get<{ totalClasses: number; items: any[] }>(`/faculties/${facultyId}/class-stats`, {
+      params: buildQueryParams({ semesterId }),
+    });
+  },
+
+  /** 3c. Lấy danh sách đánh giá sinh viên trong lớp cho Biên bản Hội đồng Khoa (Dùng cho Khoa, Admin) */
+  getFacultyCouncilReview: (facultyId: string, classId: string, semesterId?: string) => {
+    return get<{ classId: string; className: string; totalStudents: number; items: any[] }>(
+      `/faculties/${facultyId}/classes/${classId}/council-review`,
+      { params: buildQueryParams({ semesterId }) },
+    );
+  },
+
   /** 4. Lấy danh sách lớp thuộc ngành (Dùng cho Admin, Khoa) */
   getMajorClasses: (majorId: string, params?: SharedFacultyQueryParams) => {
     return get<PaginatedResponse<AdminClass> | AdminClass[]>(`/majors/${majorId}/classes`, {

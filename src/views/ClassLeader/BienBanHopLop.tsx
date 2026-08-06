@@ -6,7 +6,6 @@ import {
   Eye,
   Printer,
   RefreshCw,
-  Info,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { API_Admin } from '@/api/API_Admin';
@@ -38,11 +37,13 @@ function resolveKhoa(user: any): string {
 }
 
 function getScoreSV(item: AdminEvaluationItem): number {
-  return Number((item as any).studentScore ?? (item as any).totalScore ?? (item as any).svScore ?? 0);
+  const val = (item as any).studentScore ?? (item as any).svScore ?? (item as any).totalScore;
+  return val !== undefined && val !== null ? Number(val) : 0;
 }
 
 function getScoreLop(item: AdminEvaluationItem): number {
-  return Number((item as any).classScore ?? (item as any).finalScore ?? (item as any).classLeaderScore ?? 0);
+  const val = (item as any).classScore ?? (item as any).class_score ?? (item as any).classLeaderScore;
+  return val !== undefined && val !== null ? Number(val) : 0;
 }
 
 function getBirthDate(item: AdminEvaluationItem): string {
@@ -96,14 +97,13 @@ export function BienBanHopLop() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  /* ─── Overridable drlLop per row ─── */
-  const [drlLopOverride, setDrlLopOverride] = useState<Record<string, number>>({});
   const [bieuQuyet, setBieuQuyet] = useState<Record<string, string>>({});
   const [ghiChu, setGhiChu] = useState<Record<string, string>>({});
 
   /* ─── Form state ─── */
   const today = useMemo(() => new Date(), []);
   const [formData, setFormData] = useState({
+    diaDanh: 'Đà Nẵng',
     ngayHop: String(today.getDate()).padStart(2, '0'),
     thang: String(today.getMonth() + 1).padStart(2, '0'),
     nam: String(today.getFullYear()),
@@ -165,8 +165,7 @@ export function BienBanHopLop() {
     apiRows.map((item, idx) => {
       const mapped = mapEvaluationToFacultyStudent(item);
       const svScore = getScoreSV(item);
-      const lopScoreDefault = getScoreLop(item) || mapped.score;
-      const lopScore = drlLopOverride[item.id] !== undefined ? drlLopOverride[item.id] : lopScoreDefault;
+      const lopScore = getScoreLop(item);
       return {
         stt: idx + 1,
         maSV: mapped.code,
@@ -178,7 +177,7 @@ export function BienBanHopLop() {
         bieuQuyet: bieuQuyet[item.id] ?? '',
         ghiChu: ghiChu[item.id] ?? '',
       };
-    }), [apiRows, drlLopOverride, bieuQuyet, ghiChu]);
+    }), [apiRows, bieuQuyet, ghiChu]);
 
   /* ─── Summary counts ─── */
   const counts = useMemo(() => ({
@@ -265,10 +264,41 @@ export function BienBanHopLop() {
             <p className="text-center font-bold text-gray-400 mt-1">*</p>
           </div>
           <div className="text-center space-y-1 sm:text-right">
-            <p className="font-bold uppercase tracking-wider text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
-            <div className="w-24 h-0.5 bg-gray-900 mx-auto sm:mr-0 my-1"></div>
-            <p className="italic text-gray-500 mt-2">
-              Quảng Nam, ngày <span className="font-semibold text-gray-900">{formData.ngayHop}</span> tháng <span className="font-semibold text-gray-900">{formData.thang}</span> năm <span className="font-semibold text-gray-900">{formData.nam}</span>
+            <div className="inline-block border-b-2 border-gray-900 pb-0.5">
+              <p className="font-bold uppercase tracking-wider text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
+            </div>
+            <p className="italic text-gray-600 mt-2 flex flex-wrap items-center justify-center sm:justify-end gap-1 text-xs sm:text-sm">
+              <input
+                type="text"
+                value={formData.diaDanh}
+                onChange={(e) => handleField('diaDanh', e.target.value)}
+                placeholder="Đà Nẵng"
+                className="w-20 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-right font-semibold text-gray-900"
+              />
+              <span>, ngày</span>
+              <input
+                type="text"
+                value={formData.ngayHop}
+                onChange={(e) => handleField('ngayHop', e.target.value)}
+                placeholder="05"
+                className="w-10 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-center font-semibold text-gray-900"
+              />
+              <span>tháng</span>
+              <input
+                type="text"
+                value={formData.thang}
+                onChange={(e) => handleField('thang', e.target.value)}
+                placeholder="08"
+                className="w-10 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-center font-semibold text-gray-900"
+              />
+              <span>năm</span>
+              <input
+                type="text"
+                value={formData.nam}
+                onChange={(e) => handleField('nam', e.target.value)}
+                placeholder="2026"
+                className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-center font-semibold text-gray-900"
+              />
             </p>
           </div>
         </div>
@@ -276,8 +306,23 @@ export function BienBanHopLop() {
         {/* Tên biên bản */}
         <div className="text-center space-y-2 mb-8">
           <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider text-gray-900">BIÊN BẢN HỌP LỚP</h2>
-          <p className="italic text-gray-600">
-            Về việc đánh giá kết quả rèn luyện học kỳ <span className="font-semibold text-gray-950">{formData.hocKy}</span> năm học: <span className="font-semibold text-gray-950">{formData.namHoc}</span>
+          <p className="italic text-gray-600 flex flex-wrap items-center justify-center gap-1.5 text-sm sm:text-base">
+            <span>Về việc đánh giá kết quả rèn luyện học kỳ</span>
+            <input
+              type="text"
+              value={formData.hocKy}
+              onChange={(e) => handleField('hocKy', e.target.value)}
+              placeholder="HK1"
+              className="w-14 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-center font-bold text-gray-950"
+            />
+            <span>năm học:</span>
+            <input
+              type="text"
+              value={formData.namHoc}
+              onChange={(e) => handleField('namHoc', e.target.value)}
+              placeholder="2026-2027"
+              className="w-28 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-center font-bold text-gray-950"
+            />
           </p>
           <div className="w-32 border-b border-dashed border-gray-300 mx-auto mt-2"></div>
         </div>
@@ -285,33 +330,84 @@ export function BienBanHopLop() {
         {/* Nội dung biên bản */}
         <div className="space-y-4 text-sm sm:text-base">
           {/* I. Thời gian */}
-          <p>
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="font-bold text-gray-900">I. Thời gian:</span> Cuộc họp bắt đầu vào hồi:{' '}
-            <span className="font-semibold text-gray-900">{formData.gioKhoi}</span> ngày{' '}
-            <span className="font-semibold text-gray-900">{formData.ngayHop}</span> tháng{' '}
-            <span className="font-semibold text-gray-900">{formData.thang}</span> năm{' '}
-            <span className="font-semibold text-gray-900">{formData.nam}</span>
-          </p>
+            <input
+              type="text"
+              value={formData.gioKhoi}
+              onChange={(e) => handleField('gioKhoi', e.target.value)}
+              placeholder="07:30"
+              className="w-20 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-semibold text-gray-900"
+            />{' '}
+            ngày{' '}
+            <input
+              type="text"
+              value={formData.ngayHop}
+              onChange={(e) => handleField('ngayHop', e.target.value)}
+              placeholder="05"
+              className="w-12 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-semibold text-gray-900"
+            />{' '}
+            tháng{' '}
+            <input
+              type="text"
+              value={formData.thang}
+              onChange={(e) => handleField('thang', e.target.value)}
+              placeholder="08"
+              className="w-12 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-semibold text-gray-900"
+            />{' '}
+            năm{' '}
+            <input
+              type="text"
+              value={formData.nam}
+              onChange={(e) => handleField('nam', e.target.value)}
+              placeholder="2026"
+              className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-semibold text-gray-900"
+            />
+          </div>
 
           {/* II. Địa điểm */}
-          <p>
-            <span className="font-bold text-gray-900">II. Địa điểm:</span>{' '}
-            <span className="font-semibold text-gray-900">{formData.diaDiem || 'Phòng học của lớp'}</span>
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-bold text-gray-900 shrink-0">II. Địa điểm:</span>
+            <input
+              type="text"
+              value={formData.diaDiem}
+              onChange={(e) => handleField('diaDiem', e.target.value)}
+              placeholder="Nhập địa điểm họp (ví dụ: Phòng H301 hoặc Online Teams)..."
+              className="flex-1 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-2 py-0.5 font-semibold text-gray-900 transition-colors placeholder:text-gray-400 placeholder:font-normal min-w-[200px]"
+            />
+          </div>
 
           {/* III. Thành phần */}
           <div className="space-y-2">
             <p className="font-bold text-gray-900">III. Thành phần:</p>
             <ul className="list-disc pl-6 space-y-2 text-gray-700">
               <li>Cố vấn học tập lớp, BCS lớp, BCH chi đoàn, toàn thể sinh viên trong lớp.</li>
-              <li>
-                Tổng số người dự họp:{' '}
-                <span className="font-bold text-gray-900">{formData.tongSoDuHop || studentRows.length}</span> /{' '}
-                <span className="font-bold text-gray-900">{studentRows.length}</span> người.
+              <li className="flex flex-wrap items-center gap-1.5">
+                <span>Tổng số người dự họp:</span>
+                <input
+                  type="text"
+                  value={formData.tongSoDuHop}
+                  onChange={(e) => handleField('tongSoDuHop', e.target.value)}
+                  className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-bold text-gray-900"
+                />{' '}
+                <span>người.</span>
               </li>
-              <li>
-                Vắng họp: <span className="font-bold text-gray-900">{formData.soVang}</span> người, lý do vắng họp:{' '}
-                <span className="font-bold text-gray-900">{formData.lyDoVang || 'Không có'}</span>.
+              <li className="flex flex-wrap items-center gap-1.5">
+                <span>Vắng họp:</span>
+                <input
+                  type="text"
+                  value={formData.soVang}
+                  onChange={(e) => handleField('soVang', e.target.value)}
+                  className="w-14 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-bold text-gray-900"
+                />{' '}
+                người, lý do vắng họp:{' '}
+                <input
+                  type="text"
+                  value={formData.lyDoVang}
+                  onChange={(e) => handleField('lyDoVang', e.target.value)}
+                  placeholder="Không có hoặc lý do..."
+                  className="flex-1 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-2 text-gray-900 min-w-[180px]"
+                />
               </li>
               {/* Chủ tọa */}
               <li className="flex flex-wrap items-center gap-2">
@@ -369,115 +465,146 @@ export function BienBanHopLop() {
               </li>
             </ol>
           </div>
-        </div>
-      </div>
 
-      {/* ── SECTION 2: Bảng sinh viên ── */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-xs overflow-hidden">
-        <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <p className="text-sm font-bold text-gray-800">Danh sách kết quả rèn luyện</p>
-            <p className="text-xs text-gray-500 mt-0.5">ĐRL lớp đánh giá có thể chỉnh sửa trực tiếp. Xếp loại tính tự động.</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5">
-            <Info size={13} className="text-blue-400 shrink-0" />
-            <span>Cột <strong>Biểu quyết</strong> và <strong>Ghi chú</strong> nhập trực tiếp vào ô</span>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="py-14 text-center text-sm text-gray-400">Đang tải dữ liệu từ hệ thống...</div>
-          ) : !classId ? (
-            <div className="py-14 text-center text-sm text-gray-400">Tài khoản chưa được gán lớp.</div>
-          ) : studentRows.length === 0 ? (
-            <div className="py-14 text-center text-sm text-gray-400">Chưa có sinh viên nào trong lớp.</div>
-          ) : (
-            <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase text-gray-500">
-                  <th className="py-3 px-3 text-center w-10">STT</th>
-                  <th className="py-3 px-3">Mã số SV</th>
-                  <th className="py-3 px-3">Họ và Tên</th>
-                  <th className="py-3 px-3 text-center">Ngày sinh</th>
-                  <th className="py-3 px-3 text-center">ĐRL SV<br/>tự đánh giá</th>
-                  <th className="py-3 px-3 text-center">ĐRL lớp<br/>đánh giá</th>
-                  <th className="py-3 px-3 text-center">Xếp loại</th>
-                  <th className="py-3 px-3 text-center">Biểu quyết</th>
-                  <th className="py-3 px-3">Ghi chú</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {studentRows.map((s, idx) => {
-                  const itemId = apiRows[idx]?.id ?? String(idx);
-                  return (
-                    <tr key={itemId} className="hover:bg-gray-50/70 transition-colors">
-                      <td className="py-2.5 px-3 text-center text-gray-500 text-xs font-semibold">{s.stt}</td>
-                      <td className="py-2.5 px-3 font-mono text-xs font-semibold text-gray-700">{s.maSV}</td>
-                      <td className="py-2.5 px-3 font-medium text-gray-900">{s.hoTen}</td>
-                      <td className="py-2.5 px-3 text-center text-xs text-gray-600">{s.ngaySinh}</td>
-                      <td className="py-2.5 px-3 text-center font-bold text-blue-600">{s.drlSV > 0 ? s.drlSV : '—'}</td>
-                      {/* ĐRL lớp — editable */}
-                      <td className="py-2.5 px-3 text-center">
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={s.drlLop || ''}
-                          onChange={(e) => {
-                            const v = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                            setDrlLopOverride((p) => ({ ...p, [itemId]: v }));
-                          }}
-                          className="w-16 h-7 rounded-lg border border-gray-300 px-1.5 text-center text-sm font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-brand-primary bg-white"
-                        />
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <XepLoaiBadge label={s.xepLoai} />
-                      </td>
-                      {/* Biểu quyết */}
-                      <td className="py-2.5 px-3 text-center">
-                        <input
-                          type="text"
-                          value={s.bieuQuyet}
-                          onChange={(e) => setBieuQuyet((p) => ({ ...p, [itemId]: e.target.value }))}
-                          placeholder="VD: 100%"
-                          className="w-20 h-7 rounded-lg border border-gray-300 px-2 text-center text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                        />
-                      </td>
-                      {/* Ghi chú */}
-                      <td className="py-2.5 px-3">
-                        <input
-                          type="text"
-                          value={s.ghiChu}
-                          onChange={(e) => setGhiChu((p) => ({ ...p, [itemId]: e.target.value }))}
-                          placeholder="Ghi chú / MC..."
-                          className="w-full h-7 rounded-lg border border-gray-300 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                        />
-                      </td>
+          {/* Bảng sinh viên trực tiếp trong Biên bản */}
+          <div className="pt-2">
+            <div className="overflow-x-auto rounded-xl border border-gray-300">
+              {loading ? (
+                <div className="py-10 text-center text-sm text-gray-400">Đang tải dữ liệu từ hệ thống...</div>
+              ) : !classId ? (
+                <div className="py-10 text-center text-sm text-gray-400">Tài khoản chưa được gán lớp.</div>
+              ) : studentRows.length === 0 ? (
+                <div className="py-10 text-center text-sm text-gray-400">Chưa có sinh viên nào trong lớp.</div>
+              ) : (
+                <table className="w-full border-collapse text-left text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-300 bg-gray-50 text-xs font-bold text-gray-800 text-center">
+                      <th className="py-2 px-2 border-r border-gray-300 w-10">STT</th>
+                      <th className="py-2 px-2 border-r border-gray-300 w-24">Mã số SV</th>
+                      <th className="py-2 px-2 border-r border-gray-300 text-left">Họ và Tên</th>
+                      <th className="py-2 px-2 border-r border-gray-300 w-24">Ngày sinh</th>
+                      <th className="py-2 px-2 border-r border-gray-300 w-20">ĐRL SV<br/>tự đánh giá</th>
+                      <th className="py-2 px-2 border-r border-gray-300 w-20">ĐRL lớp<br/>đánh giá</th>
+                      <th className="py-2 px-2 border-r border-gray-300 w-20">Xếp loại</th>
+                      <th className="py-2 px-2 border-r border-gray-300 w-20">Biểu quyết</th>
+                      <th className="py-2 px-2 text-left">Ghi chú<br/><span className="text-[10px] font-normal italic text-gray-500">(kèm theo MC đối với SV xếp loại Xuất sắc, tốt, TB, yếu, kém)</span></th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Summary stats */}
-        {studentRows.length > 0 && (
-          <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-3 flex flex-wrap items-center gap-3 text-sm">
-            <span className="font-semibold text-gray-700">Tổng: {studentRows.length} SV —</span>
-            {[
-              { label: 'Xuất sắc', count: counts.xuatSac, color: 'text-violet-700 bg-violet-50 border-violet-100' },
-              { label: 'Tốt', count: counts.tot, color: 'text-blue-700 bg-blue-50 border-blue-100' },
-              { label: 'Khá', count: counts.kha, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
-              { label: 'Trung bình', count: counts.trungBinh, color: 'text-amber-700 bg-amber-50 border-amber-100' },
-              { label: 'Yếu', count: counts.yeu, color: 'text-rose-700 bg-rose-50 border-rose-100' },
-            ].map(({ label, count, color }) => (
-              <span key={label} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${color}`}>
-                {label}: <strong>{count}</strong>
-              </span>
-            ))}
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {studentRows.map((s, idx) => {
+                      const itemId = apiRows[idx]?.id ?? String(idx);
+                      return (
+                        <tr key={itemId} className="hover:bg-gray-50/80 transition-colors">
+                          <td className="py-2 px-2 border-r border-gray-200 text-center font-medium text-gray-600">{s.stt}</td>
+                          <td className="py-2 px-2 border-r border-gray-200 text-center font-mono font-semibold text-gray-800">{s.maSV}</td>
+                          <td className="py-2 px-2 border-r border-gray-200 font-medium text-gray-900">{s.hoTen}</td>
+                          <td className="py-2 px-2 border-r border-gray-200 text-center text-xs text-gray-600">{s.ngaySinh}</td>
+                          <td className="py-2 px-2 border-r border-gray-200 text-center font-bold text-blue-600">{s.drlSV > 0 ? s.drlSV : '—'}</td>
+                          {/* ĐRL lớp — đọc dữ liệu từ class_score do lớp trưởng đánh giá, không chỉnh sửa tại biên bản */}
+                          <td className="py-2 px-2 border-r border-gray-200 text-center font-bold text-gray-900">
+                            {s.drlLop > 0 ? s.drlLop : '—'}
+                          </td>
+                          <td className="py-2 px-2 border-r border-gray-200 text-center">
+                            <XepLoaiBadge label={s.xepLoai} />
+                          </td>
+                          {/* Biểu quyết */}
+                          <td className="py-2 px-2 border-r border-gray-200 text-center">
+                            <input
+                              type="text"
+                              value={s.bieuQuyet}
+                              onChange={(e) => setBieuQuyet((p) => ({ ...p, [itemId]: e.target.value }))}
+                              placeholder="100%"
+                              className="w-16 h-7 rounded border border-gray-300 px-1 text-center text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                            />
+                          </td>
+                          {/* Ghi chú */}
+                          <td className="py-2 px-2">
+                            <input
+                              type="text"
+                              value={s.ghiChu}
+                              onChange={(e) => setGhiChu((p) => ({ ...p, [itemId]: e.target.value }))}
+                              placeholder="Ghi chú / MC..."
+                              className="w-full h-7 rounded border border-gray-300 px-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Tổng kết phân loại */}
+          <div className="pt-2 text-sm text-gray-900 space-y-1 pl-4">
+            <p className="font-bold">- Tổng số: <span className="font-bold text-gray-900">{studentRows.length}</span> sinh viên</p>
+            <p className="pl-4 font-semibold text-gray-900">Trong đó:</p>
+            <div className="pl-8 space-y-1 font-semibold text-xs sm:text-sm text-gray-900">
+              <p>+ Xuất sắc: <strong className="font-bold text-gray-900">{counts.xuatSac}</strong> Sinh viên</p>
+              <p>+ Tốt: <strong className="font-bold text-gray-900">{counts.tot}</strong> Sinh viên</p>
+              <p>+ Khá: <strong className="font-bold text-gray-900">{counts.kha}</strong> Sinh viên</p>
+              <p>+ Trung bình: <strong className="font-bold text-gray-900">{counts.trungBinh}</strong> Sinh viên</p>
+              <p>+ Yếu: <strong className="font-bold text-gray-900">{counts.yeu}</strong> Sinh viên</p>
+            </div>
+          </div>
+
+          {/* Cuộc họp kết thúc */}
+          <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center gap-1.5 text-sm font-medium text-gray-800">
+            <span>Cuộc họp kết thúc vào hồi:</span>
+            <input
+              type="text"
+              value={formData.gioKetThuc}
+              onChange={(e) => handleField('gioKetThuc', e.target.value)}
+              placeholder="09:00"
+              className="w-20 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-bold text-gray-900"
+            />
+            <span>giờ, ngày {formData.ngayHop}/{formData.thang}/{formData.nam}</span>
+          </div>
+
+          {/* Chữ ký 3 bên ngay trong tờ biên bản */}
+          <div className="grid grid-cols-3 gap-4 text-center pt-8 border-t border-gray-100 mt-6">
+            <div>
+              <p className="font-bold text-gray-900 text-sm uppercase">CỐ VẤN HỌC TẬP</p>
+              <p className="text-xs italic text-gray-500">(Ký và ghi rõ họ tên)</p>
+              <div className="h-16 flex items-end justify-center">
+                <input
+                  type="text"
+                  value={formData.chuToa}
+                  onChange={(e) => handleField('chuToa', e.target.value)}
+                  placeholder="Nhập họ tên Cố vấn..."
+                  className="w-full bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-bold text-gray-900 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-sm uppercase">LỚP TRƯỞNG</p>
+              <p className="text-xs italic text-gray-500">(Ký và ghi rõ họ tên)</p>
+              <div className="h-16 flex items-end justify-center">
+                <input
+                  type="text"
+                  value={formData.tenLopTruong}
+                  onChange={(e) => handleField('tenLopTruong', e.target.value)}
+                  placeholder="Nhập họ tên Lớp trưởng..."
+                  className="w-full bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-bold text-gray-900 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-sm uppercase">THƯ KÝ</p>
+              <p className="text-xs italic text-gray-500">(Ký và ghi rõ họ tên)</p>
+              <div className="h-16 flex items-end justify-center">
+                <input
+                  type="text"
+                  value={formData.thuKy}
+                  onChange={(e) => handleField('thuKy', e.target.value)}
+                  placeholder="Nhập họ tên Thư ký..."
+                  className="w-full bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-bold text-gray-900 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Preview Modal */}
