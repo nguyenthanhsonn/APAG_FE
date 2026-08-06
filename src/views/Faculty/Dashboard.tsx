@@ -15,10 +15,8 @@ import { PrintButton } from '@/components/common/PrintButton';
 import { API_Admin } from '@/api/API_Admin';
 import { API_Shared } from '@/api/API_Shared';
 import { useAuthStore } from '@/store/authStore';
-import type { AdminClass, AdminEvaluationItem, AdminMajor } from '@/types';
 import {
   FacultyClassRecord,
-  groupFacultyEvaluationsByClass,
   resolveFacultyId,
   toArray,
 } from '@/utils/facultyEvaluationData';
@@ -42,49 +40,26 @@ export function FacultyDashboard() {
 
     setLoading(true);
     setErrorMessage('');
+    const tStart = performance.now();
     try {
-      const [majorsResult, evaluationsResult] = await Promise.all([
-        API_Shared.getFacultyMajors(facultyId, { page: 1, limit: 100 }),
-        API_Admin.getFacultyEvaluations(facultyId, { limit: 100 }),
-      ]);
-      const majors = toArray<AdminMajor>(majorsResult);
-      const classesByMajor = await Promise.all(
-        majors.map((major) =>
-          API_Shared.getMajorClasses(major.id, { page: 1, limit: 100 }),
-        ),
-      );
-      const facultyClasses = classesByMajor.flatMap((result) => toArray<AdminClass>(result));
-      const evaluations = toArray<AdminEvaluationItem>(evaluationsResult);
-      const recordsByClassId = new Map(groupFacultyEvaluationsByClass(evaluations).map((record) => [record.id, record]));
+      const statsResult = await API_Shared.getFacultyClassStats(facultyId);
+      const items = toArray<any>(statsResult);
 
       setClasses(
-        facultyClasses.map((classItem) => {
-          const record = recordsByClassId.get(classItem.id);
-          if (record) {
-            return {
-              ...record,
-              className: classItem.name || classItem.code || record.className,
-              leader:
-                (classItem as any).classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') ||
-                record.leader,
-              totalStudents: classItem.studentCount ?? record.totalStudents,
-            };
-          }
-
-          return {
-            id: classItem.id,
-            className: classItem.name || classItem.code || 'Lớp chưa xác định',
-            leader:
-              (classItem as any).classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') || '—',
-            totalStudents: classItem.studentCount ?? 0,
-            submittedCount: 0,
-            approvedCount: 0,
-            status: 'IN_PROGRESS',
-            date: '-',
-            evaluations: [],
-          };
-        }),
+        items.map((item: any) => ({
+          id: item.id,
+          className: item.className || item.classCode || 'Lớp chưa xác định',
+          leader: item.leader || '—',
+          totalStudents: item.totalStudents ?? 0,
+          submittedCount: item.submittedCount ?? 0,
+          approvedCount: item.approvedCount ?? 0,
+          status: item.status || 'IN_PROGRESS',
+          date: item.transferredDate || '-',
+          evaluations: [],
+        })),
       );
+      const tTotal = (performance.now() - tStart).toFixed(2);
+      console.log(`⏱️ [FacultyDashboard] Tải danh sách lớp (1 round-trip): ${tTotal}ms`);
     } catch (err: any) {
       setClasses([]);
       setErrorMessage(getUserFriendlyError(err, 'Không tải được danh sách lớp của khoa.'));
@@ -193,37 +168,6 @@ export function FacultyDashboard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-brand-secondary/10 text-brand-secondary rounded-xl">
-            <Building2 size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-medium">Tổng số lớp có phiếu</p>
-            <p className="text-2xl font-bold text-gray-900">{totalClasses} Lớp</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-            <Check size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-medium">Đã gửi PĐT</p>
-            <p className="text-2xl font-bold text-emerald-700">{approvedClasses} Lớp</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-            <Clock size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-medium">Chờ Khoa gửi PĐT</p>
-            <p className="text-2xl font-bold text-amber-700">{pendingClasses} Lớp</p>
-          </div>
-        </div>
-      </div>
 
       {errorMessage && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">

@@ -74,7 +74,7 @@ export const EvaluationSection4 = ({
             <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
             Mục IV: Đánh giá về ý thức công dân trong quan hệ cộng đồng
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Điểm tối đa: 25đ</p>
+          <p className="text-xs text-gray-500 mt-0.5">Thang điểm: Từ 0÷25 điểm</p>
         </div>
 
         <div className="flex items-center gap-3 mt-2 sm:mt-0 select-none">
@@ -123,7 +123,7 @@ export const EvaluationSection4 = ({
 
           {/* Criteria 4.1 */}
           <div className="border-b pb-4 space-y-3">
-            <h3 className="text-sm font-bold text-gray-800">4.1 Chấp hành chủ trương, chính sách pháp luật, an toàn giao thông (Điểm tối đa: 10đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">4.1 Ý thức chấp hành và tham gia tuyên truyền các chủ trương, đường lối của Đảng, chính sách pháp luật của Nhà nước, quy định nơi cư trú, giữ gìn an ninh- trật tự, an toàn giao thông, quy định trong cộng đồng (Điểm tối đa: 10đ)</h3>
             <p className="text-xs text-gray-500 mt-0.5">* Mức "được địa phương / Học viện khen thưởng" yêu cầu đính kèm minh chứng.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -136,10 +136,10 @@ export const EvaluationSection4 = ({
                   disabled={currentUserRole !== 'student' || isSvViolationSec4}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="excellent_propaganda">Chấp hành đúng + tuyên truyền tốt + được khen thưởng (10 điểm)</option>
-                  <option value="good">Chấp hành đúng + tuyên truyền tốt (8 điểm)</option>
-                  <option value="minor_violation">Chấp hành đúng quy định (5 điểm)</option>
-                  <option value="none">Bị nhắc nhở / lập biên bản vi phạm (0 điểm)</option>
+                  <option value="excellent_propaganda">Chấp hành đúng và tham gia tuyên truyền tốt, được khen thưởng (10 điểm)</option>
+                  <option value="good">Chấp hành đúng và tham gia tuyên truyền tốt (8 điểm)</option>
+                  <option value="minor_violation">Chấp hành đúng các quy định (5 điểm)</option>
+                  <option value="none">Bị nhắc nhở, lập biên bản do vi phạm các quy định (0 điểm)</option>
                 </select>
 
                 {svPolicy === 'excellent_propaganda' && currentUserRole === 'student' && !isSvViolationSec4 && (
@@ -181,10 +181,10 @@ export const EvaluationSection4 = ({
                   disabled={currentUserRole !== 'class' || isClassViolationSec4}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="excellent_propaganda">Chấp hành đúng + tuyên truyền tốt + được khen thưởng (10 điểm)</option>
-                  <option value="good">Chấp hành đúng + tuyên truyền tốt (8 điểm)</option>
-                  <option value="minor_violation">Chấp hành đúng quy định (5 điểm)</option>
-                  <option value="none">Bị nhắc nhở / lập biên bản vi phạm (0 điểm)</option>
+                  <option value="excellent_propaganda">Chấp hành đúng và tham gia tuyên truyền tốt, được khen thưởng (10 điểm)</option>
+                  <option value="good">Chấp hành đúng và tham gia tuyên truyền tốt (8 điểm)</option>
+                  <option value="minor_violation">Chấp hành đúng các quy định (5 điểm)</option>
+                  <option value="none">Bị nhắc nhở, lập biên bản do vi phạm các quy định (0 điểm)</option>
                 </select>
               </div>
             </div>
@@ -192,7 +192,7 @@ export const EvaluationSection4 = ({
 
           {/* Criteria 4.2 */}
           <div className="border-b pb-4 space-y-3">
-            <h3 className="text-sm font-bold text-gray-800">4.2 Hoạt động nhân đạo, từ thiện, tình nguyện (Điểm tối đa: 10đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">4.2 Tham gia các hoạt động nhân đạo, từ thiện vì cộng đồng, phong trào thanh niên tình nguyện, phong trào giúp đỡ nhân dân và bạn bè khi gặp thiên tai, khó khăn, hoạn nạn (Điểm tối đa: 10đ)</h3>
             <p className="text-xs text-gray-500 mt-0.5">* Mức "được khen thưởng" yêu cầu đính kèm minh chứng.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -205,10 +205,10 @@ export const EvaluationSection4 = ({
                   disabled={currentUserRole !== 'student' || isSvViolationSec4}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="excellent_achievements">Tích cực tham gia, được khen thưởng (10 điểm)</option>
-                  <option value="regular">Tham gia tích cực, được tập thể ghi nhận (8 điểm)</option>
-                  <option value="some">Có ý thức tham gia / hưởng ứng (5 điểm)</option>
-                  <option value="minor_violation">Tham gia nhưng gây mất đoàn kết (0 điểm)</option>
+                  <option value="excellent_achievements">Tích cực, nhiệt tình tham gia các hoạt động đạt hiệu quả được Học viện, các tổ chức khen thưởng (10 điểm)</option>
+                  <option value="regular">Tham gia tích cực các hoạt động được lớp hoặc tập thể ghi nhận (8 điểm)</option>
+                  <option value="some">Có ý thức tham gia hoặc hưởng ứng các hoạt động (5 điểm)</option>
+                  <option value="minor_violation">Tham gia các hoạt động nhưng gây mất đoàn kết (0 điểm)</option>
                   <option value="none">Không tham gia (0 điểm)</option>
                 </select>
 
@@ -251,10 +251,10 @@ export const EvaluationSection4 = ({
                   disabled={currentUserRole !== 'class' || isClassViolationSec4}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="excellent_achievements">Tích cực tham gia, được khen thưởng (10 điểm)</option>
-                  <option value="regular">Tham gia tích cực, được tập thể ghi nhận (8 điểm)</option>
-                  <option value="some">Có ý thức tham gia / hưởng ứng (5 điểm)</option>
-                  <option value="minor_violation">Tham gia nhưng gây mất đoàn kết (0 điểm)</option>
+                  <option value="excellent_achievements">Tích cực, nhiệt tình tham gia các hoạt động đạt hiệu quả được Học viện, các tổ chức khen thưởng (10 điểm)</option>
+                  <option value="regular">Tham gia tích cực các hoạt động được lớp hoặc tập thể ghi nhận (8 điểm)</option>
+                  <option value="some">Có ý thức tham gia hoặc hưởng ứng các hoạt động (5 điểm)</option>
+                  <option value="minor_violation">Tham gia các hoạt động nhưng gây mất đoàn kết (0 điểm)</option>
                   <option value="none">Không tham gia (0 điểm)</option>
                 </select>
               </div>
@@ -263,7 +263,7 @@ export const EvaluationSection4 = ({
 
           {/* Criteria 4.3 */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-800">4.3 Quan hệ đoàn kết, giữ gìn cảnh quan, văn hóa học đường (Điểm tối đa: 5đ)</h3>
+            <h3 className="text-sm font-bold text-gray-800">4.3 Ý thức xây dựng mối quan hệ đoàn kết với bạn bè và tập thể; xây dựng, bảo vệ cảnh quan giảng đường, nơi cư trú văn minh, sạch đẹp, văn hóa học đường. (Điểm tối đa: 5đ)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* SV Column */}
               <div>
@@ -274,9 +274,9 @@ export const EvaluationSection4 = ({
                   disabled={currentUserRole !== 'student' || isSvViolationSec4}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="good">Có ý thức xây dựng, giữ gìn tốt (5 điểm)</option>
-                  <option value="rewarded">Bị nhắc nhở/kiểm điểm 1 lần (1 điểm)</option>
-                  <option value="warned">Bị nhắc nhở/kiểm điểm ≥ 2 lần (0 điểm)</option>
+                  <option value="good">Có ý thức xây dựng tập thể lớp đoàn kết, giữ gìn giảng đường, nơi cư trú văn minh, sạch đẹp, thực hiện tốt văn hóa học đường (5 điểm)</option>
+                  <option value="rewarded">Bị nhắc nhở hoặc kiểm điểm 1 lần (1 điểm)</option>
+                  <option value="warned">Bị nhắc nhở hoặc kiểm điểm 2 lần (0 điểm)</option>
                 </select>
               </div>
 
@@ -292,9 +292,9 @@ export const EvaluationSection4 = ({
                   disabled={currentUserRole !== 'class' || isClassViolationSec4}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-11 bg-white disabled:bg-gray-100 disabled:opacity-75 disabled:text-gray-500 disabled:border-gray-200"
                 >
-                  <option value="good">Có ý thức xây dựng, giữ gìn tốt (5 điểm)</option>
-                  <option value="rewarded">Bị nhắc nhở/kiểm điểm 1 lần (1 điểm)</option>
-                  <option value="warned">Bị nhắc nhở/kiểm điểm ≥ 2 lần (0 điểm)</option>
+                  <option value="good">Có ý thức xây dựng tập thể lớp đoàn kết, giữ gìn giảng đường, nơi cư trú văn minh, sạch đẹp, thực hiện tốt văn hóa học đường (5 điểm)</option>
+                  <option value="rewarded">Bị nhắc nhở hoặc kiểm điểm 1 lần (1 điểm)</option>
+                  <option value="warned">Bị nhắc nhở hoặc kiểm điểm 2 lần (0 điểm)</option>
                 </select>
               </div>
             </div>

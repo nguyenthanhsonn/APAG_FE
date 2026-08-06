@@ -49,13 +49,7 @@ function unwrapData<T = any>(value: any): T {
   return (value?.data || value) as T;
 }
 
-function toArray<T>(value: unknown): T[] {
-  if (Array.isArray(value)) return value as T[];
-  if (value && typeof value === 'object' && Array.isArray((value as { items?: unknown }).items)) {
-    return (value as { items: T[] }).items;
-  }
-  return [];
-}
+
 
 const reverseMapStudyAttitude = (value?: string | null) => {
   if (!value) return 'FROM_1_TO_UNDER_4';
@@ -169,14 +163,17 @@ const reverseMapManagementLevel = (value?: string | null) => {
 
 const reverseMapSpecialAchievement = (value?: string | null) => {
   if (!value) return 'NONE';
-  const val = String(value).toUpperCase();
+  const val = String(value).trim().toUpperCase();
+  if (['NONE', '0', 'NULL', 'UNDEFINED', ''].includes(val)) {
+    return 'NONE';
+  }
   if (['SCHOOL_LEVEL_OR_HIGHER', 'NATIONAL_OR_INTL', 'UNIVERSITY_LEVEL', 'NATIONAL_INTL'].includes(val)) {
     return 'SCHOOL_LEVEL_OR_HIGHER';
   }
   if (['FACULTY_LEVEL', 'PROVINCIAL_LEVEL', 'PROVINCIAL'].includes(val)) {
     return 'FACULTY_LEVEL';
   }
-  return val;
+  return 'NONE';
 };
 
 export function StudentDetailReviewView() {
@@ -218,15 +215,10 @@ export function StudentDetailReviewView() {
       setLoading(true);
       store.getState().resetToDefault();
       setEvidences([]);
-      const [detailResult, listResult] = await Promise.all([
-        API_Admin.getEvaluationDetail(evaluationId),
-        API_Admin.getAdminEvaluationList({ classId, page: 1, limit: 100 }),
-      ]);
+      const detailResult = await API_Admin.getEvaluationDetail(evaluationId);
 
       const detail = unwrapData<any>(detailResult);
-      const list = toArray<any>(unwrapData<any>(listResult));
-      const listItem = list.find((item) => item.id === evaluationId);
-      const studentInfo = detail.student || listItem?.student || {};
+      const studentInfo = detail.student || {};
       const extractedCode =
         detail.studentCode ||
         studentInfo.studentCode ||
@@ -277,7 +269,7 @@ export function StudentDetailReviewView() {
       });
       const baseScore = discipline.baseScore !== undefined
         ? Math.min(25, Math.max(0, Number(discipline.baseScore) || 0))
-        : 25;
+        : 0;
 
       const roleTypeVal = String(role.studentRoleType || role.roleType || '').toUpperCase();
       const isClassOfficer = ['CLASS_OFFICER', 'CLASS_LEADER', 'CLASS_MONITOR', 'CADRE', 'OFFICER'].includes(roleTypeVal);
@@ -297,7 +289,7 @@ export function StudentDetailReviewView() {
 
       setHasEvaluation(true);
 
-      const wfStatus = String(detail.status || listItem?.status || 'submitted').toLowerCase();
+      const wfStatus = String(detail.status || 'submitted').toLowerCase();
       setWorkflowStatus(wfStatus);
 
       const userRole = String(user?.role || '').toLowerCase();
@@ -325,9 +317,35 @@ export function StudentDetailReviewView() {
       const svStudyAtStr = reverseMapStudyAttitude(study.regularScoreLevel);
       const svAcademicRankStr = reverseMapAcademicRank(study.academicRank);
       const roleType: 'cadre' | 'student' = isClassOfficer ? 'cadre' : 'student';
+
+      const hasClassReview = Boolean(
+        detail.classScore !== undefined ||
+        detail.classLeaderReviewedAt ||
+        detail.classReviewedAt ||
+        detail.advisorReviewedAt ||
+        review.classLeaderReviewedAt ||
+        review.classReviewedAt
+      );
+
+      const svPart = Number(role.normalStudentActivityScore) || 0;
+      const classPart = hasClassReview
+        ? Number(role.classNormalStudentActivityScore ?? role.normalStudentActivityScore) || 0
+        : svPart;
+
+      const svAch = reverseMapSpecialAchievement(role.specialAchievementLevel);
+      const classAch = hasClassReview
+        ? reverseMapSpecialAchievement(role.classSpecialAchievementLevel ?? role.specialAchievementLevel)
+        : svAch;
+
+      const dbStudentTotalScore = typeof detail.studentScore === 'number' ? detail.studentScore : (typeof detail.selfScore === 'number' ? detail.selfScore : null);
+      const dbClassTotalScore = typeof detail.classScore === 'number' ? detail.classScore : (typeof detail.finalScore === 'number' ? detail.finalScore : null);
+
       store.getState().batchSet({
         currentUserRole: storeRole as any,
         workflowStatus: wfStatus,
+        isReadOnly: confirmed,
+        dbStudentTotalScore,
+        dbClassTotalScore,
         svStudyAttitude: svStudyAtStr,
         classStudyAttitude: svStudyAtStr,
         svAcademicRank: svAcademicRankStr,
@@ -350,8 +368,8 @@ export function StudentDetailReviewView() {
         svCadrePosition: position, classCadrePosition: position,
         svCadrePerformance: reverseMapCadrePerformance(role.taskCompletionLevel), classCadrePerformance: reverseMapCadrePerformance(role.taskCompletionLevel),
         svManagementLevel: reverseMapManagementLevel(role.managementSkillLevel), classManagementLevel: reverseMapManagementLevel(role.managementSkillLevel),
-        svClassParticipation: Number(role.normalStudentActivityScore) || 0, classClassParticipation: Number(role.normalStudentActivityScore) || 0,
-        svSpecialAchievement: reverseMapSpecialAchievement(role.specialAchievementLevel), classSpecialAchievement: reverseMapSpecialAchievement(role.specialAchievementLevel),
+        svClassParticipation: svPart, classClassParticipation: classPart,
+        svSpecialAchievement: svAch, classSpecialAchievement: classAch,
       } as any);
 
     } catch (error: any) {

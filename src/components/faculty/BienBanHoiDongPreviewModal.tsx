@@ -177,21 +177,22 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, autoPrint }
           >
             {/* Header 2 cột */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <div style={{ fontSize: '13px', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>
                 <div style={{ fontWeight: 'bold' }}>PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ</div>
-                <div style={{ fontWeight: 'bold' }}>QUẢN TRỊ CÔNG TẠI TỈNH QUẢNG NAM</div>
-                <div><strong>KHOA:</strong> {data.khoa || '................................'}</div>
-                <div style={{ fontWeight: 'bold', marginLeft: '60px', marginTop: '2px' }}>*</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'center' }}>QUẢN TRỊ CÔNG TẠI ĐÀ NẴNG</div>
+                <div style={{ textAlign: 'left' }}><strong>KHOA:</strong> {data.khoa || '................................'}</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'center', marginTop: '2px' }}>*</div>
               </div>
               <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px' }}>
-                <div>ĐẢNG CỘNG SẢN VIỆT NAM</div>
-                <div style={{ fontWeight: 'normal', letterSpacing: '2px' }}>– – – – – – – – –</div>
+                <div style={{ display: 'inline-block', borderBottom: '1.5px solid #000', paddingBottom: '2px' }}>
+                  ĐẢNG CỘNG SẢN VIỆT NAM
+                </div>
               </div>
             </div>
 
             {/* Ngày tháng */}
             <div style={{ textAlign: 'right', fontStyle: 'italic', marginBottom: '12px', marginTop: '8px' }}>
-              Quảng Nam, ngày {data.ngayHop || '......'} tháng {data.thangHop || '......'} năm 20{data.namHop || '....'}
+              Đà Nẵng, ngày {data.ngayHop || '......'} tháng {data.thangHop || '......'} năm 20{data.namHop || '....'}
             </div>
 
             {/* Tiêu đề */}
