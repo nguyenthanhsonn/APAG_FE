@@ -177,15 +177,18 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, autoPrint }
           >
             {/* Header 2 cột */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <div style={{ fontSize: '13px', textTransform: 'uppercase', textAlign: 'center' }}>
-                <div style={{ fontWeight: 'bold' }}>PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ</div>
-                <div style={{ fontWeight: 'bold', textAlign: 'center' }}>QUẢN TRỊ CÔNG TẠI ĐÀ NẴNG</div>
-                <div style={{ textAlign: 'left' }}><strong>KHOA:</strong> {data.khoa || '................................'}</div>
+              <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
+                <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</div>
+                <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ ĐÀ NẴNG</div>
+                <div style={{ textAlign: 'left', marginTop: '2px' }}><strong>KHOA:</strong> {data.khoa || '................................'}</div>
                 <div style={{ fontWeight: 'bold', textAlign: 'center', marginTop: '2px' }}>*</div>
               </div>
-              <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px' }}>
-                <div style={{ display: 'inline-block', borderBottom: '1.5px solid #000', paddingBottom: '2px' }}>
-                  ĐẢNG CỘNG SẢN VIỆT NAM
+              <div style={{ textAlign: 'right', fontSize: '13px', lineHeight: '1.4' }}>
+                <div style={{ fontStyle: 'italic', marginBottom: '4px' }}>Phụ lục 01</div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'inline-block', borderBottom: '1.5px solid #000', paddingBottom: '2px', fontWeight: 'bold' }}>
+                    ĐẢNG CỘNG SẢN VIỆT NAM
+                  </div>
                 </div>
               </div>
             </div>

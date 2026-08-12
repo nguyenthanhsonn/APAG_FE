@@ -58,11 +58,11 @@ export const EVIDENCED_CRITERIA_CODES: CriteriaCode[] = [
 ];
 
 export const REGULAR_SCORE_LEVEL_OPTIONS: EvaluationOption[] = [
-  { value: 'GTE_9', label: '6.00 đ - Điểm TB học kỳ >= 9' },
-  { value: 'FROM_7_TO_UNDER_9', label: '5.00 đ - Điểm TB học kỳ từ 7 đến cận 9' },
-  { value: 'FROM_5_TO_UNDER_7', label: '4.00 đ - Điểm TB học kỳ từ 5 đến cận 7' },
-  { value: 'FROM_4_TO_UNDER_5', label: '2.00 đ - Điểm TB học kỳ từ 4 đến cận 5' },
-  { value: 'FROM_1_TO_UNDER_4', label: '1.00 đ - Điểm TB học kỳ từ 1 đến cận 4' },
+  { value: 'GTE_9', label: '6.00 đ - Điểm TB đánh giá thường xuyên học kỳ ≥9' },
+  { value: 'FROM_7_TO_UNDER_9', label: '5.00 đ - Điểm TB đánh giá thường xuyên học kỳ từ 7 đến cận 9' },
+  { value: 'FROM_5_TO_UNDER_7', label: '4.00 đ - Điểm TB đánh giá thường xuyên học kỳ từ 5 đến cận 7' },
+  { value: 'FROM_4_TO_UNDER_5', label: '2.00 đ - Điểm TB đánh giá thường xuyên học kỳ từ 4 đến cận 5' },
+  { value: 'FROM_1_TO_UNDER_4', label: '1.00 đ - Điểm TB đánh giá thường xuyên học kỳ từ 01 đến cận 04' },
 ];
 
 export const ACADEMIC_RANK_OPTIONS: EvaluationOption[] = [

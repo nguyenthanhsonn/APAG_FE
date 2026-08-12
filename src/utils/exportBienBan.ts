@@ -115,10 +115,13 @@ export async function exportBienBanDocx(data: BienBanFormData) {
         children: [
           new TableCell({
             children: [
-              para([txt(`KHOA: ${data.khoa}`, true)]),
-              para([txt(`LỚP: ${data.lop}`, true)]),
+              para([txt('HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG', true, 22)]),
+              para([txt('PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ ĐÀ NẴNG', true, 20)]),
+              para([txt(`KHOA: ${data.khoa}`, true, 22)]),
+              para([txt(`LỚP: ${data.lop}`, true, 22)]),
+              para([txt('*', true, 22)], AlignmentType.CENTER),
             ],
-            width: { size: 50, type: WidthType.PERCENTAGE },
+            width: { size: 60, type: WidthType.PERCENTAGE },
             borders: {
               top: { style: BorderStyle.NONE },
               bottom: { style: BorderStyle.NONE },
@@ -128,9 +131,10 @@ export async function exportBienBanDocx(data: BienBanFormData) {
           }),
           new TableCell({
             children: [
-              para([txt('ĐẢNG CỘNG SẢN VIỆT NAM', true, 24, false, true)], AlignmentType.CENTER),
+              para([txt('Phụ lục 01', false, 22, true)], AlignmentType.RIGHT),
+              para([txt('ĐẢNG CỘNG SẢN VIỆT NAM', true, 22, false, true)], AlignmentType.RIGHT),
             ],
-            width: { size: 50, type: WidthType.PERCENTAGE },
+            width: { size: 40, type: WidthType.PERCENTAGE },
             borders: {
               top: { style: BorderStyle.NONE },
               bottom: { style: BorderStyle.NONE },

@@ -1615,17 +1615,21 @@ export const EvaluationFormQD4185 = () => {
           {/* ── HEADER PHIẾU CHÍNH THỨC (hiển thị khi in) ── */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 print:rounded-none print:border-0 print:shadow-none print:p-0">
             {/* Dòng trên cùng: tên trường (trái) + ĐCSVN (phải) */}
-            <div className="flex justify-between items-start mb-3 text-center">
-              <div className="text-xs sm:text-sm leading-snug text-gray-800 font-semibold max-w-[45%]">
-                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
-                <p className="text-xs font-semibold text-gray-700">PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
-                <p className="text-xs font-semibold text-gray-700">THÀNH PHỐ ĐÀ NẴNG</p>
-                <p className="text-xs mt-1">──────</p>
+            <div className="flex justify-between items-start mb-3">
+              <div className="text-xs sm:text-sm leading-snug text-gray-900 font-bold max-w-[50%] text-center">
+                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">HỌC VIỆN HÀNH CHÍNH</p>
+                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">VÀ QUẢN TRỊ CÔNG</p>
+                <p className="uppercase font-black text-xs sm:text-sm text-gray-900 mt-1">PHÂN HIỆU HỌC VIỆN</p>
+                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
+                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">TẠI THÀNH PHỐ ĐÀ NẴNG</p>
+                <p className="text-xs font-bold text-gray-600 mt-0.5">*</p>
               </div>
-              <div className="text-xs sm:text-sm leading-snug text-gray-800 font-semibold max-w-[45%] text-center">
-                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-                <p className="font-bold text-xs sm:text-sm text-gray-800">Độc lập – Tự do – Hạnh phúc</p>
-                <p className="text-xs mt-1">──────</p>
+              <div className="text-xs sm:text-sm leading-snug text-gray-900 font-bold max-w-[45%] text-right flex flex-col items-end">
+                <p className="italic font-normal text-xs sm:text-sm text-gray-800 mb-1">Phụ lục 01</p>
+                <div className="inline-block text-center">
+                  <p className="uppercase font-black text-xs sm:text-sm text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
+                  <div className="border-b-2 border-gray-900 w-full mt-0.5"></div>
+                </div>
               </div>
             </div>
 
