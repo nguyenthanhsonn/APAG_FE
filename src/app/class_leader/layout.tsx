@@ -34,7 +34,7 @@ function ClassLeaderSidebar({ open, onClose }: { open: boolean; onClose: () => v
             </div>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-bold leading-tight text-white">Lớp trưởng</p>
-              <p className="truncate text-[10px] font-medium text-white/70">CSMTS</p>
+              <p className="truncate text-[10px] font-medium text-white/70">APAG</p>
             </div>
           </div>
           <button type="button" aria-label="Đóng menu" onClick={onClose} className="cursor-pointer p-1 text-white/70 hover:text-white lg:hidden">
@@ -85,7 +85,7 @@ export default function ClassLeaderLayout({ children }: { children: React.ReactN
 
           <footer className="shrink-0 border-t border-[#E9ECEF] bg-white px-6 py-3 lg:pl-0">
             <p className="text-center text-[11px] text-[#ADB5BD]">
-              © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
+              © Phân hiệu Học viện Hành chính và Quản trị công tại thành phố Đà Nẵng — APAG
             </p>
           </footer>
         </div>

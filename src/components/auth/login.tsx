@@ -299,7 +299,7 @@ export default function Login() {
 
       {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
       <footer style={{ position: 'relative', zIndex: 10, width: '100%', padding: '10px 0', textAlign: 'center', fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.45)', background: 'rgba(20,22,80,0.50)', backdropFilter: 'blur(6px)', flexShrink: 0 }}>
-        Copyright © 2026 Học viện Phòng không – Không quân (APAG). All rights reserved.
+        © Phân hiệu Học viện Hành chính và Quản trị công tại thành phố Đà Nẵng — APAG
       </footer>
     </div>
   );

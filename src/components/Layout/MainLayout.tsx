@@ -19,7 +19,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         {/* Minimal footer */}
         <footer className="shrink-0 border-t border-[#E9ECEF] bg-white px-6 py-3 lg:pl-0">
           <p className="text-center text-[11px] text-[#ADB5BD]">
-            © 2024 Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
+            © Phân hiệu Học viện Hành chính và Quản trị công tại thành phố Đà Nẵng — APAG
           </p>
         </footer>
       </div>
