@@ -3,7 +3,7 @@ import { AdminUsers } from '../../../views/Admin/Student';
 
 export const metadata: Metadata = {
   title: 'Quản lý người dùng',
-  description: 'Tạo, cập nhật và phân công tài khoản staff theo vai trò trong CSMTS.',
+  description: 'Tạo, cập nhật và phân công tài khoản staff theo vai trò trong APAG.',
 };
 
 export default function Page() {

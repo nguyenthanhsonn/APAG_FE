@@ -9,7 +9,7 @@ import type { NewEvaluationPopupInfo } from '@/components/student/NewEvaluationP
 import { hasAccessToken } from '@/utils/authToken';
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 
-const SESSION_KEY_PREFIX = 'csmts_eval_popup_seen_';
+const SESSION_KEY_PREFIX = 'apag_eval_popup_seen_';
 
 export function NewEvaluationChecker() {
   const router = useRouter();

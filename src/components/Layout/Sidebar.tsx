@@ -90,7 +90,7 @@ export const Sidebar = ({ open, onClose }: SidebarProps) => {
             </div>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-bold leading-tight text-white">Đánh giá Rèn luyện</p>
-              <p className="text-[10px] font-medium text-white/70">CSMTS</p>
+              <p className="text-[10px] font-medium text-white/70">APAG</p>
             </div>
           </Link>
           <button
