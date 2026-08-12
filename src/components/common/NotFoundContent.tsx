@@ -109,8 +109,8 @@ export function NotFoundContent({ menuItems = [] }: NotFoundContentProps) {
       </div>
 
       {/* Footer nhỏ */}
-      <footer className="text-[12px] text-[#ADB5BD] mt-auto pt-6">
-        Hệ thống Đánh giá Rèn luyện Sinh viên
+      <footer className="text-[12px] text-[#ADB5BD] mt-auto pt-6 text-center">
+        © Phân hiệu Học viện Hành chính và Quản trị công tại thành phố Đà Nẵng — APAG
       </footer>
     </div>
   );

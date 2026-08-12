@@ -94,7 +94,7 @@ export default function RoleSwitcherPage() {
           </div>
           <h1 className="text-3xl font-extrabold text-[#1A1B1E]">Chọn vai trò</h1>
           <p className="mt-2 text-[#868E96] text-base font-medium">
-            Hệ thống Đánh giá Rèn luyện Sinh viên — CSMTS
+            Hệ thống Đánh giá Rèn luyện Sinh viên — APAG
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export default function RoleSwitcherPage() {
         </div>
 
         <p className="mt-10 text-center text-xs text-[#ADB5BD]">
-          © 2024 CSMTS — Chỉ dùng nội bộ
+          © Phân hiệu Học viện Hành chính và Quản trị công tại thành phố Đà Nẵng — APAG
         </p>
       </div>
     </div>
