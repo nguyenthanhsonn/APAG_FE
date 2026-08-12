@@ -337,20 +337,21 @@ export function BienBanHoiDongView() {
       <div className="mx-auto w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-md sm:p-10 text-gray-800 font-sans leading-relaxed">
         {/* Tiêu đề & Quốc hiệu */}
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start text-xs sm:text-sm border-b border-gray-100 pb-6 mb-6">
-          <div className="space-y-1">
-            <p className="font-bold text-gray-900 leading-tight uppercase text-center sm:text-left">
-              PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ
+          <div className="space-y-0.5 text-center sm:text-left">
+            <p className="font-bold text-gray-900 leading-tight uppercase">
+              HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG
             </p>
-            <p className="font-bold text-gray-900 leading-tight uppercase text-center">
-              QUẢN TRỊ CÔNG TẠI ĐÀ NẴNG
+            <p className="font-bold text-gray-900 leading-tight uppercase">
+              PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ ĐÀ NẴNG
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 mt-1">
               <span className="font-semibold tracking-wide">KHOA:</span>
               <span className="font-bold text-gray-900">{managedFacultyName}</span>
             </div>
             <p className="text-center font-bold text-gray-400 mt-1">*</p>
           </div>
           <div className="text-center space-y-1 sm:text-right flex flex-col items-center sm:items-end">
+            <p className="italic font-normal text-xs sm:text-sm text-gray-800 self-end">Phụ lục 01</p>
             <div className="inline-block border-b-2 border-gray-900 pb-0.5">
               <p className="font-bold uppercase tracking-wider text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
             </div>

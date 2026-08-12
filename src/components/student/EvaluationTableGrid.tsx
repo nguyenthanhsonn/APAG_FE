@@ -15,6 +15,8 @@ import {
   REGULAR_SCORE_LEVEL_OPTIONS,
   SOCIAL_PREVENTION_LEVEL_OPTIONS,
   SPECIAL_ACHIEVEMENT_LEVEL_OPTIONS,
+  TASK_COMPLETION_LEVEL_A1_OPTIONS,
+  TASK_COMPLETION_LEVEL_A2_OPTIONS,
   VOLUNTEER_ACTIVITY_LEVEL_OPTIONS,
 } from '@/constants/evaluationEnums';
 
@@ -284,11 +286,13 @@ export const EvaluationTableGrid = () => {
   const isClassViolationSec4 = useEvaluationFormStore(s => s.isClassViolationSec4);
 
   // Sec 5
+  const svRoleType = useEvaluationFormStore(s => s.svRoleType || 'student');
   const svCadrePosition = useEvaluationFormStore(s => s.svCadrePosition);
   const svCadrePerformance = useEvaluationFormStore(s => s.svCadrePerformance);
   const svManagementLevel = useEvaluationFormStore(s => s.svManagementLevel);
   const svClassParticipation = useEvaluationFormStore(s => s.svClassParticipation);
   const svSpecialAchievement = useEvaluationFormStore(s => s.svSpecialAchievement);
+  const classRoleType = useEvaluationFormStore(s => s.classRoleType || 'student');
   const classCadrePosition = useEvaluationFormStore(s => s.classCadrePosition);
   const classCadrePerformance = useEvaluationFormStore(s => s.classCadrePerformance);
   const classManagementLevel = useEvaluationFormStore(s => s.classManagementLevel);
@@ -297,7 +301,10 @@ export const EvaluationTableGrid = () => {
   const isSvViolationSec5 = useEvaluationFormStore(s => s.isSvViolationSec5);
   const isClassViolationSec5 = useEvaluationFormStore(s => s.isClassViolationSec5);
 
-
+  const isSvOfficer = ['CLASS_OFFICER', 'UNION_OFFICER', 'CLUB_OFFICER', 'cadre'].includes(String(svRoleType || ''));
+  const isSvStudent = !isSvOfficer;
+  const isClassOfficer = ['CLASS_OFFICER', 'UNION_OFFICER', 'CLUB_OFFICER', 'cadre'].includes(String(classRoleType || ''));
+  const isClassStudent = !isClassOfficer;
 
   // Actions
   const setField = useEvaluationFormStore(s => s.setField);
@@ -345,11 +352,13 @@ export const EvaluationTableGrid = () => {
   const setIsSvViolationSec4 = (v: boolean) => setField('isSvViolationSec4', v);
   const setIsClassViolationSec4 = (v: boolean) => setField('isClassViolationSec4', v);
 
+  const setSvRoleType = (v: 'cadre' | 'student') => setField('svRoleType', v);
   const setSvCadrePosition = (v: string) => setField('svCadrePosition', v);
   const setSvCadrePerformance = (v: string) => setField('svCadrePerformance', v);
   const setSvManagementLevel = (v: string) => setField('svManagementLevel', v);
   const setSvClassParticipation = (v: number) => setField('svClassParticipation', v);
   const setSvSpecialAchievement = (v: string) => setField('svSpecialAchievement', v);
+  const setClassRoleType = (v: 'cadre' | 'student') => setField('classRoleType', v);
   const setClassCadrePosition = (v: string) => setField('classCadrePosition', v);
   const setClassCadrePerformance = (v: string) => setField('classCadrePerformance', v);
   const setClassManagementLevel = (v: string) => setField('classManagementLevel', v);
@@ -398,6 +407,8 @@ export const EvaluationTableGrid = () => {
   const policyOpts = LAW_COMPLIANCE_LEVEL_OPTIONS;
   const solidarityOpts = VOLUNTEER_ACTIVITY_LEVEL_OPTIONS;
   const localityOpts = COMMUNITY_RELATIONSHIP_LEVEL_OPTIONS;
+  const a1PerfOpts = TASK_COMPLETION_LEVEL_A1_OPTIONS;
+  const a2PerfOpts = TASK_COMPLETION_LEVEL_A2_OPTIONS;
   const mgmtOpts = MANAGEMENT_SKILL_LEVEL_OPTIONS;
   const achieveOpts = SPECIAL_ACHIEVEMENT_LEVEL_OPTIONS;
 
@@ -457,14 +468,14 @@ export const EvaluationTableGrid = () => {
           </thead>
           <tbody>
             {/* ═══ MỤC I ═══ */}
-            <SectionHeaderRow tt="I" title="Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện) " maxScore={20} />
+            <SectionHeaderRow tt="I" title="Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện)" maxScore={20} />
             <ViolationCheckRow label="[SV] Vi phạm thi cử nghiêm trọng (Hủy điểm Mục I)" checked={isSvViolationSec1} onChange={v => { if (isSvEditable) setIsSvViolationSec1(v); }} disabled={!isSvEditable} />
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm nghiêm trọng Mục I" checked={isClassViolationSec1} onChange={v => { if (isClassEditable) { markClassEdited(); setIsClassViolationSec1(v); } }} disabled={!isClassEditable} />
 
             {/* I.1 */}
             <tr className="hover:bg-gray-50">
               <td className={`${tdR} text-center font-semibold text-gray-500`}>1</td>
-              <td className={`${tdR} text-gray-700 font-medium leading-snug`} colSpan={2}>Ý thức và thái độ học tập, thực hành, thực tập, thực tế (ý thức chuyên cần)</td>
+              <td className={`${tdR} text-gray-700 font-medium leading-snug`} colSpan={2}>Ý thức và thái độ học tập (ý thức chuyên cần)</td>
               <td className={`${tdR} text-center font-bold text-gray-600`}>6.00</td>
               <td className={tdR}><NoteArea value={notes['sv_i1'] || ''} onChange={v => setNote('sv_i1', v)} disabled={!isSvEditable || isSvViolationSec1} /></td>
               <td className={tdR}>{isSvViolationSec1 ? <LockedScore /> : <><ScoreSelect options={studyAttitudeOpts} value={svStudyAttitude} onChange={v => { if (isSvEditable) setSvStudyAttitude(v); }} disabled={!isSvEditable || isSvViolationSec1} /><FieldError name="svStudyAttitude" /></>}</td>
@@ -653,200 +664,314 @@ export const EvaluationTableGrid = () => {
             <ViolationCheckRow label="[SV] Không tham gia đoàn thể (Hủy điểm Mục V)" checked={isSvViolationSec5} onChange={v => { if (isSvEditable) setIsSvViolationSec5(v); }} disabled={!isSvEditable} />
             <ViolationCheckRow label="[Lớp] Xác nhận không tham gia Mục V" checked={isClassViolationSec5} onChange={v => { if (isClassEditable) { markClassEdited(); setIsClassViolationSec5(v); } }} disabled={!isClassEditable} />
 
-            <>
-              <tr className="bg-purple-50"><td colSpan={8} className="px-3 py-1.5 border-b border-purple-200 text-sm font-bold text-purple-700">1. BCS lớp, BCH các tổ chức Đảng, Đoàn thanh niên, Hội sinh viên, chi bộ sinh viên, các CLB và các tổ chức khác trong Học viện/Phân viện được thành lập theo quy định.</td></tr>
-              
-              {/* V.A.1 Ý thức, tinh thần thái độ - Tiêu đề a) */}
-              <tr className="hover:bg-gray-50">
-                <td className={`${tdR} text-center font-semibold text-gray-500`}>a)</td>
-                <td className={`${tdR} text-gray-700 font-medium`} colSpan={2}>Ý thức, tinh thần, thái độ, uy tín và hiệu quả công việc của sinh viên được phân công nhiệm vụ quản lý lớp, các tổ chức Đảng, Đoàn thanh niên, Hội sinh viên, các CLB và các tổ chức khác trong Học viện/Phân viện được thành lập theo quy định.</td>
-                <td className={`${tdR} text-center font-bold text-gray-600`}>7.00</td>
-                <td className={tdR} colSpan={4}></td>
-              </tr>
+            {/* V.0 Branch selector */}
+            <tr className="bg-gray-50 border-b border-gray-300">
+              <td className={`${tdR} text-center font-semibold text-gray-500`}>1</td>
+              <td className={`${tdR} text-gray-700 font-semibold`} colSpan={2}>
+                Chọn đối tượng đánh giá Mục V:
+                <div className="text-xs text-gray-400 font-normal">Hệ thống sẽ hiển thị nội dung đánh giá của nhánh được chọn.</div>
+              </td>
+              <td className={`${tdR} font-bold text-gray-600 text-center`}>10.00</td>
+              <td className={tdR} colSpan={2}>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { v: 'cadre', lbl: '1. Cán bộ (BCS lớp, BCH Đảng, Đoàn, Hội, CLB...)' },
+                    { v: 'student', lbl: '2. Tất cả các sinh viên trong lớp (Sinh viên thường)' },
+                  ].map(opt => (
+                    <label key={opt.v} className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sv_role_grid"
+                        value={opt.v}
+                        checked={opt.v === 'cadre' ? isSvOfficer : isSvStudent}
+                        onChange={() => { if (isSvEditable) setSvRoleType(opt.v as 'cadre' | 'student'); }}
+                        disabled={!isSvEditable || isSvViolationSec5}
+                        className="h-3.5 w-3.5 text-blue-600 focus:ring-blue-500"
+                      />
+                      {opt.lbl}
+                    </label>
+                  ))}
+                </div>
+                <FieldError name="svRoleType" />
+              </td>
+              <td className={tdBase} colSpan={2}>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { v: 'cadre', lbl: '1. Cán bộ (BCS lớp, BCH Đảng, Đoàn, Hội, CLB...)' },
+                    { v: 'student', lbl: '2. Tất cả các sinh viên trong lớp (Sinh viên thường)' },
+                  ].map(opt => (
+                    <label key={opt.v} className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="cl_role_grid"
+                        value={opt.v}
+                        checked={opt.v === 'cadre' ? isClassOfficer : isClassStudent}
+                        onChange={() => { if (isClassEditable) { markClassEdited(); setClassRoleType(opt.v as 'cadre' | 'student'); } }}
+                        disabled={!isClassEditable || isClassViolationSec5}
+                        className="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      {opt.lbl}
+                    </label>
+                  ))}
+                </div>
+              </td>
+            </tr>
 
-              {/* - Nhóm 1: Trưởng / Phó (Có Dropdown chọn điểm trực tiếp) */}
-              <tr className="hover:bg-gray-50 text-gray-800">
-                <td className={`${tdR} text-center font-bold text-gray-500`}>-</td>
-                <td className={`${tdR} text-xs leading-snug font-medium`} colSpan={2}>Lớp trưởng, Lớp phó lớp sinh viên; Bí thư, Phó Bí thư chi đoàn; Bí thư và Phó Bí thư liên chi đoàn, Ủy viên BCH liên chi; Ủy viên BCH Đoàn Học viện, Phân viện; Ủy viên BCH Hội sinh viên; Chủ nhiệm, Phó Chủ nhiệm các Ban, CLB Hội, Đội, Bí thư, Phó Bí thư chi bộ sinh viên.</td>
-                <td className={`${tdR} text-center font-bold text-gray-600`}>7</td>
+            {/* NHÁNH 1: Cán bộ (chỉ hiển thị khi chọn nhánh Cán bộ) */}
+            {(isSvOfficer || isClassOfficer) && <>
+              <tr className="bg-purple-50">
+                <td className={`${tdR} text-center font-bold text-purple-900`}>1</td>
+                <td colSpan={7} className="px-3 py-2 border-b border-purple-200 text-xs sm:text-sm font-bold text-purple-900 leading-snug">
+                  🏅 1. BCS lớp, BCH các tổ chức Đảng, Đoàn thanh niên, Hội sinh viên, chi bộ sinh viên, các CLB và các tổ chức khác trong Học viện/Phân viện được thành lập theo quy định. (Thang điểm: 7.00)
+                </td>
+              </tr>
+              {/* 1.a Vị trí */}
+              <tr className="hover:bg-gray-50">
+                <td className={`${tdR} text-center font-bold text-gray-600`}>a)</td>
+                <td className={`${tdR} text-gray-800 font-medium leading-snug`} colSpan={2}>
+                  <div className="font-bold text-gray-900 mb-1">
+                    Ý thức, tinh thần, thái độ, uy tín và hiệu quả công việc của sinh viên được phân công nhiệm vụ quản lý lớp, các tổ chức Đảng, Đoàn thanh niên, Hội sinh viên, các CLB và các tổ chức khác trong Học viện/Phân viện được thành lập theo quy định.
+                  </div>
+                  <div className="text-xs text-gray-500 italic">Chọn nhóm vị trí chức vụ đảm nhiệm:</div>
+                </td>
+                <td className={`${tdR} text-center font-bold text-gray-700`}>7.00</td>
+                <td className={tdR} colSpan={2}>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      {
+                        v: 'LEADER_GROUP',
+                        lbl: '- Lớp trưởng, Lớp phó lớp sinh viên; Bí thư, Phó Bí thư chi đoàn; Bí thư và Phó Bí thư liên chi đoàn, Ủy viên BCH liên chi; Ủy viên BCH Đoàn Học viện, Phân viện; Ủy viên BCH Hội sinh viên; Chủ nhiệm, Phó Chủ nhiệm các Ban, CLB Hội, Đội, Bí thư, Phó Bí thư chi bộ sinh viên. (Thang điểm: 7.00)',
+                      },
+                      {
+                        v: 'MEMBER_GROUP',
+                        lbl: '- Ủy viên BCH chi đoàn; Chi ủy viên chi bộ Sinh viên, thành viên đội TN xung kích, Tổ trưởng, tổ phó các lớp; Ủy viên các Ban, CLB, Đội. (Thang điểm: 6.00)',
+                      },
+                    ].map(o => (
+                      <label key={o.v} className="flex items-start gap-1.5 text-xs sm:text-sm text-gray-800 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="sv_pos_grid"
+                          value={o.v}
+                          checked={svCadrePosition === o.v || (o.v === 'LEADER_GROUP' && svCadrePosition === 'a1') || (o.v === 'MEMBER_GROUP' && svCadrePosition === 'a2')}
+                          onChange={() => { if (isSvEditable && isSvOfficer) setSvCadrePosition(o.v); }}
+                          disabled={!isSvEditable || !isSvOfficer || isSvViolationSec5}
+                          className="h-3.5 w-3.5 mt-0.5 text-blue-600"
+                        />
+                        <span className="leading-snug">{o.lbl}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <FieldError name="svCadrePosition" />
+                </td>
+                <td className={tdBase} colSpan={2}>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      {
+                        v: 'LEADER_GROUP',
+                        lbl: '- Lớp trưởng, Lớp phó lớp sinh viên; Bí thư, Phó Bí thư chi đoàn; Bí thư và Phó Bí thư liên chi đoàn, Ủy viên BCH liên chi; Ủy viên BCH Đoàn Học viện, Phân viện; Ủy viên BCH Hội sinh viên; Chủ nhiệm, Phó Chủ nhiệm các Ban, CLB Hội, Đội, Bí thư, Phó Bí thư chi bộ sinh viên. (Thang điểm: 7.00)',
+                      },
+                      {
+                        v: 'MEMBER_GROUP',
+                        lbl: '- Ủy viên BCH chi đoàn; Chi ủy viên chi bộ Sinh viên, thành viên đội TN xung kích, Tổ trưởng, tổ phó các lớp; Ủy viên các Ban, CLB, Đội. (Thang điểm: 6.00)',
+                      },
+                    ].map(o => (
+                      <label key={o.v} className="flex items-start gap-1.5 text-xs sm:text-sm text-gray-800 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="cl_pos_grid"
+                          value={o.v}
+                          checked={classCadrePosition === o.v || (o.v === 'LEADER_GROUP' && classCadrePosition === 'a1') || (o.v === 'MEMBER_GROUP' && classCadrePosition === 'a2')}
+                          onChange={() => { if (isClassEditable && isClassOfficer) { markClassEdited(); setClassCadrePosition(o.v); } }}
+                          disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5}
+                          className="h-3.5 w-3.5 mt-0.5 text-indigo-600"
+                        />
+                        <span className="leading-snug">{o.lbl}</span>
+                      </label>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+              {/* 1.a Mức độ hoàn thành nhiệm vụ */}
+              <tr className="hover:bg-gray-50">
+                <td className={`${tdR} text-center font-bold text-gray-400`}>-</td>
+                <td className={`${tdR} text-gray-800 font-medium leading-snug`} colSpan={2}>
+                  Mức độ hoàn thành nhiệm vụ được giao
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {svCadrePosition === 'LEADER_GROUP' || svCadrePosition === 'a1'
+                      ? 'Nhóm 1: Xuất sắc: 7đ | Tốt: 6đ | Hoàn thành: 4đ | Không hoàn thành: 0đ'
+                      : 'Nhóm 2: Xuất sắc: 6đ | Tốt: 5đ | Hoàn thành: 3đ | Không hoàn thành: 0đ'}
+                  </div>
+                  <div className="text-xs text-amber-700 font-medium mt-0.5">
+                    (Bắt buộc tải minh chứng nếu đánh giá mức Hoàn thành xuất sắc nhiệm vụ)
+                  </div>
+                </td>
+                <td className={`${tdR} text-center font-bold text-gray-600`}>
+                  {svCadrePosition === 'LEADER_GROUP' || svCadrePosition === 'a1' ? '7.00' : '6.00'}
+                </td>
                 <td className={tdR}>
-                  <NoteArea value={notes['sv_va1_g1'] || ''} onChange={v => setNote('sv_va1_g1', v)} disabled={!isSvEditable || isSvViolationSec5} />
-                  {svCadrePosition === 'LEADER_GROUP' && svCadrePerformance === 'EXCELLENT' && (
+                  <NoteArea value={notes['sv_va2'] || ''} onChange={v => setNote('sv_va2', v)} disabled={!isSvEditable || !isSvOfficer || isSvViolationSec5} />
+                  {(svCadrePerformance === 'EXCELLENT' || svCadrePerformance === 'excellent') && isSvOfficer && (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
-                      <span className="text-xs font-bold text-gray-600 block">Minh chứng xuất sắc:</span>
+                      <span className="text-xs font-bold text-gray-600 block">Minh chứng hoàn thành xuất sắc:</span>
                       <MiniUpload fileKey="sv_cadre_perf" disabled={!isSvEditable} required />
                     </div>
                   )}
                 </td>
                 <td className={tdR}>
                   {isSvViolationSec5 ? <LockedScore /> : (
-                    <ScoreSelect
-                      options={[
-                        { value: 'EXCELLENT', label: '7đ - Hoàn thành xuất sắc' },
-                        { value: 'GOOD', label: '6đ - Hoàn thành tốt' },
-                        { value: 'COMPLETE', label: '4đ - Hoàn thành nhiệm vụ' },
-                        { value: 'POOR', label: '0đ - Không hoàn thành / Không chọn' },
-                      ]}
-                      value={svCadrePosition === 'LEADER_GROUP' ? svCadrePerformance : 'POOR'}
-                      onChange={v => {
-                        if (isSvEditable) {
-                          if (v !== 'POOR') {
-                            setSvCadrePosition('LEADER_GROUP');
-                            setSvCadrePerformance(v);
-                          } else if (svCadrePosition === 'LEADER_GROUP') {
-                            setSvCadrePosition('NONE');
-                            setSvCadrePerformance('POOR');
-                          }
-                        }
-                      }}
-                      disabled={!isSvEditable || isSvViolationSec5}
-                    />
+                    <>
+                      <ScoreSelect
+                        options={svCadrePosition === 'LEADER_GROUP' || svCadrePosition === 'a1' ? a1PerfOpts : a2PerfOpts}
+                        value={svCadrePerformance}
+                        onChange={v => { if (isSvEditable && isSvOfficer) setSvCadrePerformance(v); }}
+                        disabled={!isSvEditable || !isSvOfficer || isSvViolationSec5}
+                      />
+                      <FieldError name="svCadrePerformance" />
+                    </>
                   )}
                 </td>
-                <td className={tdR}><NoteArea value={notes['cl_va1_g1'] || ''} onChange={v => setNote('cl_va1_g1', v)} disabled={!isClassEditable || isClassViolationSec5} /></td>
+                <td className={tdR}><NoteArea value={notes['cl_va2'] || ''} onChange={v => setNote('cl_va2', v)} disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5} /></td>
                 <td className={tdBase}>
                   {isClassViolationSec5 ? <LockedScore /> : (
                     <ScoreSelect
-                      options={[
-                        { value: 'EXCELLENT', label: '7đ - Hoàn thành xuất sắc' },
-                        { value: 'GOOD', label: '6đ - Hoàn thành tốt' },
-                        { value: 'COMPLETE', label: '4đ - Hoàn thành nhiệm vụ' },
-                        { value: 'POOR', label: '0đ - Không hoàn thành / Không chọn' },
-                      ]}
-                      value={classCadrePosition === 'LEADER_GROUP' ? classCadrePerformance : 'POOR'}
-                      onChange={v => {
-                        if (isClassEditable) {
-                          markClassEdited();
-                          if (v !== 'POOR') {
-                            setClassCadrePosition('LEADER_GROUP');
-                            setClassCadrePerformance(v);
-                          } else if (classCadrePosition === 'LEADER_GROUP') {
-                            setClassCadrePosition('NONE');
-                            setClassCadrePerformance('POOR');
-                          }
-                        }
-                      }}
-                      disabled={!isClassEditable || isClassViolationSec5}
+                      options={classCadrePosition === 'LEADER_GROUP' || classCadrePosition === 'a1' ? a1PerfOpts : a2PerfOpts}
+                      value={classCadrePerformance}
+                      onChange={v => { if (isClassEditable && isClassOfficer) { markClassEdited(); setClassCadrePerformance(v); } }}
+                      disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5}
                     />
                   )}
                 </td>
               </tr>
-
-              {/* - Nhóm 2: Ủy viên / Tổ trưởng (Có Dropdown chọn điểm trực tiếp) */}
-              <tr className="hover:bg-gray-50 text-gray-800 border-b border-gray-300">
-                <td className={`${tdR} text-center font-bold text-gray-500`}>-</td>
-                <td className={`${tdR} text-xs leading-snug font-medium`} colSpan={2}>Ủy viên BCH chi đoàn; Chi ủy viên chi bộ Sinh viên, thành viên đội TN xung kích, Tổ trưởng, tổ phó các lớp; Ủy viên các Ban, CLB, Đội.</td>
-                <td className={`${tdR} text-center font-bold text-gray-600`}>6</td>
-                <td className={tdR}>
-                  <NoteArea value={notes['sv_va1_g2'] || ''} onChange={v => setNote('sv_va1_g2', v)} disabled={!isSvEditable || isSvViolationSec5} />
-                  {svCadrePosition === 'MEMBER_GROUP' && svCadrePerformance === 'EXCELLENT' && (
-                    <div className="mt-2 border-t pt-1.5 border-gray-100">
-                      <span className="text-xs font-bold text-gray-600 block">Minh chứng xuất sắc:</span>
-                      <MiniUpload fileKey="sv_cadre_perf" disabled={!isSvEditable} required />
-                    </div>
-                  )}
-                </td>
-                <td className={tdR}>
-                  {isSvViolationSec5 ? <LockedScore /> : (
-                    <ScoreSelect
-                      options={[
-                        { value: 'EXCELLENT', label: '6đ - Hoàn thành xuất sắc' },
-                        { value: 'GOOD', label: '5đ - Hoàn thành tốt' },
-                        { value: 'COMPLETE', label: '3đ - Hoàn thành nhiệm vụ' },
-                        { value: 'POOR', label: '0đ - Không hoàn thành / Không chọn' },
-                      ]}
-                      value={svCadrePosition === 'MEMBER_GROUP' ? svCadrePerformance : 'POOR'}
-                      onChange={v => {
-                        if (isSvEditable) {
-                          if (v !== 'POOR') {
-                            setSvCadrePosition('MEMBER_GROUP');
-                            setSvCadrePerformance(v);
-                          } else if (svCadrePosition === 'MEMBER_GROUP') {
-                            setSvCadrePosition('NONE');
-                            setSvCadrePerformance('POOR');
-                          }
-                        }
-                      }}
-                      disabled={!isSvEditable || isSvViolationSec5}
-                    />
-                  )}
-                </td>
-                <td className={tdR}><NoteArea value={notes['cl_va1_g2'] || ''} onChange={v => setNote('cl_va1_g2', v)} disabled={!isClassEditable || isClassViolationSec5} /></td>
-                <td className={tdBase}>
-                  {isClassViolationSec5 ? <LockedScore /> : (
-                    <ScoreSelect
-                      options={[
-                        { value: 'EXCELLENT', label: '6đ - Hoàn thành xuất sắc' },
-                        { value: 'GOOD', label: '5đ - Hoàn thành tốt' },
-                        { value: 'COMPLETE', label: '3đ - Hoàn thành nhiệm vụ' },
-                        { value: 'POOR', label: '0đ - Không hoàn thành / Không chọn' },
-                      ]}
-                      value={classCadrePosition === 'MEMBER_GROUP' ? classCadrePerformance : 'POOR'}
-                      onChange={v => {
-                        if (isClassEditable) {
-                          markClassEdited();
-                          if (v !== 'POOR') {
-                            setClassCadrePosition('MEMBER_GROUP');
-                            setClassCadrePerformance(v);
-                          } else if (classCadrePosition === 'MEMBER_GROUP') {
-                            setClassCadrePosition('NONE');
-                            setClassCadrePerformance('POOR');
-                          }
-                        }
-                      }}
-                      disabled={!isClassEditable || isClassViolationSec5}
-                    />
-                  )}
-                </td>
-              </tr>
-
-
-
-              {/* V.A.3 Kỹ năng quản lý */}
+              {/* 1.b Kỹ năng tổ chức / quản lý */}
               <tr className="hover:bg-gray-50">
-                <td className={`${tdR} text-center font-semibold text-gray-500`}>b)</td>
-                <td className={`${tdR} text-gray-700 font-medium`} colSpan={2}>Kỹ năng tổ chức, quản lý lớp, quản lý các tổ chức Đảng, Đoàn thanh niên, Hội sinh viên, Trưởng phòng ở KTX, các Ban, CLB, Đội, Hội, nhóm đạt kết quả tốt, không có sinh viên trong lớp bị kỷ luật, không có thành viên trong Hội, Đội, nhóm, CLB vi phạm, sinh viên tham gia tích cực vào các hoạt động chung của lớp, khoa/đơn vị, Phân viện và Học viện.</td>
-                <td className={`${tdR} text-center font-bold text-gray-600`}>Từ 0÷3 điểm</td>
-                <td className={tdR}><NoteArea value={notes['sv_va3'] || ''} onChange={v => setNote('sv_va3', v)} disabled={!isSvEditable || isSvViolationSec5} /></td>
-                <td className={tdR}>{isSvViolationSec5 ? <LockedScore /> : <><ScoreSelect options={mgmtOpts} value={svManagementLevel} onChange={v => { if (isSvEditable) setSvManagementLevel(v); }} disabled={!isSvEditable || isSvViolationSec5} /><FieldError name="svManagementLevel" /></>}</td>
-                <td className={tdR}><NoteArea value={notes['cl_va3'] || ''} onChange={v => setNote('cl_va3', v)} disabled={!isClassEditable || isClassViolationSec5} /></td>
-                <td className={tdBase}>{isClassViolationSec5 ? <LockedScore /> : <ScoreSelect options={mgmtOpts} value={classManagementLevel} onChange={v => { if (isClassEditable) { markClassEdited(); setClassManagementLevel(v); } }} disabled={!isClassEditable || isClassViolationSec5} />}</td>
-              </tr>
-
-            </>
-
-            <>
-              <tr className="bg-green-50"><td colSpan={8} className="px-3 py-1.5 border-b border-green-200 text-sm font-bold text-green-700">2. Tất cả các sinh viên trong lớp:</td></tr>
-              {/* V.B.a điểm tham gia */}
-              <tr className="hover:bg-gray-50">
-                <td className={`${tdR} text-center text-gray-600 text-xs font-bold`}>a)</td>
-                <td className={`${tdR} text-gray-700 font-medium`} colSpan={2}>Sinh viên tham gia đầy đủ các hoạt động, sinh hoạt của lớp, khoa, Học viện, có ý kiến tham gia xây dựng tập thể vững mạnh (trừ đối tượng ở tiểu mục 1, 2, 3 mục 5)</td>
+                <td className={`${tdR} text-center font-bold text-gray-600`}>b)</td>
+                <td className={`${tdR} text-gray-800 font-medium leading-snug`} colSpan={2}>
+                  Kỹ năng tổ chức, quản lý lớp, quản lý các tổ chức Đảng, Đoàn thanh niên, Hội sinh viên. Trưởng phòng ở KTX, các Ban, CLB, Đội, Hội, nhóm đạt kết quả tốt, không có sinh viên trong lớp bị kỷ luật, không có thành viên trong Hội, Đội, nhóm, CLB vi phạm, sinh viên tham gia tích cực vào các hoạt động chung của lớp, khoa/đơn vị, Phân viện và Học viện.
+                </td>
                 <td className={`${tdR} text-center font-bold text-gray-600`}>3.00</td>
-                <td className={tdR}><NoteArea value={notes['sv_vb1'] || ''} onChange={v => setNote('sv_vb1', v)} disabled={!isSvEditable || isSvViolationSec5} /></td>
-                <td className={tdR}>{isSvViolationSec5 ? <LockedScore /> : <><select value={svClassParticipation ?? 0} onChange={e => { if (isSvEditable) setSvClassParticipation(parseInt(e.target.value, 10) || 0); }} disabled={!isSvEditable} className="w-16 h-8 px-1 text-center text-sm border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-blue-400 disabled:bg-gray-100 cursor-pointer"><option value={0}>0đ</option><option value={1}>1đ</option><option value={2}>2đ</option><option value={3}>3đ</option></select><FieldError name="svClassParticipation" /></>}</td>
-                <td className={tdR}><NoteArea value={notes['cl_vb1'] || ''} onChange={v => setNote('cl_vb1', v)} disabled={!isClassEditable || isClassViolationSec5} /></td>
-                <td className={tdBase}>{isClassViolationSec5 ? <LockedScore /> : <select value={classClassParticipation ?? 0} onChange={e => { if (isClassEditable) { markClassEdited(); setClassClassParticipation(parseInt(e.target.value, 10) || 0); } }} disabled={!isClassEditable} className="w-16 h-8 px-1 text-center text-sm border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-100 cursor-pointer"><option value={0}>0đ</option><option value={1}>1đ</option><option value={2}>2đ</option><option value={3}>3đ</option></select>}</td>
+                <td className={tdR}><NoteArea value={notes['sv_va3'] || ''} onChange={v => setNote('sv_va3', v)} disabled={!isSvEditable || !isSvOfficer || isSvViolationSec5} /></td>
+                <td className={tdR}>
+                  {isSvViolationSec5 ? <LockedScore /> : (
+                    <>
+                      <ScoreSelect
+                        options={mgmtOpts}
+                        value={svManagementLevel}
+                        onChange={v => { if (isSvEditable && isSvOfficer) setSvManagementLevel(v); }}
+                        disabled={!isSvEditable || !isSvOfficer || isSvViolationSec5}
+                      />
+                      <FieldError name="svManagementLevel" />
+                    </>
+                  )}
+                </td>
+                <td className={tdR}><NoteArea value={notes['cl_va3'] || ''} onChange={v => setNote('cl_va3', v)} disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5} /></td>
+                <td className={tdBase}>
+                  {isClassViolationSec5 ? <LockedScore /> : (
+                    <ScoreSelect
+                      options={mgmtOpts}
+                      value={classManagementLevel}
+                      onChange={v => { if (isClassEditable && isClassOfficer) { markClassEdited(); setClassManagementLevel(v); } }}
+                      disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5}
+                    />
+                  )}
+                </td>
               </tr>
-              {/* V.B.b thành tích đặc biệt - 1 dòng duy nhất có dropdown chọn điểm */}
+            </>}
+
+            {/* NHÁNH 2: Sinh viên thường (chỉ hiển thị khi chọn nhánh Sinh viên thường) */}
+            {(isSvStudent || isClassStudent) && <>
+              <tr className="bg-green-50">
+                <td className={`${tdR} text-center font-bold text-green-900`}>2</td>
+                <td colSpan={7} className="px-3 py-2 border-b border-green-200 text-xs sm:text-sm font-bold text-green-900">
+                  📚 2. Tất cả các sinh viên trong lớp: (Thang điểm: Từ 0÷10 điểm)
+                </td>
+              </tr>
+              {/* 2.a Tham gia hoạt động lớp */}
+              <tr className="hover:bg-gray-50">
+                <td className={`${tdR} text-center font-bold text-gray-600`}>a)</td>
+                <td className={`${tdR} text-gray-800 font-medium leading-snug`} colSpan={2}>
+                  Sinh viên tham gia đầy đủ các hoạt động, sinh hoạt của lớp, khoa, Học viện, có ý kiến tham gia xây dựng tập thể vững mạnh (trừ đối tượng ở tiểu mục 1, 2, 3 mục 5)
+                  <div className="text-xs text-gray-500 mt-0.5">Chọn mức điểm: 0 ÷ 3 điểm</div>
+                </td>
+                <td className={`${tdR} text-center font-bold text-gray-600`}>3.00</td>
+                <td className={tdR}><NoteArea value={notes['sv_vb1'] || ''} onChange={v => setNote('sv_vb1', v)} disabled={!isSvEditable || !isSvStudent || isSvViolationSec5} /></td>
+                <td className={tdR}>
+                  {isSvViolationSec5 ? <LockedScore /> : (
+                    <>
+                      <select
+                        value={svClassParticipation ?? 0}
+                        onChange={e => { if (isSvEditable && isSvStudent) setSvClassParticipation(parseInt(e.target.value, 10) || 0); }}
+                        disabled={!isSvEditable || !isSvStudent || isSvViolationSec5}
+                        className="w-20 h-10 px-2 text-center text-sm border border-gray-300 rounded-md bg-white font-bold outline-none focus:ring-1 focus:ring-blue-400 disabled:bg-gray-100 cursor-pointer shadow-sm"
+                      >
+                        <option value={0}>0.00 đ</option>
+                        <option value={1}>1.00 đ</option>
+                        <option value={2}>2.00 đ</option>
+                        <option value={3}>3.00 đ</option>
+                      </select>
+                      <FieldError name="svClassParticipation" />
+                    </>
+                  )}
+                </td>
+                <td className={tdR}><NoteArea value={notes['cl_vb1'] || ''} onChange={v => setNote('cl_vb1', v)} disabled={!isClassEditable || isClassViolationSec5} /></td>
+                <td className={tdBase}>
+                  {isClassViolationSec5 ? <LockedScore /> : (
+                    <select
+                      value={classClassParticipation ?? 0}
+                      onChange={e => { if (isClassEditable && isClassStudent) { markClassEdited(); setClassClassParticipation(parseInt(e.target.value, 10) || 0); } }}
+                      disabled={!isClassEditable || !isClassStudent || isClassViolationSec5}
+                      className="w-20 h-10 px-2 text-center text-sm border border-gray-300 rounded-md bg-white font-bold outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-100 cursor-pointer shadow-sm"
+                    >
+                      <option value={0}>0.00 đ</option>
+                      <option value={1}>1.00 đ</option>
+                      <option value={2}>2.00 đ</option>
+                      <option value={3}>3.00 đ</option>
+                    </select>
+                  )}
+                </td>
+              </tr>
+              {/* 2.b Thành tích đặc biệt */}
               <tr className="hover:bg-gray-50 border-b border-gray-300">
-                <td className={`${tdR} text-center text-gray-600 text-xs font-bold`}>b)</td>
-                <td className={`${tdR} text-gray-700 font-medium`} colSpan={2}>Sinh viên đạt được các thành tích đặc biệt trong học tập, rèn luyện, dũng cảm cứu người được cấp giấy chứng nhận hoặc có giấy khen</td>
+                <td className={`${tdR} text-center font-bold text-gray-600`}>b)</td>
+                <td className={`${tdR} text-gray-800 font-medium leading-snug`} colSpan={2}>
+                  Sinh viên đạt được các thành tích đặc biệt trong học tập, rèn luyện, dũng cảm cứu người được cấp giấy chứng nhận hoặc có giấy khen
+                  <div className="text-xs text-amber-700 font-medium mt-0.5">(Bắt buộc tải minh chứng nếu được khen thưởng)</div>
+                </td>
                 <td className={`${tdR} text-center font-bold text-gray-600`}>7.00</td>
                 <td className={tdR}>
-                  <NoteArea value={notes['sv_vb2'] || ''} onChange={v => setNote('sv_vb2', v)} disabled={!isSvEditable || isSvViolationSec5} />
-                  {(svSpecialAchievement === 'SCHOOL_LEVEL_OR_HIGHER' || svSpecialAchievement === 'FACULTY_LEVEL') && (
+                  <NoteArea value={notes['sv_vb2'] || ''} onChange={v => setNote('sv_vb2', v)} disabled={!isSvEditable || !isSvStudent || isSvViolationSec5} />
+                  {(svSpecialAchievement === 'SCHOOL_LEVEL_OR_HIGHER' || svSpecialAchievement === 'FACULTY_LEVEL') && isSvStudent && (
                     <div className="mt-2 border-t pt-1.5 border-gray-100">
                       <span className="text-xs font-bold text-gray-600 block">Minh chứng khen thưởng:</span>
                       <MiniUpload fileKey="sv_special_ach" disabled={!isSvEditable} required />
                     </div>
                   )}
                 </td>
-                <td className={tdR}>{isSvViolationSec5 ? <LockedScore /> : <><ScoreSelect options={achieveOpts} value={svSpecialAchievement} onChange={v => { if (isSvEditable) setSvSpecialAchievement(v); }} disabled={!isSvEditable || isSvViolationSec5} /><FieldError name="svSpecialAchievement" /></>}</td>
-                <td className={tdR}><NoteArea value={notes['cl_vb2'] || ''} onChange={v => setNote('cl_vb2', v)} disabled={!isClassEditable || isClassViolationSec5} /></td>
-                <td className={tdBase}>{isClassViolationSec5 ? <LockedScore /> : <ScoreSelect options={achieveOpts} value={classSpecialAchievement} onChange={v => { if (isClassEditable) { markClassEdited(); setClassSpecialAchievement(v); } }} disabled={!isClassEditable || isClassViolationSec5} />}</td>
+                <td className={tdR}>
+                  {isSvViolationSec5 ? <LockedScore /> : (
+                    <>
+                      <ScoreSelect
+                        options={achieveOpts}
+                        value={svSpecialAchievement}
+                        onChange={v => { if (isSvEditable && isSvStudent) setSvSpecialAchievement(v); }}
+                        disabled={!isSvEditable || !isSvStudent || isSvViolationSec5}
+                      />
+                      <FieldError name="svSpecialAchievement" />
+                    </>
+                  )}
+                </td>
+                <td className={tdR}><NoteArea value={notes['cl_vb2'] || ''} onChange={v => setNote('cl_vb2', v)} disabled={!isClassEditable || !isClassStudent || isClassViolationSec5} /></td>
+                <td className={tdBase}>
+                  {isClassViolationSec5 ? <LockedScore /> : (
+                    <ScoreSelect
+                      options={achieveOpts}
+                      value={classSpecialAchievement}
+                      onChange={v => { if (isClassEditable && isClassStudent) { markClassEdited(); setClassSpecialAchievement(v); } }}
+                      disabled={!isClassEditable || !isClassStudent || isClassViolationSec5}
+                    />
+                  )}
+                </td>
               </tr>
-            </>
-
+            </>}
 
             {/* ═══ TỔNG CỘNG ═══ */}
             <tr className="bg-indigo-50/70 text-indigo-950 font-black border-t border-indigo-200">

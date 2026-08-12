@@ -144,16 +144,21 @@ export function BienBanPreviewModal({ data, onClose, onPrint, autoPrint }: BienB
           >
             {/* Header 2 cột */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
-                <div><strong>KHOA:</strong> {data.khoa || '................................'}</div>
+              <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
+                <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</div>
+                <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ ĐÀ NẴNG</div>
+                <div style={{ marginTop: '2px' }}><strong>KHOA:</strong> {data.khoa || '................................'}</div>
                 <div><strong>LỚP:</strong> {data.lop || '................................'}</div>
-                <div style={{ textAlign: 'center', fontWeight: 'bold', width: '80px', marginTop: '2px' }}>*</div>
+                <div style={{ textAlign: 'center', fontWeight: 'bold', width: '100%', marginTop: '2px' }}>*</div>
               </div>
-              <div style={{ textAlign: 'center', fontSize: '13px', lineHeight: '1.4' }}>
-                <div style={{ display: 'inline-block', borderBottom: '1.5px solid #000', paddingBottom: '2px', fontWeight: 'bold' }}>
-                  ĐẢNG CỘNG SẢN VIỆT NAM
+              <div style={{ textAlign: 'right', fontSize: '13px', lineHeight: '1.4' }}>
+                <div style={{ fontStyle: 'italic', marginBottom: '4px' }}>Phụ lục 01</div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'inline-block', borderBottom: '1.5px solid #000', paddingBottom: '2px', fontWeight: 'bold' }}>
+                    ĐẢNG CỘNG SẢN VIỆT NAM
+                  </div>
                 </div>
-                <div style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '12px', marginTop: '4px' }}>
+                <div style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '12px', marginTop: '4px', textAlign: 'right' }}>
                   {data.diaDanh || 'Đà Nẵng'}, ngày {data.ngayHop || '......'} tháng {data.thang || '......'} năm {data.nam || '20....'}
                 </div>
               </div>

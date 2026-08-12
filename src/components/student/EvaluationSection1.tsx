@@ -89,7 +89,7 @@ export const EvaluationSection1 = ({
         <div>
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-            Mục I: Ý thức tham gia học tập
+            Mục I: Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện)
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">Điểm tối đa: 20đ</p>
         </div>
@@ -140,8 +140,8 @@ export const EvaluationSection1 = ({
 
           {/* Criteria 1.1 */}
           <div className="border-b pb-4">
-            <h3 className="text-sm font-bold text-gray-800">1.1 Ý thức và thái độ học tập (Điểm tối đa: 6đ)</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Chọn mức điểm TBCHT quy đổi để tự động điền.</p>
+            <h3 className="text-sm font-bold text-gray-800">1.1 Ý thức và thái độ học tập (ý thức chuyên cần) (Điểm tối đa: 6đ)</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Chọn mức điểm TB đánh giá thường xuyên học kỳ quy đổi để tự động điền.</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               {/* SV Column */}
@@ -151,11 +151,11 @@ export const EvaluationSection1 = ({
                   onChange={(val) => setSvStudyAttitude(val)}
                   disabled={currentUserRole !== 'student' || isSvViolationSec1}
                   options={[
-                    { id: 'very_good', name: 'Điểm TB ≥ 9 (6 điểm)' },
-                    { id: 'good', name: 'Điểm TB từ 7 đến < 9 (5 điểm)' },
-                    { id: 'fair', name: 'Điểm TB từ 5 đến < 7 (4 điểm)' },
-                    { id: 'average', name: 'Điểm TB từ 4 đến < 5 (2 điểm)' },
-                    { id: 'poor', name: 'Điểm TB từ 1 đến < 4 (1 điểm)' },
+                    { id: 'very_good', name: 'Điểm TB đánh giá thường xuyên học kỳ ≥9 (6 điểm)' },
+                    { id: 'good', name: 'Điểm TB đánh giá thường xuyên học kỳ từ 7 đến cận 9 (5 điểm)' },
+                    { id: 'fair', name: 'Điểm TB đánh giá thường xuyên học kỳ từ 5 đến cận 7 (4 điểm)' },
+                    { id: 'average', name: 'Điểm TB đánh giá thường xuyên học kỳ từ 4 đến cận 5 (2 điểm)' },
+                    { id: 'poor', name: 'Điểm TB đánh giá thường xuyên học kỳ từ 01 đến cận 04 (1 điểm)' },
                     { id: 'none', name: 'Điểm TB < 1 (0 điểm)' }
                   ]}
                   label="Sinh viên tự chấm"
@@ -172,11 +172,11 @@ export const EvaluationSection1 = ({
                   }}
                   disabled={currentUserRole !== 'class' || isClassViolationSec1}
                   options={[
-                    { id: 'very_good', name: 'Điểm TB ≥ 9 (6 điểm)' },
-                    { id: 'good', name: 'Điểm TB từ 7 đến < 9 (5 điểm)' },
-                    { id: 'fair', name: 'Điểm TB từ 5 đến < 7 (4 điểm)' },
-                    { id: 'average', name: 'Điểm TB từ 4 đến < 5 (2 điểm)' },
-                    { id: 'poor', name: 'Điểm TB từ 1 đến < 4 (1 điểm)' },
+                    { id: 'very_good', name: 'Điểm TB đánh giá thường xuyên học kỳ ≥9 (6 điểm)' },
+                    { id: 'good', name: 'Điểm TB đánh giá thường xuyên học kỳ từ 7 đến cận 9 (5 điểm)' },
+                    { id: 'fair', name: 'Điểm TB đánh giá thường xuyên học kỳ từ 5 đến cận 7 (4 điểm)' },
+                    { id: 'average', name: 'Điểm TB đánh giá thường xuyên học kỳ từ 4 đến cận 5 (2 điểm)' },
+                    { id: 'poor', name: 'Điểm TB đánh giá thường xuyên học kỳ từ 01 đến cận 04 (1 điểm)' },
                     { id: 'none', name: 'Điểm TB < 1 (0 điểm)' }
                   ]}
                   label="Lớp đánh giá"
