@@ -215,35 +215,41 @@ export function computeEvaluationScores(s: EvaluationFormState, isSv: boolean): 
   const isVio5 = isSv ? s.isSvViolationSec5 : s.isClassViolationSec5;
   let sec5 = 0;
   if (!isVio5) {
+    const role = isSv ? s.svRoleType : s.classRoleType;
     const pos = isSv ? s.svCadrePosition : s.classCadrePosition;
     const perf = isSv ? s.svCadrePerformance : s.classCadrePerformance;
     const mgmt = isSv ? s.svManagementLevel : s.classManagementLevel;
     const part = isSv ? s.svClassParticipation : s.classClassParticipation;
     const ach = isSv ? s.svSpecialAchievement : s.classSpecialAchievement;
 
-    let section5Part1 = 0;
-    if (pos && pos !== 'NONE' && pos !== 'none') {
-      const perfMap = pos === 'LEADER_GROUP' || pos === 'a1'
-        ? { EXCELLENT: 7, GOOD: 6, COMPLETED: 4, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
-        : { EXCELLENT: 6, GOOD: 5, COMPLETED: 3, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
-      const mgmtMap: Record<string, number> = { HEAD_POSITION: 3, DEPUTY_POSITION: 2, MEMBER_POSITION: 1, head: 3, deputy: 2, member: 1, none: 0, '': 0 };
-      section5Part1 = (perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0);
-    }
+    const isOfficer = ['CLASS_OFFICER', 'UNION_OFFICER', 'CLUB_OFFICER', 'cadre'].includes(String(role));
 
-    const achMap: Record<string, number> = {
-      SCHOOL_LEVEL_OR_HIGHER: 7,
-      FACULTY_LEVEL: 5,
-      NATIONAL_OR_INTL: 7,
-      PROVINCIAL_LEVEL: 5,
-      NONE: 0,
-      university_level: 7,
-      faculty_level: 5,
-      national_intl: 7,
-      provincial: 5,
-      none: 0,
-    };
-    const section5Part2 = clamp(Number(part) || 0, 3) + (achMap[ach] || 0);
-    sec5 = clamp(section5Part1 + section5Part2, 10);
+    if (isOfficer) {
+      let section5Part1 = 0;
+      if (pos && pos !== 'NONE' && pos !== 'none') {
+        const perfMap = pos === 'LEADER_GROUP' || pos === 'a1'
+          ? { EXCELLENT: 7, GOOD: 6, COMPLETE: 4, COMPLETED: 4, FAIR: 4, POOR: 0, excellent: 7, good: 6, average: 4, unsatisfactory: 0 }
+          : { EXCELLENT: 6, GOOD: 5, COMPLETE: 3, COMPLETED: 3, FAIR: 3, POOR: 0, excellent: 6, good: 5, average: 3, unsatisfactory: 0 };
+        const mgmtMap: Record<string, number> = { HEAD_POSITION: 3, DEPUTY_POSITION: 2, MEMBER_POSITION: 1, head: 3, deputy: 2, member: 1, none: 0, '': 0 };
+        section5Part1 = (perfMap[perf as keyof typeof perfMap] || 0) + (mgmtMap[mgmt] || 0);
+      }
+      sec5 = clamp(section5Part1, 10);
+    } else {
+      const achMap: Record<string, number> = {
+        SCHOOL_LEVEL_OR_HIGHER: 7,
+        FACULTY_LEVEL: 5,
+        NATIONAL_OR_INTL: 7,
+        PROVINCIAL_LEVEL: 5,
+        NONE: 0,
+        university_level: 7,
+        faculty_level: 5,
+        national_intl: 7,
+        provincial: 5,
+        none: 0,
+      };
+      const section5Part2 = clamp(Number(part) || 0, 3) + (achMap[ach] || 0);
+      sec5 = clamp(section5Part2, 10);
+    }
   }
 
   return { sec1, sec2, sec3, sec4, sec5, total: clamp(sec1 + sec2 + sec3 + sec4 + sec5, 100) };
