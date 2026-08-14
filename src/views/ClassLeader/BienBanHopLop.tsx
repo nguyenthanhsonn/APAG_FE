@@ -6,14 +6,17 @@ import {
   Eye,
   Printer,
   RefreshCw,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { API_Admin } from '@/api/API_Admin';
+import { API_ClassLeader, type ClassLeaderReportExportFormat } from '@/api/API_ClassLeader';
 import { toArray, mapEvaluationToFacultyStudent } from '@/utils/facultyEvaluationData';
 import { getUserFriendlyError } from '@/utils/errorHelper';
 import type { AdminEvaluationItem } from '@/types';
 import { BienBanPreviewModal } from '@/components/class_leader/BienBanPreviewModal';
 import type { BienBanFormData, BienBanStudentRow } from '@/utils/exportBienBan';
+import { useToast } from '@/components/common/ToastProvider';
 
 /* ─── helpers ─────────────────────────────────────────────── */
 function resolveClassId(user: any): string {
@@ -58,6 +61,51 @@ function getBirthDate(item: AdminEvaluationItem): string {
   }
 }
 
+function getFileNameFromDisposition(disposition?: string, fallback = 'bb-hop-lop.xlsx') {
+  const utf8FileName = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  if (utf8FileName) {
+    try {
+      return decodeURIComponent(utf8FileName);
+    } catch {
+      return utf8FileName;
+    }
+  }
+
+  return disposition?.match(/filename="?([^"]+)"?/i)?.[1] ?? fallback;
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
+function normalizeExportXepLoai(label: string, score: number) {
+  const normalized = String(label || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+
+  if (normalized.includes('xuat sac') || normalized === 'excellent') return 'Xuất sắc';
+  if (normalized.includes('tot') || normalized === 'good') return 'Tốt';
+  if (normalized.includes('kha') || normalized === 'fair') return 'Khá';
+  if (normalized.includes('trung binh') || normalized === 'average') return 'Trung bình';
+  if (normalized.includes('yeu') || normalized === 'poor') return 'Yếu';
+
+  if (score >= 90) return 'Xuất sắc';
+  if (score >= 80) return 'Tốt';
+  if (score >= 65) return 'Khá';
+  if (score >= 50) return 'Trung bình';
+  return 'Yếu';
+}
+
 export function calcXepLoai(score: number): string {
   if (score >= 90) return 'Xuất sắc';
   if (score >= 80) return 'Tốt';
@@ -88,6 +136,7 @@ function XepLoaiBadge({ label }: { label: string }) {
 ═══════════════════════════════════════════════════════════════ */
 export function BienBanHopLop() {
   const user = useAuthStore((s) => s.user);
+  const toast = useToast();
   const classId = resolveClassId(user);
   const className = resolveClassName(user);
   const khoa = resolveKhoa(user);
@@ -129,6 +178,7 @@ export function BienBanHopLop() {
   /* ─── Preview state ─── */
   const [showPreview, setShowPreview] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<ClassLeaderReportExportFormat | null>(null);
 
   /* ─── Load ─── */
   const load = useCallback(async () => {
@@ -196,11 +246,57 @@ export function BienBanHopLop() {
     students: studentRows,
   }), [khoa, className, formData, studentRows]);
 
+  const exportPayload = useMemo(() => ({
+    khoa,
+    lop: className,
+    hocKy: formData.hocKy,
+    namHoc: formData.namHoc,
+    ngayHop: formData.ngayHop,
+    thangHop: formData.thang,
+    namHop: formData.nam,
+    diaDiem: formData.diaDiem,
+    gioBatDau: `${formData.gioKhoi}${formData.gioKetThuc ? ` đến ${formData.gioKetThuc}` : ''}`,
+    chuToa: formData.chuToa,
+    thuKy: formData.thuKy,
+    tongSoDuHop: formData.tongSoDuHop,
+    vangHop: formData.soVang,
+    lyDoVang: formData.lyDoVang,
+    students: studentRows.map((student) => ({
+      stt: student.stt,
+      maSV: student.maSV,
+      hoTen: student.hoTen,
+      ngaySinh: student.ngaySinh,
+      drlSinhVien: student.drlSV,
+      drlLop: student.drlLop,
+      xepLoai: normalizeExportXepLoai(student.xepLoai, student.drlLop),
+      bieuQuyet: student.bieuQuyet,
+      ghiChu: student.ghiChu,
+    })),
+  }), [className, formData, khoa, studentRows]);
+
   /* ─── Handlers ─── */
   const handleField = (key: string, val: string) => setFormData((p) => ({ ...p, [key]: val }));
   const handlePrint = () => {
     setAutoPrint(true);
     setShowPreview(true);
+  };
+
+  const handleExport = async (format: ClassLeaderReportExportFormat) => {
+    setExportingFormat(format);
+    setError('');
+    try {
+      const res = await API_ClassLeader.exportBienBanHopLop(format, exportPayload);
+      const ext = format === 'word' ? 'docx' : 'xlsx';
+      const fileName = getFileNameFromDisposition(res.headers['content-disposition'], `bb-hop-lop-${className || 'lop'}.${ext}`);
+      downloadBlob(res.data, fileName);
+      toast.success(`Đã tải file ${format === 'word' ? 'Word' : 'Excel'} biên bản họp lớp.`);
+    } catch (err: any) {
+      const message = getUserFriendlyError(err, `Không thể xuất file ${format === 'word' ? 'Word' : 'Excel'} biên bản họp lớp.`);
+      setError(message);
+      toast.error(message);
+    } finally {
+      setExportingFormat(null);
+    }
   };
 
   return (
@@ -229,6 +325,24 @@ export function BienBanHopLop() {
           </button>
           <button
             type="button"
+            onClick={() => void handleExport('word')}
+            disabled={loading || exportingFormat !== null}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50"
+          >
+            <FileText size={15} />
+            {exportingFormat === 'word' ? 'Đang xuất...' : 'Xuất Word'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleExport('excel')}
+            disabled={loading || exportingFormat !== null}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:opacity-50"
+          >
+            <FileSpreadsheet size={15} />
+            {exportingFormat === 'excel' ? 'Đang xuất...' : 'Xuất Excel'}
+          </button>
+          <button
+            type="button"
             onClick={() => setShowPreview(true)}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 transition"
           >
@@ -238,7 +352,7 @@ export function BienBanHopLop() {
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-700 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-600 transition"
           >
             <Printer size={15} />
             In biên bản
@@ -253,26 +367,40 @@ export function BienBanHopLop() {
       {/* ── SECTION 1: Biên bản họp lớp theo mẫu giấy tờ ── */}
       <div className="mx-auto w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-md sm:p-10 text-gray-800 font-sans leading-relaxed">
         {/* Tiêu đề & Quốc hiệu */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start text-xs sm:text-sm border-b border-gray-100 pb-6 mb-6">
-          <div className="space-y-0.5 text-center sm:text-left">
-            <p className="font-bold text-gray-900 uppercase">HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
-            <p className="font-bold text-gray-900 uppercase">PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ ĐÀ NẴNG</p>
-            <div className="flex flex-wrap items-center gap-1 mt-1">
-              <span className="font-semibold tracking-wide">KHOA:</span>
-              <span className="font-bold text-gray-900">{khoa || '................................'}</span>
+        <div className="border-b border-gray-100 pb-6 mb-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start text-xs sm:text-sm">
+            {/* Cột trái: Tên cơ quan */}
+            <div className="flex flex-col items-center leading-tight text-center text-gray-900 sm:min-w-[240px]">
+              <p className="font-normal uppercase text-xs sm:text-sm text-gray-900">HỌC VIỆN HÀNH CHÍNH</p>
+              <p className="font-normal uppercase text-xs sm:text-sm text-gray-900">VÀ QUẢN TRỊ CÔNG</p>
+              <p className="font-bold uppercase text-xs sm:text-sm text-gray-900 mt-1">PHÂN HIỆU HỌC VIỆN</p>
+              <p className="font-bold uppercase text-xs sm:text-sm text-gray-900">HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
+              <p className="font-bold uppercase text-xs sm:text-sm text-gray-900">TẠI THÀNH PHỐ ĐÀ NẴNG</p>
+              <p className="text-center font-bold text-gray-600 text-xs mt-0.5">*</p>
             </div>
-            <div className="flex flex-wrap items-center gap-1">
-              <span className="font-semibold tracking-wide">LỚP:</span>
-              <span className="font-bold text-gray-900">{className || '................................'}</span>
+
+            {/* Cột phải: Phụ lục + ĐCSVN */}
+            <div className="text-center space-y-1 sm:text-right flex flex-col items-center sm:items-end sm:min-w-[240px]">
+              <p className="italic font-normal text-xs sm:text-sm text-gray-800 self-end">Phụ lục 01</p>
+              <div className="inline-block border-b-2 border-gray-900 pb-0.5">
+                <p className="font-bold uppercase tracking-wider text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
+              </div>
             </div>
-            <p className="text-center font-bold text-gray-400 mt-1">*</p>
           </div>
-          <div className="text-center space-y-1 sm:text-right flex flex-col items-center sm:items-end">
-            <p className="italic font-normal text-xs sm:text-sm text-gray-800 self-end">Phụ lục 01</p>
-            <div className="inline-block border-b-2 border-gray-900 pb-0.5">
-              <p className="font-bold uppercase tracking-wider text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
+
+          {/* Dòng Khoa/Lớp (trái) và Ngày tháng (phải) - NGANG HÀNG NHAU */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-2 mt-3 text-xs sm:text-sm">
+            <div className="flex flex-col gap-0.5 text-left">
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="font-semibold tracking-wide">KHOA:</span>
+                <span className="font-bold text-gray-900">{khoa || '................................'}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="font-semibold tracking-wide">LỚP:</span>
+                <span className="font-bold text-gray-900">{className || '................................'}</span>
+              </div>
             </div>
-            <p className="italic text-gray-600 mt-2 flex flex-wrap items-center justify-center sm:justify-end gap-1 text-xs sm:text-sm">
+            <div className="italic text-gray-600 text-right flex flex-wrap items-center justify-end gap-1">
               <input
                 type="text"
                 value={formData.diaDanh}
@@ -293,24 +421,26 @@ export function BienBanHopLop() {
                 type="text"
                 value={formData.thang}
                 onChange={(e) => handleField('thang', e.target.value)}
-                placeholder="08"
+                placeholder="10"
                 className="w-10 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-center font-semibold text-gray-900"
               />
-              <span>năm</span>
+              <span>năm 20</span>
               <input
                 type="text"
                 value={formData.nam}
                 onChange={(e) => handleField('nam', e.target.value)}
-                placeholder="2026"
-                className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-center font-semibold text-gray-900"
+                placeholder="26"
+                className="w-10 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none text-center font-semibold text-gray-900"
               />
-            </p>
+            </div>
           </div>
         </div>
 
         {/* Tên biên bản */}
         <div className="text-center space-y-2 mb-8">
-          <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider text-gray-900">BIÊN BẢN HỌP LỚP</h2>
+          <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wider text-gray-900">
+            BIÊN BẢN HỌP LỚP {className}
+          </h2>
           <p className="italic text-gray-600 flex flex-wrap items-center justify-center gap-1.5 text-sm sm:text-base">
             <span>Về việc đánh giá kết quả rèn luyện học kỳ</span>
             <input
@@ -383,11 +513,11 @@ export function BienBanHopLop() {
           </div>
 
           {/* III. Thành phần */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <p className="font-bold text-gray-900">III. Thành phần:</p>
-            <ul className="list-disc pl-6 space-y-2 text-gray-700">
-              <li>Cố vấn học tập lớp, BCS lớp, BCH chi đoàn, toàn thể sinh viên trong lớp.</li>
-              <li className="flex flex-wrap items-center gap-1.5">
+            <div className="pl-6 space-y-1 text-gray-700">
+              <p>Cố vấn học tập lớp, BCS lớp, BCH chi đoàn, toàn thể sinh viên trong lớp</p>
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span>Tổng số người dự họp:</span>
                 <input
                   type="text"
@@ -395,9 +525,9 @@ export function BienBanHopLop() {
                   onChange={(e) => handleField('tongSoDuHop', e.target.value)}
                   className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-1 text-center font-bold text-gray-900"
                 />{' '}
-                <span>người.</span>
-              </li>
-              <li className="flex flex-wrap items-center gap-1.5">
+                <span>người</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span>Vắng họp:</span>
                 <input
                   type="text"
@@ -413,9 +543,9 @@ export function BienBanHopLop() {
                   placeholder="Không có hoặc lý do..."
                   className="flex-1 bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-2 text-gray-900 min-w-[180px]"
                 />
-              </li>
+              </div>
               {/* Chủ tọa */}
-              <li className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-bold text-gray-900">Chủ tọa:</span>
                 <input
                   type="text"
@@ -424,9 +554,9 @@ export function BienBanHopLop() {
                   placeholder="Nhập họ tên cố vấn..."
                   className="bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-2 py-0.5 text-sm font-semibold text-gray-900 flex-1 max-w-[280px] transition-colors placeholder:text-gray-400 placeholder:font-normal"
                 />
-              </li>
+              </div>
               {/* Thư ký */}
-              <li className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-bold text-gray-900">Thư ký:</span>
                 <input
                   type="text"
@@ -435,9 +565,9 @@ export function BienBanHopLop() {
                   placeholder="Nhập họ tên thư ký..."
                   className="bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-2 py-0.5 text-sm font-semibold text-gray-900 flex-1 max-w-[280px] transition-colors placeholder:text-gray-400 placeholder:font-normal"
                 />
-              </li>
+              </div>
               {/* Lớp trưởng */}
-              <li className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-bold text-gray-900">Lớp trưởng:</span>
                 <input
                   type="text"
@@ -446,29 +576,27 @@ export function BienBanHopLop() {
                   placeholder="Nhập họ tên lớp trưởng..."
                   className="bg-transparent border-b border-dashed border-gray-400 focus:border-brand-primary outline-none px-2 py-0.5 text-sm font-semibold text-gray-900 flex-1 max-w-[280px] transition-colors placeholder:text-gray-400 placeholder:font-normal"
                 />
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
 
           {/* IV. Nội dung */}
           <div className="space-y-2 pt-2">
-            <p className="font-bold text-gray-900">IV. Nội dung:</p>
-            <ol className="list-decimal pl-6 space-y-2 text-gray-700">
-              <li>Lớp trưởng báo cáo kết quả tổng hợp phiếu đánh giá kết quả rèn luyện của sinh viên trong lớp.</li>
-              <li>
-                CVHT lớp triển khai các văn bản hướng dẫn đánh giá kết quả rèn luyện, căn cứ vào báo cáo của Ban cán sự
-                lớp triển khai các bước trong quy trình đánh giá kết quả rèn luyện của sinh viên trong lớp.
-              </li>
-              <li>
-                <span className="font-semibold text-gray-900">Kết quả rèn luyện của các thành viên trong lớp:</span>
-                <p className="italic text-xs text-gray-500 mt-1">
-                  Căn cứ phiếu tự đánh giá kết quả rèn luyện của các thành viên trong lớp, ý kiến nhận xét, đánh giá của
-                  CVHT lớp, BCS lớp, BCH chi đoàn, BCH chi hội (nếu có), Tổ trưởng các tổ; đối chiếu với quy chế của Bộ
-                  Giáo dục và Đào tạo và quy định của Học viện, tập thể lớp nhất trí thông qua kết quả rèn luyện của các
-                  thành viên trong lớp như sau:
-                </p>
-              </li>
-            </ol>
+            <p className="font-bold text-gray-900">IV. Nội dung</p>
+            <div className="pl-6 space-y-2 text-gray-700">
+              <p>1. Lớp trưởng báo cáo kết quả tổng hợp phiếu đánh giá kết quả rèn luyện của sinh viên trong lớp</p>
+              <p>
+                2. CVHT lớp triển khai các văn bản hướng dẫn đánh giá kết quả rèn luyện, căn cứ vào báo cáo của Ban cán
+                sự lớp triển khai các bước trong quy trình đánh giá kết quả rèn luyện của sinh viên trong lớp.
+              </p>
+              <p>3. Kết quả rèn luyện của các thành viên trong lớp:</p>
+              <p className="text-sm text-gray-700 leading-relaxed text-justify">
+                Căn cứ phiếu tự đánh giá kết quả rèn luyện của các thành viên trong lớp, ý kiến nhận xét, đánh giá của
+                CVHT lớp, BCS lớp, BCH chi đoàn, BCH chi hội (nếu có), Tổ trưởng các tổ; đối chiếu với quy chế của Bộ
+                Giáo dục và Đào tạo và quy định của Học viện, tập thể lớp nhất trí thông qua kết quả rèn luyện của các
+                thành viên trong lớp như sau:
+              </p>
+            </div>
           </div>
 
           {/* Bảng sinh viên trực tiếp trong Biên bản */}
@@ -621,6 +749,8 @@ export function BienBanHopLop() {
             setAutoPrint(false);
           }}
           onPrint={() => window.print()}
+          onExport={(format) => void handleExport(format)}
+          exportingFormat={exportingFormat}
           autoPrint={autoPrint}
         />
       )}

@@ -1,17 +1,20 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X, Printer } from 'lucide-react';
+import { X, Printer, FileText, FileSpreadsheet } from 'lucide-react';
 import type { BienBanFormData } from '@/utils/exportBienBan';
+import type { ClassLeaderReportExportFormat } from '@/api/API_ClassLeader';
 
 interface BienBanPreviewModalProps {
   data: BienBanFormData;
   onClose: () => void;
   onPrint: () => void;
+  onExport?: (format: ClassLeaderReportExportFormat) => void;
+  exportingFormat?: ClassLeaderReportExportFormat | null;
   autoPrint?: boolean;
 }
 
-export function BienBanPreviewModal({ data, onClose, onPrint, autoPrint }: BienBanPreviewModalProps) {
+export function BienBanPreviewModal({ data, onClose, onPrint, onExport, exportingFormat, autoPrint }: BienBanPreviewModalProps) {
   const counts = {
     xuatSac: data.students.filter((s) => s.xepLoai === 'Xuất sắc').length,
     tot: data.students.filter((s) => s.xepLoai === 'Tốt').length,
@@ -117,14 +120,32 @@ export function BienBanPreviewModal({ data, onClose, onPrint, autoPrint }: BienB
           {/* Header Bar */}
           <div className="bien-ban-no-print flex items-center justify-between rounded-t-2xl bg-gray-900 px-6 py-3 shadow-lg">
             <span className="text-white font-bold text-base tracking-wide">📄 Xem trước Biên bản họp lớp</span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onExport?.('word')}
+                disabled={!onExport || exportingFormat !== null}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FileText size={15} />
+                {exportingFormat === 'word' ? 'Đang xuất...' : 'Xuất Word (.docx)'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onExport?.('excel')}
+                disabled={!onExport || exportingFormat !== null}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FileSpreadsheet size={15} />
+                {exportingFormat === 'excel' ? 'Đang xuất...' : 'Xuất Excel (.xlsx)'}
+              </button>
               <button
                 type="button"
                 onClick={onPrint}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-primary px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700 transition"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gray-700 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-gray-600 transition"
               >
                 <Printer size={15} />
-                In / Xuất PDF
+                In ấn
               </button>
               <button
                 type="button"
@@ -142,25 +163,34 @@ export function BienBanPreviewModal({ data, onClose, onPrint, autoPrint }: BienB
             className="w-full bg-white shadow-2xl rounded-b-2xl"
             style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '13px', lineHeight: '1.6', padding: '30mm 20mm 20mm 30mm' }}
           >
-            {/* Header 2 cột */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
-                <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</div>
-                <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ ĐÀ NẴNG</div>
-                <div style={{ marginTop: '2px' }}><strong>KHOA:</strong> {data.khoa || '................................'}</div>
-                <div><strong>LỚP:</strong> {data.lop || '................................'}</div>
-                <div style={{ textAlign: 'center', fontWeight: 'bold', width: '100%', marginTop: '2px' }}>*</div>
+            {/* Header 2 cột: Cấp trên & Quốc hiệu */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <div style={{ color: '#111827', lineHeight: '1.35', textAlign: 'center', minWidth: '220px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 'normal', textTransform: 'uppercase' }}>HỌC VIỆN HÀNH CHÍNH</div>
+                <div style={{ fontSize: '13px', fontWeight: 'normal', textTransform: 'uppercase' }}>VÀ QUẢN TRỊ CÔNG</div>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '2px' }}>PHÂN HIỆU HỌC VIỆN</div>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase' }}>HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</div>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase' }}>TẠI THÀNH PHỐ ĐÀ NẴNG</div>
+                <div style={{ textAlign: 'center', fontWeight: 'bold', width: '100%', marginTop: '2px', fontSize: '13px' }}>*</div>
               </div>
-              <div style={{ textAlign: 'right', fontSize: '13px', lineHeight: '1.4' }}>
-                <div style={{ fontStyle: 'italic', marginBottom: '4px' }}>Phụ lục 01</div>
+              <div style={{ textAlign: 'right', fontSize: '13px', lineHeight: '1.4', minWidth: '220px' }}>
+                <div style={{ fontStyle: 'italic', marginBottom: '6px' }}>Phụ lục 01</div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'inline-block', borderBottom: '1.5px solid #000', paddingBottom: '2px', fontWeight: 'bold' }}>
                     ĐẢNG CỘNG SẢN VIỆT NAM
                   </div>
                 </div>
-                <div style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '12px', marginTop: '4px', textAlign: 'right' }}>
-                  {data.diaDanh || 'Đà Nẵng'}, ngày {data.ngayHop || '......'} tháng {data.thang || '......'} năm {data.nam || '20....'}
-                </div>
+              </div>
+            </div>
+
+            {/* Dòng Khoa / Lớp (trái) và Ngày tháng (phải) - NGANG HÀNG NHAU */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '16px' }}>
+              <div style={{ textAlign: 'left', fontSize: '13px', lineHeight: '1.4' }}>
+                <div><strong>KHOA:</strong> {data.khoa || '................................'}</div>
+                <div><strong>LỚP:</strong> {data.lop || '................................'}</div>
+              </div>
+              <div style={{ textAlign: 'right', fontStyle: 'italic', fontSize: '13px', lineHeight: '1.4' }}>
+                {data.diaDanh || 'Đà Nẵng'}, ngày {data.ngayHop || '......'} tháng {data.thang || '......'} năm {data.nam || '20....'}
               </div>
             </div>
 

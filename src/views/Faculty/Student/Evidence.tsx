@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState, ChangeEvent } from 'react';
-import { EvidenceFile } from '../../types';
-import { EvidenceGuidelines } from '../../components/student/EvidenceGuidelines';
-import { EvidenceGroupCard } from '../../components/student/EvidenceGroupCard';
-import { API_Student } from '../../api/API_Student';
-import { uploadEvidenceFile } from '../../services/cloudinaryUpload';
-import { getUserFriendlyError } from '../../utils/errorHelper';
-import { CRITERIA_CODES } from '../../constants/evaluationEnums';
+import { EvidenceFile } from '../../../types';
+import { EvidenceGuidelines } from '../../../components/student/EvidenceGuidelines';
+import { EvidenceGroupCard } from '../../../components/student/EvidenceGroupCard';
+import { API_Student } from '../../../api/API_Student';
+import { uploadEvidenceFile } from '../../../services/cloudinaryUpload';
+import { getUserFriendlyError } from '../../../utils/errorHelper';
+import { CRITERIA_CODES } from '../../../constants/evaluationEnums';
 
 export const StudentEvidence = () => {
   const [evidences, setEvidences] = useState<EvidenceFile[]>([]);
@@ -131,13 +131,13 @@ export const StudentEvidence = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-	  const criteriaGroups = [
-	    { id: 'TC1', name: 'Ý thức tham gia học tập' },
-	    { id: 'TC2', name: 'Ý thức chấp hành nội quy, quy chế' },
-	    { id: 'TC3', name: 'Hoạt động chính trị - xã hội' },
-	    { id: 'TC4', name: 'Ý thức công dân trong quan hệ cộng đồng' },
-	    { id: 'TC5', name: 'Vai trò, trách nhiệm trong tập thể' },
-	  ];
+  const criteriaGroups = [
+    { id: 'TC1', name: 'Ý thức tham gia học tập' },
+    { id: 'TC2', name: 'Ý thức chấp hành nội quy, quy chế' },
+    { id: 'TC3', name: 'Hoạt động chính trị - xã hội' },
+    { id: 'TC4', name: 'Ý thức công dân trong quan hệ cộng đồng' },
+    { id: 'TC5', name: 'Vai trò, trách nhiệm trong tập thể' },
+  ];
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto w-full space-y-6">

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Save, Calendar, Users } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import type { Class, Faculty, Major, Student, ProfileUser } from '../../types';
-import { API_Student } from '../../api/API_Student';
-import { CustomSelect } from '../../components/common/CustomSelect';
-import { useToast } from '../../components/common/ToastProvider';
-import { getUserFriendlyError } from '../../utils/errorHelper';
+import { useAuthStore } from '../../../store/authStore';
+import type { Class, Faculty, Major, Student, ProfileUser } from '../../../types';
+import { API_Student } from '../../../api/API_Student';
+import { CustomSelect } from '../../../components/common/CustomSelect';
+import { useToast } from '../../../components/common/ToastProvider';
+import { getUserFriendlyError } from '../../../utils/errorHelper';
 
 export const StudentProfile = () => {
   const user = useAuthStore((state) => state.user) as ProfileUser | null;
@@ -33,7 +33,7 @@ export const StudentProfile = () => {
     const year = currentYear - i;
     return `${year}-${year + 1}`;
   });
-  
+
   // Form state - Thông tin sinh viên
   const [admissionYear, setAdmissionYear] = useState('2021');
   const [facultyId, setFacultyId] = useState('');
@@ -56,19 +56,19 @@ export const StudentProfile = () => {
       if (userAdmissionYear) {
         setAdmissionYear(userAdmissionYear.toString());
       }
-      
+
       setStudentCode(user.studentCode || '');
       setFullName(user.fullName || '');
-      
+
       if (user.dateOfBirth) {
-        const dobStr = user.dateOfBirth.includes('T') 
-          ? user.dateOfBirth.split('T')[0] 
+        const dobStr = user.dateOfBirth.includes('T')
+          ? user.dateOfBirth.split('T')[0]
           : user.dateOfBirth;
         setDateOfBirth(dobStr);
       }
-      
+
       setPhoneNumber(user.phone || user.phoneNumber || '');
-      
+
       if (user.class?.id) {
         setClassId(user.class.id);
       }
@@ -80,7 +80,7 @@ export const StudentProfile = () => {
       }
     }
   }, [user]);
-  
+
   // Kỳ đánh giá
   const [semester, setSemester] = useState<'HK1' | 'HK2'>('HK1');
   const [academicYear, setAcademicYear] = useState(academicYears[0]);
@@ -201,17 +201,17 @@ export const StudentProfile = () => {
             {isStudent
               ? 'Cập nhật hồ sơ sinh viên và kiểm tra thông tin kỳ đánh giá hiện tại.'
               : isFaculty
-              ? 'Cập nhật hồ sơ cá nhân và xem khoa phụ trách.'
-              : 'Cập nhật hồ sơ cá nhân và xem thông tin lớp phụ trách.'}
+                ? 'Cập nhật hồ sơ cá nhân và xem khoa phụ trách.'
+                : 'Cập nhật hồ sơ cá nhân và xem thông tin lớp phụ trách.'}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-        
+
         {/* Left Side: Forms container (spans 2 cols) */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-          
+
           <div className="border-b border-gray-200 bg-gray-50/50 px-5 py-3">
             <h2 className="text-sm font-bold text-gray-900">
               {isStudent ? 'Thông tin sinh viên' : 'Thông tin cá nhân'}
@@ -219,159 +219,158 @@ export const StudentProfile = () => {
           </div>
 
           <div className="flex flex-col">
-              <div className="p-5 space-y-4 flex-1">
-                {isStudent && metadataLoading && (
-                  <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
-                    Đang tải danh mục...
-                  </div>
-                )}
-                {isStudent && metadataError && (
-                  <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
-                    {metadataError}
-                  </div>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
-                  
-                  {/* Field: Năm trúng tuyển */}
-                  {isStudent && (
-                    <CustomSelect
-                      value={admissionYear}
-	                      onChange={() => undefined}
-	                      options={admissionYears.map(year => ({ id: year, name: year }))}
-	                      label="Năm trúng tuyển"
-	                      disabled
-	                    />
-                  )}
-
-                  {/* Field: Khoa */}
-                  {isStudent && (
-                    <CustomSelect
-                      value={facultyId}
-	                      onChange={() => undefined}
-	                      options={facultiesList}
-	                      label="Khoa"
-	                      disabled
-	                    />
-                  )}
-
-                  {/* Field: Ngành */}
-                  {isStudent && (
-                    <CustomSelect
-                      value={majorId}
-	                      onChange={() => undefined}
-	                      options={majorsList}
-	                      label="Ngành/chuyên ngành"
-	                      disabled
-	                    />
-                  )}
-
-                  {/* Field: Lớp */}
-                  {isStudent && (
-                    <CustomSelect
-                      value={classId}
-	                      onChange={() => undefined}
-	                      options={classesList}
-	                      label="Lớp học"
-	                      disabled
-	                    />
-                  )}
-
-                  {/* Field: Mã sinh viên */}
-                  {isStudent && (
-                    <div>
-	                      <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-	                        Mã sinh viên
-	                      </label>
-                      <input
-                        type="text"
-                        value={studentCode}
-                        readOnly
-                        className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
-                        placeholder="Nhập mã sinh viên"
-                      />
-                    </div>
-                  )}
-
-                  {/* Field: Họ và tên */}
-                  <div>
-	                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-	                      Họ và tên
-	                    </label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      readOnly
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
-                      placeholder="Họ và tên"
-                    />
-                  </div>
-
-                  {/* Field: Ngày sinh */}
-                  <div>
-	                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-	                      Ngày sinh
-	                    </label>
-                    <input
-                      type="date"
-                      value={dateOfBirth}
-                      readOnly
-                      className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-
-                   {/* Field: Số điện thoại */}
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
-                      Số điện thoại
-                    </label>
-                    <input
-                      type="tel"
-                      value={phoneNumber}
-                      readOnly={isProfileReadOnly}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className={`w-full px-3 py-2 text-xs sm:text-sm border rounded-lg outline-none h-10 ${
-                        isProfileReadOnly
-                          ? 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed'
-                          : 'border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white'
-                      }`}
-                      placeholder="Số điện thoại"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Footer */}
-              {!isProfileReadOnly && (
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    {saved && (
-                      <p className="text-green-600 text-xs sm:text-sm font-semibold flex items-center gap-1.5 animate-fade-in">
-                        <span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-ping"></span>
-                        Lưu thông tin thành công!
-                      </p>
-                    )}
-                    {errorMsg && (
-                      <p className="text-red-600 text-xs sm:text-sm font-semibold flex items-center gap-1.5 animate-fade-in">
-                        {errorMsg}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleSave}
-                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer min-h-[40px] shadow-sm shrink-0"
-                  >
-                    <Save size={18} />
-                    Lưu thông tin
-                  </button>
+            <div className="p-5 space-y-4 flex-1">
+              {isStudent && metadataLoading && (
+                <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
+                  Đang tải danh mục...
                 </div>
               )}
+              {isStudent && metadataError && (
+                <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+                  {metadataError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
+
+                {/* Field: Năm trúng tuyển */}
+                {isStudent && (
+                  <CustomSelect
+                    value={admissionYear}
+                    onChange={() => undefined}
+                    options={admissionYears.map(year => ({ id: year, name: year }))}
+                    label="Năm trúng tuyển"
+                    disabled
+                  />
+                )}
+
+                {/* Field: Khoa */}
+                {isStudent && (
+                  <CustomSelect
+                    value={facultyId}
+                    onChange={() => undefined}
+                    options={facultiesList}
+                    label="Khoa"
+                    disabled
+                  />
+                )}
+
+                {/* Field: Ngành */}
+                {isStudent && (
+                  <CustomSelect
+                    value={majorId}
+                    onChange={() => undefined}
+                    options={majorsList}
+                    label="Ngành/chuyên ngành"
+                    disabled
+                  />
+                )}
+
+                {/* Field: Lớp */}
+                {isStudent && (
+                  <CustomSelect
+                    value={classId}
+                    onChange={() => undefined}
+                    options={classesList}
+                    label="Lớp học"
+                    disabled
+                  />
+                )}
+
+                {/* Field: Mã sinh viên */}
+                {isStudent && (
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+                      Mã sinh viên
+                    </label>
+                    <input
+                      type="text"
+                      value={studentCode}
+                      readOnly
+                      className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
+                      placeholder="Nhập mã sinh viên"
+                    />
+                  </div>
+                )}
+
+                {/* Field: Họ và tên */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+                    Họ và tên
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    readOnly
+                    className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
+                    placeholder="Họ và tên"
+                  />
+                </div>
+
+                {/* Field: Ngày sinh */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+                    Ngày sinh
+                  </label>
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    readOnly
+                    className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg outline-none h-10 bg-gray-100 text-gray-500 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Field: Số điện thoại */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+                    Số điện thoại
+                  </label>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    readOnly={isProfileReadOnly}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className={`w-full px-3 py-2 text-xs sm:text-sm border rounded-lg outline-none h-10 ${isProfileReadOnly
+                        ? 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        : 'border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white'
+                      }`}
+                    placeholder="Số điện thoại"
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* Action Footer */}
+            {!isProfileReadOnly && (
+              <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  {saved && (
+                    <p className="text-green-600 text-xs sm:text-sm font-semibold flex items-center gap-1.5 animate-fade-in">
+                      <span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-ping"></span>
+                      Lưu thông tin thành công!
+                    </p>
+                  )}
+                  {errorMsg && (
+                    <p className="text-red-600 text-xs sm:text-sm font-semibold flex items-center gap-1.5 animate-fade-in">
+                      {errorMsg}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleSave}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-xs sm:text-sm font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer min-h-[40px] shadow-sm shrink-0"
+                >
+                  <Save size={18} />
+                  Lưu thông tin
+                </button>
+              </div>
+            )}
+          </div>
 
         </div>
 
         {/* Right Side: Context card */}
         <div className="space-y-5">
-          
+
           {/* Card: Kỳ đánh giá */}
           {isStudent ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -381,7 +380,7 @@ export const StudentProfile = () => {
               </h2>
 
               <div className="space-y-4">
-                
+
                 {/* Field: Học kỳ */}
                 <CustomSelect
                   value={semester}

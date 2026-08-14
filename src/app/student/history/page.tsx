@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { StudentHistory } from '../../../views/Student/History';
+import { StudentHistory } from '../../../views/Faculty/Student/History';
 
 export const metadata: Metadata = {
   title: 'Lịch sử đánh giá',

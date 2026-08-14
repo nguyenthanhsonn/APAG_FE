@@ -6,17 +6,23 @@ import {
   Eye,
   Printer,
   RefreshCw,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { API_Shared } from '@/api/API_Shared';
 import { API_Admin } from '@/api/API_Admin';
+import { API_Faculty, type FacultyReportExportFormat } from '@/api/API_Faculty';
 import { getUserFriendlyError } from '@/utils/errorHelper';
 import {
   resolveFacultyId,
   toArray,
 } from '@/utils/facultyEvaluationData';
 import { BienBanHoiDongPreviewModal } from '@/components/faculty/BienBanHoiDongPreviewModal';
-import type { BienBanHoiDongFormData, BienBanHoiDongStudentRow } from '@/components/faculty/BienBanHoiDongPreviewModal';
+import {
+  type BienBanHoiDongFormData,
+  type BienBanHoiDongStudentRow,
+} from '@/utils/exportBienBan';
+import { useToast } from '@/components/common/ToastProvider';
 
 /* ─── helpers ─────────────────────────────────────────────── */
 function getBirthDate(raw: any): string {
@@ -30,6 +36,30 @@ function getBirthDate(raw: any): string {
   }
 }
 
+function getFileNameFromDisposition(disposition?: string, fallback = 'bien-ban-hop-khoa') {
+  const utf8FileName = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  if (utf8FileName) {
+    try {
+      return decodeURIComponent(utf8FileName);
+    } catch {
+      return utf8FileName;
+    }
+  }
+
+  return disposition?.match(/filename="?([^"]+)"?/i)?.[1] ?? fallback;
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
 export function calcXepLoai(score: number): string {
   if (score >= 90) return 'Xuất sắc';
   if (score >= 80) return 'Tốt';
@@ -40,6 +70,7 @@ export function calcXepLoai(score: number): string {
 
 export function BienBanHoiDongView() {
   const user = useAuthStore((state) => state.user);
+  const toast = useToast();
   const facultyId = resolveFacultyId(user);
 
   /* ─── Dropdown Classes State ─── */
@@ -79,6 +110,7 @@ export function BienBanHoiDongView() {
 
   const [showPreview, setShowPreview] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<FacultyReportExportFormat | null>(null);
 
   /* ─── Resolve Managed Faculty ─── */
   const managedFaculty =
@@ -128,20 +160,26 @@ export function BienBanHoiDongView() {
         items = classesByMajor.flatMap((result) => toArray<any>(result));
       }
 
-      const cleanClasses = items.map((c) => ({
-        id: c.id,
-        className: c.className || c.name || c.classCode || c.code || 'Lớp chưa xác định',
-      }));
+      const cleanClasses = items
+        .map((c) => ({
+          id: String(c.id || c.classId || c._id || c.code || ''),
+          className: c.className || c.name || c.classCode || c.code || 'Lớp chưa xác định',
+        }))
+        .filter((c) => Boolean(c.id));
+
       setClasses(cleanClasses);
-      if (cleanClasses.length > 0 && !selectedClassId) {
-        setSelectedClassId(cleanClasses[0].id);
+      if (cleanClasses.length > 0) {
+        setSelectedClassId((prev) => {
+          const exists = cleanClasses.some((c) => c.id === prev);
+          return exists ? prev : cleanClasses[0].id;
+        });
       }
     } catch (err: any) {
       setError(getUserFriendlyError(err, 'Không tải được danh sách lớp.'));
     } finally {
       setLoadingClasses(false);
     }
-  }, [facultyId, selectedClassId]);
+  }, [facultyId]);
 
   useEffect(() => {
     void loadClasses();
@@ -154,42 +192,136 @@ export function BienBanHoiDongView() {
     setError('');
     try {
       let items: any[] = [];
+      let detectedSemester = '';
+      let detectedAcademicYear = '';
+
+      // 1. Thử lấy từ endpoint Council Review
       try {
         const res = await API_Shared.getFacultyCouncilReview(facultyId, selectedClassId);
-        items = res?.items || [];
+        const resItems = toArray<any>(res);
+        if (resItems.length > 0) {
+          items = resItems;
+        }
       } catch (e) {
         console.warn('getFacultyCouncilReview failed, using fallback APIs:', e);
       }
 
+      // 2. Nếu chưa có items, lấy qua evaluations và danh sách lớp
       if (items.length === 0) {
-        const [studentsRes, evalsRes] = await Promise.all([
-          API_Shared.getClassStudents(selectedClassId).catch(() => []),
+        const [evalsRes, adminEvalsRes, studentsRes] = await Promise.all([
           API_Admin.getFacultyEvaluations(facultyId, { classId: selectedClassId, limit: 100 }).catch(() => []),
+          API_Admin.getAdminEvaluationList({ classId: selectedClassId, limit: 100 }).catch(() => []),
+          API_Shared.getClassStudents(selectedClassId).catch(() => []),
         ]);
-        const classStudentsList = toArray<any>(studentsRes);
-        const evalsList = toArray<any>(evalsRes);
-        const evalsByStudentId = new Map(evalsList.map((e: any) => [e.studentId || e.student?.id || e.id, e]));
 
-        items = classStudentsList.map((st: any, idx: number) => {
-          const stId = st.studentId || st.userId || st.id;
-          const ev = evalsByStudentId.get(stId);
-          return {
-            stt: idx + 1,
-            studentId: stId,
-            studentCode: st.studentCode || st.code || st.username || '—',
-            fullName: st.fullName || st.name || '—',
-            dateOfBirth: st.dateOfBirth || st.student?.dateOfBirth || '',
-            evaluationId: ev?.id || null,
-            status: ev?.status || 'draft',
-            classScore: ev?.classScore ?? ev?.finalScore ?? ev?.studentScore ?? 0,
-            facultyScore: ev?.finalScore ?? ev?.classScore ?? 0,
-            classification: ev?.classification || ev?.rank || '',
-            note: ev?.note || '',
-          };
+        const evalsList = toArray<any>(evalsRes);
+        const adminEvalsList = toArray<any>(adminEvalsRes);
+        const classStudentsList = toArray<any>(studentsRes);
+        const allEvals = evalsList.length > 0 ? evalsList : adminEvalsList;
+
+        if (allEvals.length > 0) {
+          const first = allEvals[0];
+          const sem = typeof first.semester === 'object'
+            ? first.semester?.semester || first.semester?.name || first.semester?.code
+            : first.semester;
+          if (sem) detectedSemester = String(sem);
+          if (first.academicYear) detectedAcademicYear = String(first.academicYear);
+        }
+
+        const evaluationsByKey = new Map<string, any>();
+        allEvals.forEach((evaluation: any) => {
+          const keys = [
+            evaluation.studentId,
+            evaluation.student?.id,
+            evaluation.student?.userId,
+            evaluation.userId,
+            evaluation.student?.email,
+            evaluation.email,
+            evaluation.studentCode,
+            evaluation.student?.studentCode,
+            evaluation.studentName,
+            evaluation.student?.fullName,
+            evaluation.id,
+          ]
+            .map((k) => String(k || '').trim().toLowerCase())
+            .filter(Boolean);
+
+          keys.forEach((k) => evaluationsByKey.set(k, evaluation));
         });
+
+        if (classStudentsList.length > 0) {
+          items = classStudentsList.map((st: any, idx: number) => {
+            const stKeys = [
+              st.studentId,
+              st.userId,
+              st.id,
+              st.email,
+              st.studentCode,
+              st.code,
+              st.fullName,
+              st.name,
+            ]
+              .map((k) => String(k || '').trim().toLowerCase())
+              .filter(Boolean);
+
+            const ev = stKeys.map((k) => evaluationsByKey.get(k)).find(Boolean);
+
+            const drlLop = Number(ev?.classScore ?? ev?.studentScore ?? 0);
+            const drlKhoa = Number(ev?.finalScore ?? ev?.classScore ?? drlLop);
+            const birthDateRaw = st.dateOfBirth || st.student?.dateOfBirth || ev?.dateOfBirth || ev?.student?.dateOfBirth || '';
+            const birthDate = birthDateRaw ? getBirthDate(birthDateRaw) : '';
+            const xepLoai = ev?.classification || ev?.rank || (drlKhoa > 0 ? calcXepLoai(drlKhoa) : '—');
+            const ghiChu = ev?.note || '';
+
+            return {
+              stt: idx + 1,
+              studentId: st.studentId || st.userId || st.id,
+              studentCode: st.studentCode || st.code || ev?.studentCode || ev?.student?.studentCode || '—',
+              fullName: st.fullName || st.name || ev?.studentName || ev?.student?.fullName || 'Sinh viên',
+              dateOfBirth: birthDate,
+              evaluationId: ev?.id || null,
+              status: ev?.status || 'draft',
+              classScore: drlLop,
+              facultyScore: drlKhoa,
+              classification: xepLoai,
+              note: ghiChu,
+            };
+          });
+        } else if (allEvals.length > 0) {
+          items = allEvals.map((ev: any, idx: number) => {
+            const drlLop = Number(ev.classScore ?? ev.studentScore ?? 0);
+            const drlKhoa = Number(ev.finalScore ?? ev.classScore ?? drlLop);
+            const birthDateRaw = ev.dateOfBirth || ev.student?.dateOfBirth || '';
+            const birthDate = birthDateRaw ? getBirthDate(birthDateRaw) : '';
+            const xepLoai = ev.classification || ev.rank || (drlKhoa > 0 ? calcXepLoai(drlKhoa) : '—');
+
+            return {
+              stt: idx + 1,
+              studentId: ev.studentId || ev.student?.id || ev.id,
+              studentCode: ev.studentCode || ev.student?.studentCode || ev.student?.code || '—',
+              fullName: ev.studentName || ev.student?.fullName || ev.student?.name || 'Sinh viên',
+              dateOfBirth: birthDate,
+              evaluationId: ev.id,
+              status: ev.status || 'draft',
+              classScore: drlLop,
+              facultyScore: drlKhoa,
+              classification: xepLoai,
+              note: ev.note || '',
+            };
+          });
+        }
       }
 
       setClassStudents(items);
+      setFormData((p) => ({
+        ...p,
+        hocKy: p.hocKy || detectedSemester || '1',
+        namHoc: p.namHoc || detectedAcademicYear || `${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
+        tongSoHoiDong: p.tongSoHoiDong || '5',
+        duHopHoiDong: p.duHopHoiDong || '5',
+        vangHoiDong: p.vangHoiDong || '0',
+        lyDoVangHoiDong: p.lyDoVangHoiDong || 'Không có',
+      }));
     } catch (err: any) {
       setError(getUserFriendlyError(err, 'Không tải được sinh viên lớp được chọn.'));
     } finally {
@@ -247,11 +379,71 @@ export function BienBanHoiDongView() {
     students: studentRows,
   }), [managedFacultyName, selectedClassName, formData, studentRows]);
 
+  const exportPayload = useMemo(() => ({
+    ...bienBanData,
+    facultyId,
+    classId: selectedClassId,
+    facultyName: managedFacultyName,
+    className: selectedClassName,
+    semester: formData.hocKy,
+    academicYear: formData.namHoc,
+    decisionNo: formData.qdSo,
+    decisionDay: formData.qdNgay,
+    decisionMonth: formData.qdThang,
+    decisionYear: formData.qdNam,
+    councilTotal: formData.tongSoHoiDong,
+    councilPresent: formData.duHopHoiDong,
+    councilAbsent: formData.vangHoiDong,
+    absentReason: formData.lyDoVangHoiDong,
+    invited: formData.moiDu,
+    chairperson: formData.chuToa,
+    secretary: formData.thuKy,
+    meetingDay: formData.ngayHop,
+    meetingMonth: formData.thangHop,
+    meetingYear: formData.namHop,
+    startTime: formData.gioBatDau,
+    location: formData.diaDiem,
+    dean: formData.truongKhoa,
+    councilChairman: formData.chuTichHoiDong,
+    signerSecretary: formData.tenThuKy,
+    students: studentRows.map((student) => ({
+      ...student,
+      studentCode: student.maSV,
+      fullName: student.hoTen,
+      dateOfBirth: student.ngaySinh,
+      classScore: student.drlLop,
+      facultyScore: student.drlKhoa,
+      classification: student.xepLoai,
+      note: student.ghiChu,
+    })),
+  }), [bienBanData, facultyId, formData, managedFacultyName, selectedClassId, selectedClassName, studentRows]);
+
   /* ─── Handlers ─── */
   const handleField = (key: string, val: string) => setFormData((p) => ({ ...p, [key]: val }));
   const handlePrint = () => {
     setAutoPrint(true);
     setShowPreview(true);
+  };
+
+  const handleExport = async (format: FacultyReportExportFormat) => {
+    if (!selectedClassId) return;
+
+    setExportingFormat(format);
+    setError('');
+    try {
+      const res = await API_Faculty.exportBienBanHopKhoa(format, exportPayload);
+      const ext = format === 'word' ? 'docx' : 'xlsx';
+      const fallback = `bien-ban-hop-khoa-${selectedClassName}.${ext}`;
+      const fileName = getFileNameFromDisposition(res.headers['content-disposition'], fallback);
+      downloadBlob(res.data, fileName);
+      toast.success(`Đã tải file ${format === 'word' ? 'Word' : 'Excel'} biên bản họp khoa.`);
+    } catch (err: any) {
+      const message = getUserFriendlyError(err, `Không thể xuất file ${format === 'word' ? 'Word' : 'Excel'}.`);
+      setError(message);
+      toast.error(message);
+    } finally {
+      setExportingFormat(null);
+    }
   };
 
   if (!facultyId) {
@@ -310,6 +502,24 @@ export function BienBanHoiDongView() {
           </button>
           <button
             type="button"
+            onClick={() => void handleExport('word')}
+            disabled={loadingStudents || exportingFormat !== null || !selectedClassId}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50"
+          >
+            <FileText size={15} />
+            {exportingFormat === 'word' ? 'Đang xuất...' : 'Xuất Word'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleExport('excel')}
+            disabled={loadingStudents || exportingFormat !== null || !selectedClassId}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:opacity-50"
+          >
+            <FileSpreadsheet size={15} />
+            {exportingFormat === 'excel' ? 'Đang xuất...' : 'Xuất Excel'}
+          </button>
+          <button
+            type="button"
             onClick={() => setShowPreview(true)}
             disabled={loadingStudents || !selectedClassId}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 transition disabled:opacity-50"
@@ -321,7 +531,7 @@ export function BienBanHoiDongView() {
             type="button"
             onClick={handlePrint}
             disabled={loadingStudents || !selectedClassId}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-700 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-600 transition disabled:opacity-50"
           >
             <Printer size={15} />
             In biên bản
@@ -336,28 +546,44 @@ export function BienBanHoiDongView() {
       {/* ── SECTION: Form input layout giống ClassLeader ── */}
       <div className="mx-auto w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-md sm:p-10 text-gray-800 font-sans leading-relaxed">
         {/* Tiêu đề & Quốc hiệu */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start text-xs sm:text-sm border-b border-gray-100 pb-6 mb-6">
-          <div className="space-y-0.5 text-center sm:text-left">
-            <p className="font-bold text-gray-900 leading-tight uppercase">
-              HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG
-            </p>
-            <p className="font-bold text-gray-900 leading-tight uppercase">
-              PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ ĐÀ NẴNG
-            </p>
-            <div className="flex items-center gap-1 mt-1">
+        <div className="border-b border-gray-100 pb-6 mb-6">
+          <div className="flex flex-col gap-8 sm:flex-row sm:justify-between sm:items-start">
+            <div className="flex max-w-[430px] flex-col items-center leading-tight text-center text-gray-900 sm:min-w-[320px]">
+              <p className="font-normal text-base uppercase text-gray-900 sm:text-lg">
+                HỌC VIỆN HÀNH CHÍNH
+              </p>
+              <p className="font-normal text-base uppercase text-gray-900 sm:text-lg">
+                VÀ QUẢN TRỊ CÔNG
+              </p>
+              <p className="mt-2 font-bold text-base uppercase text-gray-900 sm:text-lg">
+                PHÂN HIỆU HỌC VIỆN
+              </p>
+              <p className="font-bold text-base uppercase text-gray-900 sm:text-lg">
+                HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG
+              </p>
+              <p className="font-bold text-base uppercase text-gray-900 sm:text-lg">
+                TẠI THÀNH PHỐ ĐÀ NẴNG
+              </p>
+              <p className="mt-2 text-center text-lg font-bold text-gray-900">*</p>
+            </div>
+
+            <div className="flex flex-col items-end text-right sm:min-w-[300px]">
+              <p className="text-lg font-semibold italic text-gray-900">Phụ lục 01</p>
+              <div className="mt-3 inline-block border-b-2 border-gray-900 pb-0.5">
+                <p className="text-lg font-bold uppercase tracking-wide text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Dòng Khoa (trái) và Ngày tháng (phải) - NGANG HÀNG NHAU */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-2 mt-3 text-xs sm:text-sm">
+            <div className="flex items-center gap-1">
               <span className="font-semibold tracking-wide">KHOA:</span>
               <span className="font-bold text-gray-900">{managedFacultyName}</span>
             </div>
-            <p className="text-center font-bold text-gray-400 mt-1">*</p>
-          </div>
-          <div className="text-center space-y-1 sm:text-right flex flex-col items-center sm:items-end">
-            <p className="italic font-normal text-xs sm:text-sm text-gray-800 self-end">Phụ lục 01</p>
-            <div className="inline-block border-b-2 border-gray-900 pb-0.5">
-              <p className="font-bold uppercase tracking-wider text-gray-900">ĐẢNG CỘNG SẢN VIỆT NAM</p>
-            </div>
-            <p className="italic text-gray-500 mt-2">
+            <div className="italic text-gray-500 text-right">
               Đà Nẵng, ngày <input type="text" value={formData.ngayHop} onChange={(e) => handleField('ngayHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" /> tháng <input type="text" value={formData.thangHop} onChange={(e) => handleField('thangHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" /> năm 20<input type="text" value={formData.namHop} onChange={(e) => handleField('namHop', e.target.value)} className="w-8 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
-            </p>
+            </div>
           </div>
         </div>
 
@@ -562,6 +788,8 @@ export function BienBanHoiDongView() {
             setAutoPrint(false);
           }}
           onPrint={() => window.print()}
+          onExport={(format) => void handleExport(format)}
+          exportingFormat={exportingFormat}
           autoPrint={autoPrint}
         />
       )}

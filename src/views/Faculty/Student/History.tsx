@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Calendar, Eye, Loader2, AlertCircle } from 'lucide-react';
-import { API_Student } from '../../api/API_Student';
-import EvaluationStatusStepper from '../../components/common/EvaluationStatusStepper';
-import { getUserFriendlyError } from '../../utils/errorHelper';
+import { API_Student } from '../../../api/API_Student';
+import EvaluationStatusStepper from '../../../components/common/EvaluationStatusStepper';
+import { getUserFriendlyError } from '../../../utils/errorHelper';
 
 export const StudentHistory = () => {
   const router = useRouter();
@@ -248,7 +248,7 @@ export const StudentHistory = () => {
           <AlertCircle className="text-red-600" size={40} />
           <h3 className="text-lg font-bold text-red-800">Đã xảy ra lỗi</h3>
           <p className="text-sm text-red-600 max-w-md">{error}</p>
-          <button 
+          <button
             onClick={() => { setLoading(true); setError(''); window.location.reload(); }}
             className="mt-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition cursor-pointer"
           >
@@ -264,7 +264,7 @@ export const StudentHistory = () => {
       {/* Vùng trên: Header & Filter Controls Section */}
       <div className="pb-3 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b shrink-0 mb-3">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Lịch sử đánh giá</h1>
-        
+
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1.5">
@@ -314,25 +314,25 @@ export const StudentHistory = () => {
           </div>
         ) : (
           <div className="space-y-2.5">
-	            {paginatedHistory.map((item) => {
-	              const statusBadge = getStatusBadge(item.status);
-	              const academicYear = getAcademicYear(item);
-	              const semesterLabel = getSemesterLabel(item);
+            {paginatedHistory.map((item) => {
+              const statusBadge = getStatusBadge(item.status);
+              const academicYear = getAcademicYear(item);
+              const semesterLabel = getSemesterLabel(item);
               const totalScore = getEvaluationScore(item);
 
               return (
                 <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3.5 transition hover:shadow-md">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5">
-	                    <div className="flex items-center gap-3">
-	                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
-	                        <Calendar className="text-blue-600" size={18} />
-	                      </div>
-	                      <div>
-	                        <h3 className="text-sm font-bold text-gray-900 leading-tight">
-	                          {semesterLabel} — Năm học {academicYear}
-	                        </h3>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
+                        <Calendar className="text-blue-600" size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900 leading-tight">
+                          {semesterLabel} — Năm học {academicYear}
+                        </h3>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {item.submittedAt 
+                          {item.submittedAt
                             ? `Ngày nộp: ${new Date(item.submittedAt).toLocaleDateString('vi-VN')}`
                             : 'Trạng thái: Chưa nộp'}
                         </p>
@@ -343,36 +343,36 @@ export const StudentHistory = () => {
                     </span>
                   </div>
 
-	                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2.5 border-t border-gray-100 items-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2.5 border-t border-gray-100 items-center">
                     <div>
                       <p className="text-[10px] text-gray-500 uppercase tracking-wide">Tổng điểm</p>
                       <p className="text-base font-bold text-gray-900 mt-0.5">{totalScore}đ</p>
                     </div>
                     <div>
-	                      <p className="text-[10px] text-gray-500 uppercase tracking-wide">Xếp loại</p>
-	                      <p className={`text-xs font-bold mt-0.5 ${getRatingColor(getEvaluationRank(item))}`}>
-	                        {getRankText(getEvaluationRank(item))}
-	                      </p>
-	                    </div>
-		                    <div className="flex items-center justify-end col-span-2 sm:col-span-1">
-	                      <button
-	                        type="button"
-	                        onClick={() => router.push(`/student/evaluation?id=${item.id}`)}
-	                        className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50/50 hover:border-blue-300 transition cursor-pointer"
-	                      >
-	                        <Eye size={12} />
-	                        Xem chi tiết
-	                      </button>
-		                    </div>
-	                  </div>
-	                  <EvaluationStatusStepper
-	                    status={item.status}
-	                    statusLabel={item.statusLabel}
-	                    steps={item.review?.steps}
-	                    compact
-	                    className="mt-3 border-t border-gray-100 pt-3"
-	                  />
-	                </div>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wide">Xếp loại</p>
+                      <p className={`text-xs font-bold mt-0.5 ${getRatingColor(getEvaluationRank(item))}`}>
+                        {getRankText(getEvaluationRank(item))}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-end col-span-2 sm:col-span-1">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/student/evaluation?id=${item.id}`)}
+                        className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50/50 hover:border-blue-300 transition cursor-pointer"
+                      >
+                        <Eye size={12} />
+                        Xem chi tiết
+                      </button>
+                    </div>
+                  </div>
+                  <EvaluationStatusStepper
+                    status={item.status}
+                    statusLabel={item.statusLabel}
+                    steps={item.review?.steps}
+                    compact
+                    className="mt-3 border-t border-gray-100 pt-3"
+                  />
+                </div>
               );
             })}
           </div>
@@ -431,7 +431,7 @@ export const StudentHistory = () => {
                   >
                     <span className="text-xs font-bold px-1 text-gray-700">Trước</span>
                   </button>
-                  
+
                   {Array.from({ length: totalPages }).map((_, idx) => {
                     const pNum = idx + 1;
                     return (
@@ -440,11 +440,10 @@ export const StudentHistory = () => {
                         onClick={() => {
                           setCurrentPage(pNum);
                         }}
-                        className={`relative inline-flex items-center px-3.5 py-2 text-xs font-bold cursor-pointer ring-1 ring-inset ring-gray-300 ${
-                          activePage === pNum
+                        className={`relative inline-flex items-center px-3.5 py-2 text-xs font-bold cursor-pointer ring-1 ring-inset ring-gray-300 ${activePage === pNum
                             ? 'z-10 bg-blue-600 text-white ring-blue-600'
                             : 'text-gray-900 bg-white hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {pNum}
                       </button>
