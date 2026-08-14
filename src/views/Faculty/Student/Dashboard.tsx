@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FileText, Clock, CheckCircle, Award, ArrowRight as ArrowRightIcon } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import type { Student } from '../../types/student';
-import { API_Student } from '../../api/API_Student';
-import { WelcomeBanner } from '../../components/student/WelcomeBanner';
-import { StatsGrid } from '../../components/student/StatsGrid';
-import EvaluationStatusStepper from '../../components/common/EvaluationStatusStepper';
+import { useAuthStore } from '../../../store/authStore';
+import type { Student } from '../../../types/student';
+import { API_Student } from '../../../api/API_Student';
+import { WelcomeBanner } from '../../../components/student/WelcomeBanner';
+import { StatsGrid } from '../../../components/student/StatsGrid';
+import EvaluationStatusStepper from '../../../components/common/EvaluationStatusStepper';
 
 export const StudentDashboard = () => {
   const user = useAuthStore((state) => state.user) as Student;
@@ -38,9 +38,9 @@ export const StudentDashboard = () => {
   const draftCount = history.filter((item) => !item.status || normalizeStatus(item.status) === 'draft').length;
   const averageScore = history.length
     ? Math.round(
-        history.reduce((total, item) => total + getEvaluationScore(item), 0) /
-          history.length
-      )
+      history.reduce((total, item) => total + getEvaluationScore(item), 0) /
+      history.length
+    )
     : 0;
 
   const stats = [
@@ -189,87 +189,87 @@ export const StudentDashboard = () => {
 
       {/* History */}
       <section className="ui-card p-5 flex flex-col">
-          <div className="mb-3 flex items-center justify-between shrink-0 flex-wrap gap-2">
-            <h2 className="text-sm sm:text-base font-bold text-[#1A1B1E] shrink-0">Lịch sử gần đây</h2>
-            
-            {/* Inline Header Filters */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <select
-                value={semesterFilter}
-                onChange={(e) => setSemesterFilter(e.target.value)}
-                className="h-7 cursor-pointer rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary sm:text-xs"
-              >
-                <option value="all">Tất cả kỳ</option>
-                <option value="HK1">Học kỳ I</option>
-                <option value="HK2">Học kỳ II</option>
-              </select>
+        <div className="mb-3 flex items-center justify-between shrink-0 flex-wrap gap-2">
+          <h2 className="text-sm sm:text-base font-bold text-[#1A1B1E] shrink-0">Lịch sử gần đây</h2>
 
-              <select
-                value={yearFilter}
-                onChange={(e) => setYearFilter(e.target.value)}
-                className="h-7 cursor-pointer rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary sm:text-xs"
-              >
-                <option value="all">Tất cả năm</option>
-                {uniqueYears.map(yr => (
-                  <option key={yr} value={yr}>{yr}</option>
-                ))}
-              </select>
+          {/* Inline Header Filters */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <select
+              value={semesterFilter}
+              onChange={(e) => setSemesterFilter(e.target.value)}
+              className="h-7 cursor-pointer rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary sm:text-xs"
+            >
+              <option value="all">Tất cả kỳ</option>
+              <option value="HK1">Học kỳ I</option>
+              <option value="HK2">Học kỳ II</option>
+            </select>
 
-              <Link
-                href="/student/history"
-                className="ml-1 flex items-center gap-0.5 whitespace-nowrap text-xs font-bold text-brand-secondary transition-colors hover:text-brand-primary"
-              >
-                Xem tất cả <ArrowRightIcon size={12} />
-              </Link>
+            <select
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              className="h-7 cursor-pointer rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary sm:text-xs"
+            >
+              <option value="all">Tất cả năm</option>
+              {uniqueYears.map(yr => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </select>
+
+            <Link
+              href="/student/history"
+              className="ml-1 flex items-center gap-0.5 whitespace-nowrap text-xs font-bold text-brand-secondary transition-colors hover:text-brand-primary"
+            >
+              Xem tất cả <ArrowRightIcon size={12} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Scrollable list with empty state */}
+        <div className="divide-y divide-gray-100 overflow-y-auto pr-1 flex-1 max-h-[300px] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+          {filteredHistory.length === 0 ? (
+            <div className="py-12 text-center text-xs text-gray-400 italic">
+              Không có dữ liệu phù hợp
             </div>
-          </div>
+          ) : (
+            filteredHistory.map((item, index) => {
+              const semLabel = item.semester && typeof item.semester === 'object'
+                ? `${item.semester.semester === 'SEMESTER_1' ? 'HK1' : 'HK2'} ${item.semester.year}`
+                : `${item.semester}`;
+              const score = getEvaluationScore(item);
+              const rank = getEvaluationRank(item);
+              const badgeColors = getBadgeColors(item.status);
+              const rankColors = getRankBadgeColors(rank);
+              const rankText = getRankText(rank);
+              const statusText = getStatusText(item.status);
 
-          {/* Scrollable list with empty state */}
-          <div className="divide-y divide-gray-100 overflow-y-auto pr-1 flex-1 max-h-[300px] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {filteredHistory.length === 0 ? (
-              <div className="py-12 text-center text-xs text-gray-400 italic">
-                Không có dữ liệu phù hợp
-              </div>
-            ) : (
-              filteredHistory.map((item, index) => {
-                const semLabel = item.semester && typeof item.semester === 'object'
-                  ? `${item.semester.semester === 'SEMESTER_1' ? 'HK1' : 'HK2'} ${item.semester.year}`
-                  : `${item.semester}`;
-                const score = getEvaluationScore(item);
-                const rank = getEvaluationRank(item);
-                const badgeColors = getBadgeColors(item.status);
-                const rankColors = getRankBadgeColors(rank);
-                const rankText = getRankText(rank);
-                const statusText = getStatusText(item.status);
-
-                return (
-                  <div
-                    key={item.id || index}
-                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 animate-fade-in"
-                  >
-	                    <div className="min-w-0">
-	                      <p className="truncate text-xs font-bold text-[#1A1B1E]">{semLabel}</p>
-	                      <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${badgeColors.bg} ${badgeColors.text}`}>
-	                        {statusText}
-	                      </span>
-	                      <EvaluationStatusStepper
-	                        status={item.status}
-	                        statusLabel={item.statusLabel}
-	                        steps={item.review?.steps}
-	                        compact
-	                        className="mt-2"
-	                      />
-	                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-2xl font-semibold text-[#1A1B1E]">{score}</p>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold mt-1 ${rankColors.bg} ${rankColors.text}`}>{rankText}</span>
-                    </div>
+              return (
+                <div
+                  key={item.id || index}
+                  className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 animate-fade-in"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-[#1A1B1E]">{semLabel}</p>
+                    <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${badgeColors.bg} ${badgeColors.text}`}>
+                      {statusText}
+                    </span>
+                    <EvaluationStatusStepper
+                      status={item.status}
+                      statusLabel={item.statusLabel}
+                      steps={item.review?.steps}
+                      compact
+                      className="mt-2"
+                    />
                   </div>
-                );
-              })
-            )}
-          </div>
-        </section>
+                  <div className="shrink-0 text-right">
+                    <p className="text-2xl font-semibold text-[#1A1B1E]">{score}</p>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold mt-1 ${rankColors.bg} ${rankColors.text}`}>{rankText}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
     </div>
   );
 };

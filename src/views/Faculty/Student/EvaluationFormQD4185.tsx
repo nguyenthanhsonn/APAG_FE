@@ -1,32 +1,33 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { 
-  Send, 
-  CheckCircle, 
-  AlertTriangle, 
+import {
+  Send,
+  CheckCircle,
+  AlertTriangle,
   Calendar,
   Info,
-  Loader2
+  Loader2,
 } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { API_Student } from '../../api/API_Student';
-import { API_URL } from '../../api/api';
+import { useAuthStore } from '../../../store/authStore';
+import { API_Student } from '../../../api/API_Student';
+import { API_URL } from '../../../api/api';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { uploadEvidenceFile } from '../../services/cloudinaryUpload';
-import { useToast } from '../../components/common/ToastProvider';
-import { getUserFriendlyError } from '../../utils/errorHelper';
-import { CRITERIA_CODES } from '../../constants/evaluationEnums';
+import { uploadEvidenceFile } from '../../../services/cloudinaryUpload';
+import { useToast } from '../../../components/common/ToastProvider';
+import { getUserFriendlyError } from '../../../utils/errorHelper';
+import { CRITERIA_CODES } from '../../../constants/evaluationEnums';
 
 // Sub-components
-import { EvaluationTableGrid } from '../../components/student/EvaluationTableGrid';
+import { EvaluationTableGrid } from '../../../components/student/EvaluationTableGrid';
 import type { UploadedEvidenceFile } from '@/types/student';
 import {
   createEvaluationFormStore,
   EVAL_DEDUCTION_WEIGHTS,
   EvaluationFormStoreContext,
-} from '../../store/evaluationFormStore';
-import type { EvaluationFormStore } from '../../store/evaluationFormStore';
+} from '../../../store/evaluationFormStore';
+import type { EvaluationFormStore } from '../../../store/evaluationFormStore';
+
 
 const EDITABLE_EVALUATION_STATUSES = ['draft', 'rejected'];
 const DISCIPLINE_VIOLATION_CODES = [
@@ -56,8 +57,8 @@ export const EvaluationFormQD4185 = () => {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [isReadOnly, setIsReadOnly] = useState(false);
-	  const [isLocked, setIsLocked] = useState(false);
-	  const [alreadyEvaluated, setAlreadyEvaluated] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [alreadyEvaluated, setAlreadyEvaluated] = useState(false);
   const [evaluationId, setEvaluationId] = useState<string | null>(null);
   const [, setEvaluationWorkflow] = useState<any>(null);
   const [note, setNote] = useState<string>('');
@@ -91,10 +92,10 @@ export const EvaluationFormQD4185 = () => {
   const facultyDisplayName = getDisplayName(userProfile?.faculty) || userProfile?.facultyName || 'Chưa cập nhật';
 
   // File Upload State
-	  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedEvidenceFile[]>>({});
-	  const [uploadingEvidence, setUploadingEvidence] = useState<string | null>(null);
-	  // fileProgress: { [criteriaKey]: { [fileName]: percent 0-100 | 'done' | 'error' } }
-	  const [fileProgress, setFileProgress] = useState<Record<string, Record<string, number | 'done' | 'error'>>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedEvidenceFile[]>>({});
+  const [uploadingEvidence, setUploadingEvidence] = useState<string | null>(null);
+  // fileProgress: { [criteriaKey]: { [fileName]: percent 0-100 | 'done' | 'error' } }
+  const [fileProgress, setFileProgress] = useState<Record<string, Record<string, number | 'done' | 'error'>>>({});
 
   // ── Sync UI meta into store whenever they change ──────────────────────────
   useEffect(() => {
@@ -220,22 +221,22 @@ export const EvaluationFormQD4185 = () => {
     .flat()
     .filter((file, index, arr) => arr.findIndex((item) => item.url === file.url || item.name === file.name) === index);
 
-	  const normalizeEvaluationStatus = (status?: string) => String(status || '').trim().toLowerCase();
+  const normalizeEvaluationStatus = (status?: string) => String(status || '').trim().toLowerCase();
 
-	  const canEditEvaluation = (form: any) => {
-	    const status = normalizeEvaluationStatus(form?.status);
-	    return form?.semesterIsActive === true && form?.isLocked === false && EDITABLE_EVALUATION_STATUSES.includes(status);
-	  };
+  const canEditEvaluation = (form: any) => {
+    const status = normalizeEvaluationStatus(form?.status);
+    return form?.semesterIsActive === true && form?.isLocked === false && EDITABLE_EVALUATION_STATUSES.includes(status);
+  };
 
-	  const applyEvaluationLockState = (form: any) => {
-	    const editable = canEditEvaluation(form);
-	    setIsLocked(Boolean(form?.isLocked));
-	    setAlreadyEvaluated(!editable);
-	    setIsReadOnly(!editable);
-	    return editable;
-	  };
+  const applyEvaluationLockState = (form: any) => {
+    const editable = canEditEvaluation(form);
+    setIsLocked(Boolean(form?.isLocked));
+    setAlreadyEvaluated(!editable);
+    setIsReadOnly(!editable);
+    return editable;
+  };
 
-		  const handleFileUpload = async (criteriaKey: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (criteriaKey: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
@@ -265,89 +266,89 @@ export const EvaluationFormQD4185 = () => {
       return;
     }
 
-	    try {
-	      setUploadingEvidence(criteriaKey);
-	      setValidationError(null);
-        await ensureEvaluationDraftForEvidence();
+    try {
+      setUploadingEvidence(criteriaKey);
+      setValidationError(null);
+      await ensureEvaluationDraftForEvidence();
 
-	      // Khởi tạo progress 0 cho tất cả file cùng lúc
-	      setFileProgress(prev => ({
-	        ...prev,
-	        [criteriaKey]: Object.fromEntries(fileList.map(f => [f.name, 0])),
-	      }));
+      // Khởi tạo progress 0 cho tất cả file cùng lúc
+      setFileProgress(prev => ({
+        ...prev,
+        [criteriaKey]: Object.fromEntries(fileList.map(f => [f.name, 0])),
+      }));
 
-	      // Upload song song toàn bộ file — Promise.allSettled không bị chặn khi 1 file lỗi
-	      const results = await Promise.allSettled(
-	        fileList.map(async (file) => {
-	          const { secureUrl, publicId } = await uploadEvidenceFile(file, {
-	            onProgress: (percent) => {
-	              setFileProgress(prev => ({
-	                ...prev,
-	                [criteriaKey]: { ...(prev[criteriaKey] || {}), [file.name]: percent },
-	              }));
-	            },
-	          });
+      // Upload song song toàn bộ file — Promise.allSettled không bị chặn khi 1 file lỗi
+      const results = await Promise.allSettled(
+        fileList.map(async (file) => {
+          const { secureUrl, publicId } = await uploadEvidenceFile(file, {
+            onProgress: (percent) => {
+              setFileProgress(prev => ({
+                ...prev,
+                [criteriaKey]: { ...(prev[criteriaKey] || {}), [file.name]: percent },
+              }));
+            },
+          });
 
-            const evidenceCriteriaCode = mapEvidenceCriteriaCode(criteriaKey);
-            try {
-              await API_Student.linkEvidenceUrl({
-                criteriaCode: evidenceCriteriaCode,
-                imageUrl: secureUrl,
-                publicId,
-              });
-            } catch (linkErr) {
-              console.warn('Backend linkEvidenceUrl failed, fallback to local draft state:', linkErr);
-            }
+          const evidenceCriteriaCode = mapEvidenceCriteriaCode(criteriaKey);
+          try {
+            await API_Student.linkEvidenceUrl({
+              criteriaCode: evidenceCriteriaCode,
+              imageUrl: secureUrl,
+              publicId,
+            });
+          } catch (linkErr) {
+            console.warn('Backend linkEvidenceUrl failed, fallback to local draft state:', linkErr);
+          }
 
-	          // Đánh dấu file này đã xong
-	          setFileProgress(prev => ({
-	            ...prev,
-	            [criteriaKey]: { ...(prev[criteriaKey] || {}), [file.name]: 'done' },
-	          }));
+          // Đánh dấu file này đã xong
+          setFileProgress(prev => ({
+            ...prev,
+            [criteriaKey]: { ...(prev[criteriaKey] || {}), [file.name]: 'done' },
+          }));
 
-	          return { name: file.name, url: secureUrl, type: file.type } as UploadedEvidenceFile;
-	        })
-	      );
+          return { name: file.name, url: secureUrl, type: file.type } as UploadedEvidenceFile;
+        })
+      );
 
-	      // Cập nhật state chỉ với các file upload thành công
-	      const successItems: UploadedEvidenceFile[] = [];
-	      const failedNames: string[] = [];
+      // Cập nhật state chỉ với các file upload thành công
+      const successItems: UploadedEvidenceFile[] = [];
+      const failedNames: string[] = [];
 
-	      results.forEach((result, idx) => {
-	        if (result.status === 'fulfilled') {
-	          successItems.push(result.value);
-	        } else {
-	          failedNames.push(fileList[idx].name);
-	          setFileProgress(prev => ({
-	            ...prev,
-	            [criteriaKey]: { ...(prev[criteriaKey] || {}), [fileList[idx].name]: 'error' },
-	          }));
-	        }
-	      });
+      results.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          successItems.push(result.value);
+        } else {
+          failedNames.push(fileList[idx].name);
+          setFileProgress(prev => ({
+            ...prev,
+            [criteriaKey]: { ...(prev[criteriaKey] || {}), [fileList[idx].name]: 'error' },
+          }));
+        }
+      });
 
-	      if (successItems.length > 0) {
-	        setUploadedFiles(prev => ({
-	          ...prev,
-	          [criteriaKey]: [...(prev[criteriaKey] || []), ...successItems],
-	        }));
-	      }
+      if (successItems.length > 0) {
+        setUploadedFiles(prev => ({
+          ...prev,
+          [criteriaKey]: [...(prev[criteriaKey] || []), ...successItems],
+        }));
+      }
 
-	      if (failedNames.length > 0) {
-	        const msg = `Không thể tải lên: ${failedNames.join(', ')}. Vui lòng thử lại các file này.`;
-	        setValidationError(msg);
-	        window.scrollTo({ top: 0, behavior: 'smooth' });
-	      }
-	    } catch (err: any) {
-	      const message = getUserFriendlyError(err, 'Không thể tải minh chứng. Vui lòng thử lại.');
-	      if (err.statusCode === 409 || message.includes('khóa') || message.includes('locked')) {
-	        setIsLocked(true);
-	        setIsReadOnly(true);
-	        setAlreadyEvaluated(true);
-	        toast.error(message);
-	      }
-	      setValidationError(message);
-	      window.scrollTo({ top: 0, behavior: 'smooth' });
-	    } finally {
+      if (failedNames.length > 0) {
+        const msg = `Không thể tải lên: ${failedNames.join(', ')}. Vui lòng thử lại các file này.`;
+        setValidationError(msg);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (err: any) {
+      const message = getUserFriendlyError(err, 'Không thể tải minh chứng. Vui lòng thử lại.');
+      if (err.statusCode === 409 || message.includes('khóa') || message.includes('locked')) {
+        setIsLocked(true);
+        setIsReadOnly(true);
+        setAlreadyEvaluated(true);
+        toast.error(message);
+      }
+      setValidationError(message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
       setUploadingEvidence(null);
       e.target.value = '';
     }
@@ -835,8 +836,8 @@ export const EvaluationFormQD4185 = () => {
       isClassViolationSec5: false,
     });
 
-	    setNote('');
-	    setEvaluationWorkflow(null);
+    setNote('');
+    setEvaluationWorkflow(null);
     setIsSvViolationSec1(false);
     setIsSvViolationSec2(false);
     setIsSvViolationSec3(false);
@@ -856,17 +857,17 @@ export const EvaluationFormQD4185 = () => {
       const detail = (detailRes.data || detailRes) as any;
       if (detail.phone) setPhoneNumber(detail.phone);
       if (detail.note) setNote(detail.note);
-	      const detailSemester = typeof detail.semester === 'object' ? detail.semester.semester : detail.semester;
-	      if (detailSemester) setSemester(normalizeSemesterCode(detailSemester));
+      const detailSemester = typeof detail.semester === 'object' ? detail.semester.semester : detail.semester;
+      if (detailSemester) setSemester(normalizeSemesterCode(detailSemester));
       const detailAcademicYear = typeof detail.semester === 'object' ? detail.semester.academicYear || `${detail.semester.year}-${detail.semester.year + 1}` : detail.academicYear;
       if (detailAcademicYear) setAcademicYear(detailAcademicYear);
-	      if (detail.semesterId || detail.semester?.id) setSelectedSemesterId(detail.semesterId || detail.semester.id);
-	      setEvaluationWorkflow({
-	        status: detail.status,
-	        statusLabel: detail.statusLabel,
-	        steps: detail.review?.steps,
-	      });
-	      applyEvaluationLockState(detail);
+      if (detail.semesterId || detail.semester?.id) setSelectedSemesterId(detail.semesterId || detail.semester.id);
+      setEvaluationWorkflow({
+        status: detail.status,
+        statusLabel: detail.statusLabel,
+        steps: detail.review?.steps,
+      });
+      applyEvaluationLockState(detail);
       let mappedFiles = mapEvaluationEvidenceFiles(detail);
       if (!hasMappedEvidenceFiles(mappedFiles)) {
         try {
@@ -966,12 +967,12 @@ export const EvaluationFormQD4185 = () => {
   };
 
   // Sync helper methods for URL parameters
-	  const setEvaluationUrlParam = (id?: string | null) => {
-	    if (!id) return;
-	    const params = new URLSearchParams();
-	    params.set('id', id);
-	    router.replace(`${pathname}?${params.toString()}`);
-	  };
+  const setEvaluationUrlParam = (id?: string | null) => {
+    if (!id) return;
+    const params = new URLSearchParams();
+    params.set('id', id);
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   const clearUrlParams = () => {
     router.replace(pathname);
@@ -981,15 +982,15 @@ export const EvaluationFormQD4185 = () => {
   const [evaluationsList, setEvaluationsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-	useEffect(() => {
-	  const loadAvailableSemesters = async () => {
-	    try {
-	      const data = await API_Student.getSemesters();
-	      const items = Array.isArray(data) ? data : [];
-	      setAvailableSemesters(items);
-	    } catch (err) {
-	      console.error('Failed to load available semesters:', err);
-	      toast.error(getUserFriendlyError(err, 'Không thể tải danh sách học kỳ. Vui lòng thử lại sau.'));
+  useEffect(() => {
+    const loadAvailableSemesters = async () => {
+      try {
+        const data = await API_Student.getSemesters();
+        const items = Array.isArray(data) ? data : [];
+        setAvailableSemesters(items);
+      } catch (err) {
+        console.error('Failed to load available semesters:', err);
+        toast.error(getUserFriendlyError(err, 'Không thể tải danh sách học kỳ. Vui lòng thử lại sau.'));
       }
     };
 
@@ -1013,25 +1014,25 @@ export const EvaluationFormQD4185 = () => {
     loadMyEvals();
   }, []);
 
-	  const academicYearOptions = useMemo(() => {
-	    const map = new Map<string, string>();
-	    availableSemesters.forEach((item: any) => {
-	      const year = getAcademicYearValue(item);
-	      if (year) map.set(year, year);
-	    });
-	    return Array.from(map.values()).sort((a, b) => b.localeCompare(a));
-	  }, [availableSemesters]);
+  const academicYearOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    availableSemesters.forEach((item: any) => {
+      const year = getAcademicYearValue(item);
+      if (year) map.set(year, year);
+    });
+    return Array.from(map.values()).sort((a, b) => b.localeCompare(a));
+  }, [availableSemesters]);
 
-	  const normalizeSemesterCode = (value?: string) => {
-	    if (value === 'SEMESTER_1') return 'HK1';
-	    if (value === 'SEMESTER_2') return 'HK2';
-	    if (value === 'HKHE' || value === 'SEMESTER_SUMMER') return 'SUMMER';
-	    return value || '';
-	  };
+  const normalizeSemesterCode = (value?: string) => {
+    if (value === 'SEMESTER_1') return 'HK1';
+    if (value === 'SEMESTER_2') return 'HK2';
+    if (value === 'HKHE' || value === 'SEMESTER_SUMMER') return 'SUMMER';
+    return value || '';
+  };
 
-	  function getAcademicYearValue(item: any) {
-	    return item?.academicYear || (typeof item?.year === 'number' ? `${item.year}-${item.year + 1}` : '');
-	  }
+  function getAcademicYearValue(item: any) {
+    return item?.academicYear || (typeof item?.year === 'number' ? `${item.year}-${item.year + 1}` : '');
+  }
 
   const semesterOptions = useMemo(() => {
     const options = [
@@ -1040,12 +1041,12 @@ export const EvaluationFormQD4185 = () => {
       { code: 'SUMMER', label: 'Học kỳ hè' },
     ];
 
-	    return options.map((option) => {
-	      const matched = availableSemesters.find((item: any) => {
-	        const year = getAcademicYearValue(item);
-	        const code = normalizeSemesterCode(item.semester || item.code);
-	        return year === academicYear && code === option.code;
-	      });
+    return options.map((option) => {
+      const matched = availableSemesters.find((item: any) => {
+        const year = getAcademicYearValue(item);
+        const code = normalizeSemesterCode(item.semester || item.code);
+        return year === academicYear && code === option.code;
+      });
 
       return {
         ...matched,
@@ -1059,34 +1060,34 @@ export const EvaluationFormQD4185 = () => {
 
   const getSemesterOptionLabel = (item: any) => item.label || item.semesterName || item.name || item.semester || item.code || 'Học kỳ';
 
-	  const findSemesterConfig = (targetSem: string, targetYear: string, targetSemesterId?: string) => {
-	    return availableSemesters.find((item: any) => {
-	      const itemYear = getAcademicYearValue(item);
-	      const itemCode = normalizeSemesterCode(item.semester || item.code);
+  const findSemesterConfig = (targetSem: string, targetYear: string, targetSemesterId?: string) => {
+    return availableSemesters.find((item: any) => {
+      const itemYear = getAcademicYearValue(item);
+      const itemCode = normalizeSemesterCode(item.semester || item.code);
 
-	      if (targetSemesterId && item.id === targetSemesterId) return true;
-	      return itemYear === targetYear && itemCode === targetSem;
+      if (targetSemesterId && item.id === targetSemesterId) return true;
+      return itemYear === targetYear && itemCode === targetSem;
     });
   };
 
   const findEvaluationForPeriod = (list: any[], targetSem: string, targetYear: string, targetSemesterId?: string) => {
-	    return list.find((ev) => {
-	      const evSem = ev.semester && typeof ev.semester === 'object' ? ev.semester.semester : ev.semester;
-	      const evYear = ev.semester && typeof ev.semester === 'object'
-	        ? getAcademicYearValue(ev.semester)
-	        : ev.academicYear;
-	      const evSemesterId = ev.semesterId || ev.semester?.id;
-	      return evSemesterId === targetSemesterId || (normalizeSemesterCode(evSem) === targetSem && evYear === targetYear);
-	    });
-	  };
+    return list.find((ev) => {
+      const evSem = ev.semester && typeof ev.semester === 'object' ? ev.semester.semester : ev.semester;
+      const evYear = ev.semester && typeof ev.semester === 'object'
+        ? getAcademicYearValue(ev.semester)
+        : ev.academicYear;
+      const evSemesterId = ev.semesterId || ev.semester?.id;
+      return evSemesterId === targetSemesterId || (normalizeSemesterCode(evSem) === targetSem && evYear === targetYear);
+    });
+  };
 
-		  const openExistingEvaluation = async (match: any) => {
-	    setEvaluationWorkflow({
-	      status: match.status,
-	      statusLabel: match.statusLabel,
-	      steps: match.review?.steps,
-	    });
-	    applyEvaluationLockState(match);
+  const openExistingEvaluation = async (match: any) => {
+    setEvaluationWorkflow({
+      status: match.status,
+      statusLabel: match.statusLabel,
+      steps: match.review?.steps,
+    });
+    applyEvaluationLockState(match);
 
     setLoading(true);
     try {
@@ -1097,27 +1098,27 @@ export const EvaluationFormQD4185 = () => {
       setLoading(false);
     }
 
-	    setEvaluationId(match.id);
-	    setStep(2);
-	    setEvaluationUrlParam(match.id);
+    setEvaluationId(match.id);
+    setStep(2);
+    setEvaluationUrlParam(match.id);
   };
 
   const changeSemester = (semesterCode: string) => {
-	    const selected = availableSemesters.find((item: any) => {
-	      const year = getAcademicYearValue(item);
-	      const code = normalizeSemesterCode(item.semester || item.code);
-	      return year === academicYear && code === semesterCode;
-	    });
+    const selected = availableSemesters.find((item: any) => {
+      const year = getAcademicYearValue(item);
+      const code = normalizeSemesterCode(item.semester || item.code);
+      return year === academicYear && code === semesterCode;
+    });
 
     setSelectedSemesterId(selected?.id || '');
     setSemester(semesterCode);
   };
 
-	  const changeAcademicYear = (year: string) => {
-	    setAcademicYear(year);
-	    setSelectedSemesterId('');
-	    setSemester('');
-	  };
+  const changeAcademicYear = (year: string) => {
+    setAcademicYear(year);
+    setSelectedSemesterId('');
+    setSemester('');
+  };
 
   // Check status and date gates before proceeding
   const handleCheckAndProceed = async (targetSem: string, targetYear: string, targetSemesterId = selectedSemesterId) => {
@@ -1126,10 +1127,10 @@ export const EvaluationFormQD4185 = () => {
     const resolvedSemesterId = selectedSemester?.id || targetSemesterId;
     const match = findEvaluationForPeriod(evaluationsList, targetSem, targetYear, resolvedSemesterId);
 
-	    if (match) {
-	      await openExistingEvaluation(match);
-	      return;
-	    }
+    if (match) {
+      await openExistingEvaluation(match);
+      return;
+    }
 
     if (!resolvedSemesterId || !selectedSemester?.isActive) {
       try {
@@ -1152,9 +1153,9 @@ export const EvaluationFormQD4185 = () => {
     }
 
     // Create new evaluation when this period has no existing form.
-		    setIsReadOnly(false);
-		    setIsLocked(false);
-		    setAlreadyEvaluated(false);
+    setIsReadOnly(false);
+    setIsLocked(false);
+    setAlreadyEvaluated(false);
     try {
       setLoading(true);
       const newEvalRes = await API_Student.createEvaluation({ semester: targetSem, academicYear: targetYear });
@@ -1224,17 +1225,17 @@ export const EvaluationFormQD4185 = () => {
       return;
     }
 
-	    const semesterFromUrl = availableSemesters.find((item: any) => {
-	      const itemYear = getAcademicYearValue(item);
-	      return normalizeSemesterCode(item.semester || item.code) === semParam && itemYear === yearParam;
-	    });
+    const semesterFromUrl = availableSemesters.find((item: any) => {
+      const itemYear = getAcademicYearValue(item);
+      return normalizeSemesterCode(item.semester || item.code) === semParam && itemYear === yearParam;
+    });
 
     if (semParam && yearParam && semesterFromUrl) {
       if (semester !== semParam || academicYear !== yearParam) {
-	        setSelectedSemesterId(semesterFromUrl.id);
-	        setSemester(normalizeSemesterCode(semesterFromUrl.semester || semesterFromUrl.code));
-	        setAcademicYear(yearParam);
-	      }
+        setSelectedSemesterId(semesterFromUrl.id);
+        setSemester(normalizeSemesterCode(semesterFromUrl.semester || semesterFromUrl.code));
+        setAcademicYear(yearParam);
+      }
       if (step !== 1) {
         setStep(1);
       }
@@ -1259,6 +1260,8 @@ export const EvaluationFormQD4185 = () => {
     clearUrlParams();
     setStep(1);
   };
+
+
 
 
   // Note: All score computation (calculateTotalPoints equivalent) is now done
@@ -1315,7 +1318,7 @@ export const EvaluationFormQD4185 = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       let currentId = evaluationId;
@@ -1394,7 +1397,7 @@ export const EvaluationFormQD4185 = () => {
 
       await Promise.all(saveRequests);
       await API_Student.submitEvaluation(currentId!);
-      
+
       setIsSubmitting(false);
       setValidationError(null);
       setFieldErrors({});
@@ -1521,7 +1524,7 @@ export const EvaluationFormQD4185 = () => {
       removeFileAction: removeFile,
       persistSectionAction: persistScoreSection,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, evaluationId, isReadOnly, isLocked, alreadyEvaluated]); // store ref is stable; handlers close over latest edit gates
 
   // ── Sync fieldErrors into store when validation runs ─────────────────────
@@ -1539,58 +1542,56 @@ export const EvaluationFormQD4185 = () => {
               <Calendar size={24} />
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Chọn kỳ đánh giá rèn luyện</h2>
-	            <p className="text-xs text-gray-500 font-semibold leading-relaxed">
-	              Vui lòng chọn năm học trước, sau đó chọn học kỳ muốn thực hiện tự đánh giá.
-	            </p>
+            <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+              Vui lòng chọn năm học trước, sau đó chọn học kỳ muốn thực hiện tự đánh giá.
+            </p>
           </div>
 
-            {/* Dropdown: Năm học */}
-            <div>
-              <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5">Năm học *</label>
-              <select
-                value={academicYear}
-                onChange={(e) => changeAcademicYear(e.target.value)}
-                className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-white font-semibold ${
-                  academicYear === '' ? 'text-gray-400 font-medium' : 'text-gray-700'
+          {/* Dropdown: Năm học */}
+          <div>
+            <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5">Năm học *</label>
+            <select
+              value={academicYear}
+              onChange={(e) => changeAcademicYear(e.target.value)}
+              className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-white font-semibold ${academicYear === '' ? 'text-gray-400 font-medium' : 'text-gray-700'
                 }`}
-              >
-                <option value="" className="text-gray-400 font-medium">-- Chọn năm học --</option>
-                {academicYearOptions.map((year) => (
-                  <option key={year} value={year} className="text-gray-700">
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
+            >
+              <option value="" className="text-gray-400 font-medium">-- Chọn năm học --</option>
+              {academicYearOptions.map((year) => (
+                <option key={year} value={year} className="text-gray-700">
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="space-y-4">
             {/* Dropdown: Học kỳ */}
             <div>
               <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5">Học kỳ đánh giá *</label>
-	              <select
-	                value={semester}
-	                onChange={(e) => changeSemester(e.target.value)}
-	                disabled={!academicYear}
-	                className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-white font-semibold disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 ${
-	                  semester === '' ? 'text-gray-400 font-medium' : 'text-gray-700'
-	                }`}
-	              >
-	                <option value="" className="text-gray-400 font-medium">
-	                  {academicYear ? '-- Chọn học kỳ --' : '-- Chọn năm học trước --'}
-	                </option>
-	                {semesterOptions.map((item: any) => (
-	                  <option key={item.code} value={item.code} className="text-gray-700">
-	                    {getSemesterOptionLabel(item)}
-	                  </option>
-	                ))}
-	              </select>
-	              {!academicYear && (
-	                <p className="mt-1.5 text-xs font-semibold text-gray-400">
-	                  Chọn năm học để tiếp tục chọn học kỳ.
-	                </p>
-	              )}
-	            </div>
-	          </div>
+              <select
+                value={semester}
+                onChange={(e) => changeSemester(e.target.value)}
+                disabled={!academicYear}
+                className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-white font-semibold disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 ${semester === '' ? 'text-gray-400 font-medium' : 'text-gray-700'
+                  }`}
+              >
+                <option value="" className="text-gray-400 font-medium">
+                  {academicYear ? '-- Chọn học kỳ --' : '-- Chọn năm học trước --'}
+                </option>
+                {semesterOptions.map((item: any) => (
+                  <option key={item.code} value={item.code} className="text-gray-700">
+                    {getSemesterOptionLabel(item)}
+                  </option>
+                ))}
+              </select>
+              {!academicYear && (
+                <p className="mt-1.5 text-xs font-semibold text-gray-400">
+                  Chọn năm học để tiếp tục chọn học kỳ.
+                </p>
+              )}
+            </div>
+          </div>
 
           <button
             onClick={handleStartEvaluation}
@@ -1610,18 +1611,27 @@ export const EvaluationFormQD4185 = () => {
       ) : (
         /* Step 2: Form chi tiết */
         <div className="space-y-6 transition-all duration-300 transform ease-in animate-fade-in print:space-y-4">
-         
+          {/* ── Thanh công cụ trên cùng ── */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm print:hidden">
+            <button
+              type="button"
+              onClick={handleGoBackToStep1}
+              className="inline-flex cursor-pointer items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition text-xs font-bold"
+            >
+              ← Quay lại chọn học kỳ
+            </button>
+          </div>
 
           {/* ── HEADER PHIẾU CHÍNH THỨC (hiển thị khi in) ── */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 print:rounded-none print:border-0 print:shadow-none print:p-0">
             {/* Dòng trên cùng: tên trường (trái) + ĐCSVN (phải) */}
             <div className="flex justify-between items-start mb-3">
-              <div className="text-xs sm:text-sm leading-snug text-gray-900 font-bold max-w-[50%] text-center">
-                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">HỌC VIỆN HÀNH CHÍNH</p>
-                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">VÀ QUẢN TRỊ CÔNG</p>
-                <p className="uppercase font-black text-xs sm:text-sm text-gray-900 mt-1">PHÂN HIỆU HỌC VIỆN</p>
-                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
-                <p className="uppercase font-black text-xs sm:text-sm text-gray-900">TẠI THÀNH PHỐ ĐÀ NẴNG</p>
+              <div className="leading-tight text-gray-900 max-w-[50%] text-center flex flex-col items-center">
+                <p className="uppercase font-normal text-xs sm:text-sm text-gray-900">HỌC VIỆN HÀNH CHÍNH</p>
+                <p className="uppercase font-normal text-xs sm:text-sm text-gray-900">VÀ QUẢN TRỊ CÔNG</p>
+                <p className="uppercase font-bold text-xs sm:text-sm text-gray-900 mt-1">PHÂN HIỆU HỌC VIỆN</p>
+                <p className="uppercase font-bold text-xs sm:text-sm text-gray-900">HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</p>
+                <p className="uppercase font-bold text-xs sm:text-sm text-gray-900">TẠI THÀNH PHỐ ĐÀ NẴNG</p>
                 <p className="text-xs font-bold text-gray-600 mt-0.5">*</p>
               </div>
               <div className="text-xs sm:text-sm leading-snug text-gray-900 font-bold max-w-[45%] text-right flex flex-col items-end">
@@ -1786,32 +1796,34 @@ export const EvaluationFormQD4185 = () => {
             </div>
           )}
 
-	          {alreadyEvaluated && (
-	            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-amber-800">
-	              <Info className="shrink-0 mt-0.5 text-amber-600" />
-	              <p className="text-sm font-bold">Học kỳ này đã đánh giá</p>
-	            </div>
-	          )}
+          {alreadyEvaluated && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-amber-800">
+              <Info className="shrink-0 mt-0.5 text-amber-600" />
+              <p className="text-sm font-bold">Học kỳ này đã đánh giá</p>
+            </div>
+          )}
 
           {/* ── EvaluationTableGrid: all state sourced from Zustand store ── */}
-	          <EvaluationFormStoreContext.Provider value={store}>
-	            <EvaluationTableGrid />
-	          </EvaluationFormStoreContext.Provider>
+          <EvaluationFormStoreContext.Provider value={store}>
+            <EvaluationTableGrid />
+          </EvaluationFormStoreContext.Provider>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 mt-6 bg-white p-5 rounded-xl shadow-sm print:hidden">
-            <button
-              type="button"
-              onClick={handleGoBackToStep1}
-              className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition cursor-pointer text-xs font-bold min-h-[44px]"
-            >
-              Quay lại
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-gray-200 mt-6 bg-white p-5 rounded-xl shadow-sm print:hidden">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleGoBackToStep1}
+                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition cursor-pointer text-xs font-bold min-h-[44px]"
+              >
+                Quay lại
+              </button>
+            </div>
             {!isReadOnly && (
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition cursor-pointer text-xs font-bold min-h-[44px] disabled:opacity-50 shadow-sm"
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-brand-primary hover:bg-red-700 text-white rounded-xl transition cursor-pointer text-xs font-bold min-h-[44px] disabled:opacity-50 shadow-sm"
               >
                 {isSubmitting ? (
                   <span className="flex items-center gap-1.5">

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { StudentEvidence } from '../../../views/Student/Evidence';
+import { StudentEvidence } from '../../../views/Faculty/Student/Evidence';
 
 export const metadata: Metadata = {
   title: 'Minh chứng rèn luyện',

@@ -1,54 +1,22 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X, Printer } from 'lucide-react';
+import { X, Printer, FileText, FileSpreadsheet } from 'lucide-react';
+import type { BienBanHoiDongFormData } from '@/utils/exportBienBan';
+import type { FacultyReportExportFormat } from '@/api/API_Faculty';
 
-export interface BienBanHoiDongStudentRow {
-  stt: number;
-  maSV: string;
-  hoTen: string;
-  ngaySinh: string;
-  drlLop: number;
-  drlKhoa: number;
-  xepLoai: string;
-  ghiChu: string;
-}
-
-export interface BienBanHoiDongFormData {
-  khoa: string;
-  lop: string;
-  hocKy: string;
-  namHoc: string;
-  qdSo: string;
-  qdNgay: string;
-  qdThang: string;
-  qdNam: string;
-  tongSoHoiDong: string;
-  duHopHoiDong: string;
-  vangHoiDong: string;
-  lyDoVangHoiDong: string;
-  moiDu: string;
-  chuToa: string;
-  thuKy: string;
-  ngayHop: string;
-  thangHop: string;
-  namHop: string;
-  gioBatDau: string;
-  diaDiem: string;
-  truongKhoa: string;
-  chuTichHoiDong: string;
-  tenThuKy: string;
-  students: BienBanHoiDongStudentRow[];
-}
+export type { BienBanHoiDongFormData, BienBanHoiDongStudentRow } from '@/utils/exportBienBan';
 
 interface Props {
   data: BienBanHoiDongFormData;
   onClose: () => void;
   onPrint: () => void;
+  onExport?: (format: FacultyReportExportFormat) => void;
+  exportingFormat?: FacultyReportExportFormat | null;
   autoPrint?: boolean;
 }
 
-export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, autoPrint }: Props) {
+export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, onExport, exportingFormat, autoPrint }: Props) {
   const counts = {
     xuatSac: data.students.filter((s) => s.xepLoai === 'Xuất sắc').length,
     tot: data.students.filter((s) => s.xepLoai === 'Tốt').length,
@@ -67,18 +35,16 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, autoPrint }
 
     window.addEventListener('afterprint', handleAfterPrint);
 
-    let raf1: number;
-    let raf2: number;
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
         window.print();
       });
+      return () => cancelAnimationFrame(raf2);
     });
 
     return () => {
-      window.removeEventListener('afterprint', handleAfterPrint);
       cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
+      window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, [autoPrint, onClose]);
 
@@ -94,34 +60,30 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, autoPrint }
 
   return (
     <>
-      {/* ── Print CSS ─────────────────────────────────────────────── */}
+      {/* ── Scoped Print Stylesheet ────────────────────────────────── */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          body * { visibility: hidden !important; }
+          body * {
+            visibility: hidden !important;
+          }
           #bien-ban-print-area,
-          #bien-ban-print-area * { visibility: visible !important; }
+          #bien-ban-print-area * {
+            visibility: visible !important;
+          }
           #bien-ban-print-area {
-            position: absolute !important;
+            position: fixed !important;
             left: 0 !important;
             top: 0 !important;
-            width: 100% !important;
-            height: auto !important;
-            z-index: 99999 !important;
-            background: #fff !important;
-            padding: 0 !important;
+            width: 100vw !important;
+            min-height: 100vh !important;
+            margin: 0 !important;
+            padding: 20mm 15mm 20mm 25mm !important;
             box-shadow: none !important;
             border-radius: 0 !important;
-            overflow: visible !important;
-          }
-          .bien-ban-modal-overlay {
-            display: block !important;
-            position: static !important;
-            background: none !important;
-            backdrop-filter: none !important;
-            padding: 0 !important;
-            overflow: visible !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
+            background: white !important;
+            font-size: 13pt !important;
+            line-height: 1.5 !important;
+            z-index: 99999 !important;
           }
           .bien-ban-no-print {
             display: none !important;
@@ -136,7 +98,7 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, autoPrint }
           }
           @page {
             size: A4 portrait;
-            margin: 20mm 20mm 20mm 30mm;
+            margin: 0;
           }
         }
       `}} />
@@ -150,14 +112,32 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, autoPrint }
           {/* Header Bar */}
           <div className="bien-ban-no-print flex items-center justify-between rounded-t-2xl bg-gray-900 px-6 py-3 shadow-lg">
             <span className="text-white font-bold text-base tracking-wide">📄 Xem trước Biên bản họp Hội đồng</span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onExport?.('word')}
+                disabled={!onExport || exportingFormat !== null}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FileText size={15} />
+                {exportingFormat === 'word' ? 'Đang xuất...' : 'Xuất Word (.docx)'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onExport?.('excel')}
+                disabled={!onExport || exportingFormat !== null}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FileSpreadsheet size={15} />
+                {exportingFormat === 'excel' ? 'Đang xuất...' : 'Xuất Excel (.xlsx)'}
+              </button>
               <button
                 type="button"
                 onClick={onPrint}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-primary px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700 transition"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gray-700 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-gray-600 transition"
               >
                 <Printer size={15} />
-                In / Xuất PDF
+                In ấn
               </button>
               <button
                 type="button"
@@ -175,27 +155,34 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, autoPrint }
             className="w-full bg-white shadow-2xl rounded-b-2xl"
             style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '13px', lineHeight: '1.6', padding: '30mm 20mm 20mm 30mm' }}
           >
-            {/* Header 2 cột */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
-                <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</div>
-                <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ ĐÀ NẴNG</div>
-                <div style={{ textAlign: 'left', marginTop: '2px' }}><strong>KHOA:</strong> {data.khoa || '................................'}</div>
-                <div style={{ fontWeight: 'bold', textAlign: 'center', marginTop: '2px' }}>*</div>
+            {/* Header 2 cột: Cấp trên & Quốc hiệu */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
+              <div style={{ color: '#111827', lineHeight: '1.32', textAlign: 'center', maxWidth: '360px', minWidth: '300px' }}>
+                <div style={{ fontSize: '16px', fontWeight: 'normal', textTransform: 'uppercase' }}>HỌC VIỆN HÀNH CHÍNH</div>
+                <div style={{ fontSize: '16px', fontWeight: 'normal', textTransform: 'uppercase' }}>VÀ QUẢN TRỊ CÔNG</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '6px' }}>PHÂN HIỆU HỌC VIỆN</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase' }}>HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase' }}>TẠI THÀNH PHỐ ĐÀ NẴNG</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'center', marginTop: '8px', fontSize: '16px' }}>*</div>
               </div>
-              <div style={{ textAlign: 'right', fontSize: '13px', lineHeight: '1.4' }}>
-                <div style={{ fontStyle: 'italic', marginBottom: '4px' }}>Phụ lục 01</div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'inline-block', borderBottom: '1.5px solid #000', paddingBottom: '2px', fontWeight: 'bold' }}>
+              <div style={{ textAlign: 'right', fontSize: '16px', lineHeight: '1.3', minWidth: '280px' }}>
+                <div style={{ fontStyle: 'italic', fontWeight: 600, marginBottom: '10px' }}>Phụ lục 01</div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ display: 'inline-block', borderBottom: '2px solid #000', paddingBottom: '2px', fontWeight: 'bold', textTransform: 'uppercase' }}>
                     ĐẢNG CỘNG SẢN VIỆT NAM
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Ngày tháng */}
-            <div style={{ textAlign: 'right', fontStyle: 'italic', marginBottom: '12px', marginTop: '8px' }}>
-              Đà Nẵng, ngày {data.ngayHop || '......'} tháng {data.thangHop || '......'} năm 20{data.namHop || '....'}
+            {/* Dòng Khoa (trái) và Ngày tháng (phải) - NGANG HÀNG NHAU */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '16px' }}>
+              <div style={{ textAlign: 'left', fontSize: '13px', lineHeight: '1.4' }}>
+                <strong>KHOA:</strong> {data.khoa || '................................'}
+              </div>
+              <div style={{ textAlign: 'right', fontStyle: 'italic', fontSize: '13px', lineHeight: '1.4' }}>
+                Đà Nẵng, ngày {data.ngayHop || '......'} tháng {data.thangHop || '......'} năm 20{data.namHop || '....'}
+              </div>
             </div>
 
             {/* Tiêu đề */}

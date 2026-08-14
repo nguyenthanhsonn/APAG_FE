@@ -1,10 +1,37 @@
-import { post } from './api';
+import { axiosInstance, post } from './api';
 import { API_Shared } from './API_Shared';
 import type {
   AdminEvaluationListQuery,
   SubmitClassEvaluationPayload,
   SubmitClassEvaluationResponse,
 } from '../types';
+
+export type ClassLeaderReportExportFormat = 'excel' | 'word';
+
+async function normalizeBlobError(error: any) {
+  const blob = error?.response?.data;
+  if (!(blob instanceof Blob)) {
+    throw error;
+  }
+
+  const text = await blob.text();
+  let message = text || error?.message || 'Không thể xuất biên bản họp lớp.';
+  let errors: unknown;
+
+  try {
+    const parsed = JSON.parse(text);
+    const parsedMessage = parsed?.message;
+    message = Array.isArray(parsedMessage) ? parsedMessage.join('\n') : parsedMessage || message;
+    errors = parsed?.errors;
+  } catch {
+    // BE may return plain text for binary endpoints.
+  }
+
+  const normalizedError = new Error(message) as Error & { statusCode?: number; errors?: unknown };
+  normalizedError.statusCode = error?.response?.status;
+  normalizedError.errors = errors;
+  throw normalizedError;
+}
 
 /**
  * API chuyên biệt cho vai trò Lớp trưởng
@@ -37,5 +64,21 @@ export const API_ClassLeader = {
       `/training-evaluations/classes/${classId}/submit-to-advisor`,
       payload,
     );
+  },
+
+  /** Lớp trưởng xuất biên bản họp lớp theo template từ BE */
+  exportBienBanHopLop: async (format: ClassLeaderReportExportFormat, payload: unknown) => {
+    try {
+      const res = await axiosInstance.post<Blob>(
+        `/reports/export/${format}/bien-ban-hop-lop`,
+        payload,
+        { responseType: 'blob' },
+      );
+
+      return res;
+    } catch (error) {
+      await normalizeBlobError(error);
+      throw error;
+    }
   },
 };

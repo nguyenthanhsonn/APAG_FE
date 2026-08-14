@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { EvaluationFormQD4185 } from '../../../views/Student/EvaluationFormQD4185';
+import { EvaluationFormQD4185 } from '../../../views/Faculty/Student/EvaluationFormQD4185';
 
 export const metadata: Metadata = {
   title: 'Phiếu đánh giá rèn luyện',
