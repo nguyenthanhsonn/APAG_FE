@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { BookOpen, ShieldAlert, Users, Heart, Award, Loader2, AlertCircle } from 'lucide-react';
-import { API_Student } from '../../api/API_Student';
-import { ResultBanner } from '../../components/student/ResultBanner';
-import { DetailScoresCard } from '../../components/student/DetailScoresCard';
-import { ReviewerCommentsCard } from '../../components/student/ReviewerCommentsCard';
-import { RankBenefitsCard } from '../../components/student/RankBenefitsCard';
+import { API_Student } from '../../../api/API_Student';
+import { ResultBanner } from '../../../components/student/ResultBanner';
+import { DetailScoresCard } from '../../../components/student/DetailScoresCard';
+import { ReviewerCommentsCard } from '../../../components/student/ReviewerCommentsCard';
+import { RankBenefitsCard } from '../../../components/student/RankBenefitsCard';
 
 export const StudentResults = () => {
   const [resultData, setResultData] = useState<any>(null);
@@ -20,7 +20,7 @@ export const StudentResults = () => {
     else if (level === 'FROM_5_TO_UNDER_7') base = 4;
     else if (level === 'FROM_4_TO_UNDER_5') base = 2;
     else if (level === 'FROM_1_TO_UNDER_4') base = 1;
-    
+
     const actScore = (activities || []).length * 2;
     return Math.min(20, base + actScore);
   };
@@ -93,44 +93,44 @@ export const StudentResults = () => {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-          const listRes = await API_Student.getMyEvaluations();
-          const evaluations = listRes.data || listRes;
-          
-          // Use the latest evaluation record (first in the list)
-          const latestEval = evaluations[0];
-          if (latestEval) {
-            const detail = await API_Student.getEvaluationDetail(latestEval.id);
-            const detailData = (detail.data || detail) as any;
-            const studyData = detailData.sections?.study || {};
-            const discData = detailData.sections?.discipline || {};
-            const actData = detailData.sections?.activity || {};
-            const commData = detailData.sections?.community || {};
-            const roleData = detailData.sections?.role || {};
+        const listRes = await API_Student.getMyEvaluations();
+        const evaluations = listRes.data || listRes;
 
-            const totalScore = detailData.totalScore ?? latestEval.totalScore ?? detailData.finalScore ?? detailData.classScore ?? detailData.studentScore;
-            const classification = detailData.classification ?? latestEval.classification ?? detailData.rank ?? detailData.rating;
+        // Use the latest evaluation record (first in the list)
+        const latestEval = evaluations[0];
+        if (latestEval) {
+          const detail = await API_Student.getEvaluationDetail(latestEval.id);
+          const detailData = (detail.data || detail) as any;
+          const studyData = detailData.sections?.study || {};
+          const discData = detailData.sections?.discipline || {};
+          const actData = detailData.sections?.activity || {};
+          const commData = detailData.sections?.community || {};
+          const roleData = detailData.sections?.role || {};
 
-            setResultData({
-              semester: detailData.semester && typeof detailData.semester === 'object'
-                ? detailData.semester.semester === 'SEMESTER_1' ? 'HK1' : 'HK2'
-                : detailData.semester || latestEval.semester || '',
-              academicYear: detailData.semester && typeof detailData.semester === 'object'
-                ? `${detailData.semester.year - 1}-${detailData.semester.year}`
-                : detailData.academicYear || latestEval.academicYear || '',
-              scores: {
-                academic: detailData.sectionScores?.studyScore ?? studyData.score ?? getStudyScoreNum(studyData.regularScoreLevel, studyData.activities || []),
-                discipline: detailData.sectionScores?.disciplineScore ?? discData.score ?? Math.max(0, (discData.baseScore || 0) - getDisciplineDeduction(discData.violations || [])),
-                politicalSocial: detailData.sectionScores?.activityScore ?? actData.score ?? getActScoreNum(actData),
-                community: detailData.sectionScores?.communityScore ?? commData.score ?? getCommScoreNum(commData),
-                leadership: detailData.sectionScores?.roleScore ?? roleData.score ?? getRoleScoreNum(roleData),
-                total: totalScore ?? 0,
-              },
-              rating: getRankText(classification),
-              reviewerComments: detailData.note || '',
-            });
-          } else {
-            setResultData(null);
-          }
+          const totalScore = detailData.totalScore ?? latestEval.totalScore ?? detailData.finalScore ?? detailData.classScore ?? detailData.studentScore;
+          const classification = detailData.classification ?? latestEval.classification ?? detailData.rank ?? detailData.rating;
+
+          setResultData({
+            semester: detailData.semester && typeof detailData.semester === 'object'
+              ? detailData.semester.semester === 'SEMESTER_1' ? 'HK1' : 'HK2'
+              : detailData.semester || latestEval.semester || '',
+            academicYear: detailData.semester && typeof detailData.semester === 'object'
+              ? `${detailData.semester.year - 1}-${detailData.semester.year}`
+              : detailData.academicYear || latestEval.academicYear || '',
+            scores: {
+              academic: detailData.sectionScores?.studyScore ?? studyData.score ?? getStudyScoreNum(studyData.regularScoreLevel, studyData.activities || []),
+              discipline: detailData.sectionScores?.disciplineScore ?? discData.score ?? Math.max(0, (discData.baseScore || 0) - getDisciplineDeduction(discData.violations || [])),
+              politicalSocial: detailData.sectionScores?.activityScore ?? actData.score ?? getActScoreNum(actData),
+              community: detailData.sectionScores?.communityScore ?? commData.score ?? getCommScoreNum(commData),
+              leadership: detailData.sectionScores?.roleScore ?? roleData.score ?? getRoleScoreNum(roleData),
+              total: totalScore ?? 0,
+            },
+            rating: getRankText(classification),
+            reviewerComments: detailData.note || '',
+          });
+        } else {
+          setResultData(null);
+        }
       } catch (err) {
         console.error('Failed to load results:', err);
         setResultData(null);
@@ -168,11 +168,11 @@ export const StudentResults = () => {
 
   // All progress bars use indigo — shade determined dynamically in DetailScoresCard
   const scoreBreakdown = [
-    { label: 'Ý thức học tập',      icon: BookOpen,   score: resultData.scores.academic,       max: 30, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
-    { label: 'Chấp hành nội quy',   icon: ShieldAlert, score: resultData.scores.discipline,     max: 25, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
-    { label: 'Hoạt động CT-XH',     icon: Users,       score: resultData.scores.politicalSocial, max: 20, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
-    { label: 'Ý thức cộng đồng',    icon: Heart,       score: resultData.scores.community,      max: 15, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
-    { label: 'Vai trò cán bộ',      icon: Award,       score: resultData.scores.leadership,     max: 10, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+    { label: 'Ý thức học tập', icon: BookOpen, score: resultData.scores.academic, max: 30, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+    { label: 'Chấp hành nội quy', icon: ShieldAlert, score: resultData.scores.discipline, max: 25, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+    { label: 'Hoạt động CT-XH', icon: Users, score: resultData.scores.politicalSocial, max: 20, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+    { label: 'Ý thức cộng đồng', icon: Heart, score: resultData.scores.community, max: 15, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+    { label: 'Vai trò cán bộ', icon: Award, score: resultData.scores.leadership, max: 10, color: 'bg-indigo-500', textColor: 'text-indigo-600' },
   ];
 
   return (
