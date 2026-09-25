@@ -6,7 +6,7 @@ const nextConfig = {
   allowedDevOrigins: ['192.168.100.17', '192.168.1.47', '10.36.120.223'],
 
   async rewrites() {
-    const backendUrl = process.env.BACKEND_API_URL || 'http://10.36.120.154:5050/api/v1';
+    const backendUrl = process.env.BACKEND_API_URL || 'http://117.2.126.123:5050/api/v1';
     return [
       {
         source: '/api/v1/:path*',
