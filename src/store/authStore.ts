@@ -1,3 +1,4 @@
+import { notifyAuthSession } from '../utils/authSession';
 import { create } from 'zustand';
 import type { AuthState } from '../types';
 
@@ -102,10 +103,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     set({ user: null, isAuthenticated: false, isHydrated: true });
+    notifyAuthSession();
   },
-  login: async (username: string, password: string, captchaId: string, captchaCode: string) => {
+  login: async (username: string, password: string) => {
+    notifyAuthSession('ending');
     try {
-      const result = await API_Auth.login(username, password, captchaId, captchaCode);
+      const result = await API_Auth.login(username, password);
       // Support nested "data" wrapper if any
       const data = result.data || result;
       const accessToken = data.accessToken;
@@ -125,13 +128,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       set({ user, isAuthenticated: true, isHydrated: true });
       localStorage.setItem('user', JSON.stringify(user));
+      notifyAuthSession();
       return true;
     } catch (error: any) {
+      notifyAuthSession();
       console.error('Login error:', error);
       throw error;
     }
   },
   logout: async () => {
+    notifyAuthSession('ending');
     try {
       const refreshToken = localStorage.getItem('refreshToken');
       const accessToken = localStorage.getItem('accessToken');
@@ -145,6 +151,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem('user');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      notifyAuthSession();
     }
   },
   /** Mock: set user directly without API — dev/test only */

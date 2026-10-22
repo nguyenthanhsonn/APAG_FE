@@ -1,5 +1,7 @@
 'use client';
 
+import { useRef as useActionRef } from 'react';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -267,13 +269,16 @@ export function FacultyClassDetailView({ classId }: Props) {
     (user as any)?.faculty;
   const managedFacultyName = managedFaculty?.facultyName || managedFaculty?.name || 'Khoa được phân công';
 
+  const actionLock = useActionRef(false);
   const handleFacultyApproveClass = async () => {
+    if (actionLock.current) return;
     const pendingEvaluations = students.filter(
       (item) => item.rawStatus.toLowerCase() === 'class_approved',
     );
 
     if (pendingEvaluations.length === 0) return;
 
+    actionLock.current = true;
     setLoading(true);
     setErrorMessage('');
     try {
@@ -282,7 +287,7 @@ export function FacultyClassDetailView({ classId }: Props) {
     } catch (err: any) {
       setErrorMessage(getUserFriendlyError(err, 'Không gửi được phiếu của lớp lên Phòng Đào tạo.'));
       setLoading(false);
-    }
+    } finally { actionLock.current = false; setLoading(false); }
   };
 
   if (!facultyId) {

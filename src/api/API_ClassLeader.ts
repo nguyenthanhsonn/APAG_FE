@@ -42,14 +42,6 @@ export const API_ClassLeader = {
     return API_Shared.getTrainingEvaluations({ classId, ...query });
   },
 
-  /** Lớp trưởng duyệt phiếu đánh giá cho sinh viên trong lớp */
-  approveClassLeaderEvaluation: (id: string, score?: number) => {
-    if (score) {
-      // Keep score reference
-    }
-    return API_Shared.reviewEvaluation(id, { action: 'approve' });
-  },
-
   /** Lớp trưởng xác nhận đã đánh giá 1 phiếu */
   confirmReview: (id: string) => {
     return API_Shared.confirmReview(id);

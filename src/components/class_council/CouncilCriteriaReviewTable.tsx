@@ -253,6 +253,11 @@ export const CouncilCriteriaReviewTable = () => {
   const isClassOfficer = ['CLASS_OFFICER', 'UNION_OFFICER', 'CLUB_OFFICER', 'cadre'].includes(String(classRoleType || ''));
   const isClassStudent = !isClassOfficer;
 
+  // Xác định nhánh hiển thị của Mục V (Nhánh 1: Cán bộ vs Nhánh 2: Sinh viên thường)
+  const isOfficer = currentUserRole === 'student'
+    ? isSvOfficer
+    : (isClassEditable ? isClassOfficer : (isClassOfficer || isSvOfficer));
+
   // Actions
   const setField = useCouncilReviewStore(s => s.setField);
   const handleDeductionChange = useCouncilReviewStore(s => s.handleDeductionChange);
@@ -295,13 +300,30 @@ export const CouncilCriteriaReviewTable = () => {
   const setClassLocality = (v: string) => setField('classLocality', v);
   const setIsSvViolationSec4 = (v: boolean) => setField('isSvViolationSec4', v);
   const setIsClassViolationSec4 = (v: boolean) => setField('isClassViolationSec4', v);
-  const setSvRoleType = (v: 'cadre' | 'student') => setField('svRoleType', v);
+  const setSvRoleType = (v: 'cadre' | 'student') => {
+    setField('svRoleType', v);
+    if (v === 'student') {
+      setField('svCadrePosition', 'NONE');
+    }
+    if (!isClassEditable) {
+      setField('classRoleType', v);
+      if (v === 'student') {
+        setField('classCadrePosition', 'NONE');
+      }
+    }
+  };
   const setSvCadrePosition = (v: string) => setField('svCadrePosition', v);
   const setSvCadrePerformance = (v: string) => setField('svCadrePerformance', v);
   const setSvManagementLevel = (v: string) => setField('svManagementLevel', v);
   const setSvClassParticipation = (v: number) => setField('svClassParticipation', v);
   const setSvSpecialAchievement = (v: string) => setField('svSpecialAchievement', v);
-  const setClassRoleType = (v: 'cadre' | 'student') => setField('classRoleType', v);
+  const setClassRoleType = (v: 'cadre' | 'student') => {
+    markClassEdited();
+    setField('classRoleType', v);
+    if (v === 'student') {
+      setField('classCadrePosition', 'NONE');
+    }
+  };
   const setClassCadrePosition = (v: string) => setField('classCadrePosition', v);
   const setClassCadrePerformance = (v: string) => setField('classCadrePerformance', v);
   const setClassManagementLevel = (v: string) => setField('classManagementLevel', v);
@@ -680,7 +702,7 @@ export const CouncilCriteriaReviewTable = () => {
             </tr>
 
             {/* NHÁNH 1: Cán bộ (chỉ hiển thị khi chọn nhánh Cán bộ) */}
-            {(isSvOfficer || isClassOfficer) && <>
+            {isOfficer && <>
               <tr className="bg-purple-50">
                 <td className={`${tdR} text-center font-bold text-purple-900`}>1</td>
                 <td colSpan={7} className="px-3 py-2 border-b border-purple-200 text-xs sm:text-sm font-bold text-purple-900 leading-snug">
@@ -833,7 +855,7 @@ export const CouncilCriteriaReviewTable = () => {
             </>}
 
             {/* NHÁNH 2: Sinh viên thường (chỉ hiển thị khi chọn nhánh Sinh viên thường) */}
-            {(isSvStudent || isClassStudent) && <>
+            {!isOfficer && <>
               <tr className="bg-green-50">
                 <td className={`${tdR} text-center font-bold text-green-900`}>2</td>
                 <td colSpan={7} className="px-3 py-2 border-b border-green-200 text-xs sm:text-sm font-bold text-green-900">

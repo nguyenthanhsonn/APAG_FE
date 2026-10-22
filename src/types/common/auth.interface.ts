@@ -91,20 +91,10 @@ export interface User {
   }>;
 }
 
-/** Mã xác nhận đăng nhập. */
-export interface CaptchaResponse {
-  captchaId: string;
-  image: string;
-  expiresInSeconds?: number;
-  debugCode?: string;
-}
-
 /** Thông tin dùng để đăng nhập. */
 export interface LoginPayload {
   username: string;
   password: string;
-  captchaId?: string;
-  captchaCode?: string;
 }
 
 /** Thông tin nhận được sau khi đăng nhập. */
@@ -137,7 +127,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isHydrated: boolean;
   hydrateAuth: () => void;
-  login: (username: string, password: string, captchaId: string, captchaCode: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   /** Mock: set user directly without API — dev/test only */
   setUser: (user: any) => void;

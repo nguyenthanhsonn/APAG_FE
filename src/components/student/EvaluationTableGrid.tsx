@@ -306,10 +306,19 @@ export const EvaluationTableGrid = () => {
   const isClassOfficer = ['CLASS_OFFICER', 'UNION_OFFICER', 'CLUB_OFFICER', 'cadre'].includes(String(classRoleType || ''));
   const isClassStudent = !isClassOfficer;
 
+  const isSvEditable = currentUserRole === 'student' && !isReadOnly;
+  const isClassEditable = currentUserRole === 'class' && !isReadOnly;
+
   // Actions
   const setField = useEvaluationFormStore(s => s.setField);
   const handleDeductionChange = useEvaluationFormStore(s => s.handleDeductionChange);
   const setIsClassEdited = useEvaluationFormStore(s => s.setIsClassEdited);
+  const markClassEdited = () => { if (currentUserRole === 'class') setIsClassEdited(true); };
+
+  // Xác định nhánh hiển thị của Mục V (Nhánh 1: Cán bộ vs Nhánh 2: Sinh viên thường)
+  const isOfficer = currentUserRole === 'student'
+    ? isSvOfficer
+    : (isClassEditable ? isClassOfficer : (isClassOfficer || isSvOfficer));
 
   // Convenience setters derived from setField
   const setSvStudyAttitude = (v: string) => setField('svStudyAttitude', v);
@@ -352,13 +361,30 @@ export const EvaluationTableGrid = () => {
   const setIsSvViolationSec4 = (v: boolean) => setField('isSvViolationSec4', v);
   const setIsClassViolationSec4 = (v: boolean) => setField('isClassViolationSec4', v);
 
-  const setSvRoleType = (v: 'cadre' | 'student') => setField('svRoleType', v);
+  const setSvRoleType = (v: 'cadre' | 'student') => {
+    setField('svRoleType', v);
+    if (v === 'student') {
+      setField('svCadrePosition', 'NONE');
+    }
+    if (!isClassEditable) {
+      setField('classRoleType', v);
+      if (v === 'student') {
+        setField('classCadrePosition', 'NONE');
+      }
+    }
+  };
   const setSvCadrePosition = (v: string) => setField('svCadrePosition', v);
   const setSvCadrePerformance = (v: string) => setField('svCadrePerformance', v);
   const setSvManagementLevel = (v: string) => setField('svManagementLevel', v);
   const setSvClassParticipation = (v: number) => setField('svClassParticipation', v);
   const setSvSpecialAchievement = (v: string) => setField('svSpecialAchievement', v);
-  const setClassRoleType = (v: 'cadre' | 'student') => setField('classRoleType', v);
+  const setClassRoleType = (v: 'cadre' | 'student') => {
+    markClassEdited();
+    setField('classRoleType', v);
+    if (v === 'student') {
+      setField('classCadrePosition', 'NONE');
+    }
+  };
   const setClassCadrePosition = (v: string) => setField('classCadrePosition', v);
   const setClassCadrePerformance = (v: string) => setField('classCadrePerformance', v);
   const setClassManagementLevel = (v: string) => setField('classManagementLevel', v);
@@ -369,10 +395,6 @@ export const EvaluationTableGrid = () => {
 
   const [notes, setNotes] = useState<Record<string, string>>({});
   const setNote = (key: string, v: string) => setNotes(prev => ({ ...prev, [key]: v }));
-
-  const isSvEditable = currentUserRole === 'student' && !isReadOnly;
-  const isClassEditable = currentUserRole === 'class' && !isReadOnly;
-  const markClassEdited = () => { if (currentUserRole === 'class') setIsClassEdited(true); };
   const f = (s: number) => s.toFixed(2);
   const tdBase = 'px-2 py-3 align-top border-b border-gray-200 text-sm';
   const tdR = `${tdBase} border-r border-gray-200`;
@@ -440,12 +462,16 @@ export const EvaluationTableGrid = () => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       {isReadOnly ? (
-        <div className="text-center py-2.5 text-red-600 font-semibold border-b border-gray-200 bg-white text-sm">
-          Giảng viên đã đánh giá, Sinh viên không được phép Đánh giá lại.
+        <div className="text-center py-2 text-slate-500 font-medium border-b border-gray-200 bg-slate-50/80 text-xs">
+          {currentUserRole === 'student'
+            ? 'Bảng đánh giá đang ở chế độ chỉ xem'
+            : 'Phiếu đánh giá đang ở chế độ chỉ xem'}
         </div>
       ) : (
-        <div className="text-center py-2.5 text-amber-700 font-semibold border-b border-gray-200 bg-amber-50/50 text-sm">
-          Giảng viên chưa lưu Điểm. Hãy nhấn nút <strong>Gửi đánh giá</strong> để lưu Điểm.
+        <div className="text-center py-2.5 text-blue-700 font-semibold border-b border-gray-200 bg-blue-50/40 text-sm">
+          {currentUserRole === 'student'
+            ? <>Vui lòng kiểm tra và chấm điểm các mục bên dưới, sau đó nhấn nút <strong>Gửi đánh giá</strong> ở cuối trang.</>
+            : <>Cán bộ lớp chấm điểm tại cột <strong>Điểm Lớp đánh giá</strong> và lưu kết quả.</>}
         </div>
       )}
 
@@ -718,7 +744,7 @@ export const EvaluationTableGrid = () => {
             </tr>
 
             {/* NHÁNH 1: Cán bộ (chỉ hiển thị khi chọn nhánh Cán bộ) */}
-            {(isSvOfficer || isClassOfficer) && <>
+            {isOfficer && <>
               <tr className="bg-purple-50">
                 <td className={`${tdR} text-center font-bold text-purple-900`}>1</td>
                 <td colSpan={7} className="px-3 py-2 border-b border-purple-200 text-xs sm:text-sm font-bold text-purple-900 leading-snug">
@@ -878,7 +904,7 @@ export const EvaluationTableGrid = () => {
             </>}
 
             {/* NHÁNH 2: Sinh viên thường (chỉ hiển thị khi chọn nhánh Sinh viên thường) */}
-            {(isSvStudent || isClassStudent) && <>
+            {!isOfficer && <>
               <tr className="bg-green-50">
                 <td className={`${tdR} text-center font-bold text-green-900`}>2</td>
                 <td colSpan={7} className="px-3 py-2 border-b border-green-200 text-xs sm:text-sm font-bold text-green-900">

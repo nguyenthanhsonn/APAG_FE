@@ -61,6 +61,7 @@ export interface EvaluationAttachmentItem {
 
 export interface EvaluationForm {
   id: string;
+  version: number;
   studentId: string;
   phone?: string;
   note?: string;

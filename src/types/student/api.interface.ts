@@ -53,6 +53,7 @@ export interface CreateEvaluationPayload {
 
 /** Thông tin cập nhật ghi chú phiếu. */
 export interface UpdateEvaluationNotePayload {
+  expectedVersion?: number;
   note?: string;
   studentNotes?: string;
   phone?: string;
@@ -77,6 +78,7 @@ export interface EvaluationStatusResponse {
 
 /** Thông tin cập nhật một mục điểm. */
 export interface ScoreSectionPayload {
+  expectedVersion?: number;
   score?: number;
   selfScore?: number;
   note?: string;
@@ -86,6 +88,7 @@ export interface ScoreSectionPayload {
 
 /** Thông tin một mục điểm. */
 export interface ScoreSectionResponse {
+  version: number;
   id: string;
   evaluationId: string;
   score?: number;
@@ -115,11 +118,13 @@ export interface ScoreSectionResponse {
 
 /** Thông tin thêm minh chứng bằng đường dẫn. */
 export interface LinkEvidenceUrlPayload {
+  evaluationFormId: string;
+  expectedVersion?: number;
   criteriaId?: string;
-  criteriaCode?: string;
+  criteriaCode: string;
   url?: string;
-  imageUrl?: string;
-  publicId?: string;
+  imageUrl: string;
+  publicId: string;
   description?: string;
 }
 

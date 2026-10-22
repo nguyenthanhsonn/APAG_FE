@@ -65,6 +65,7 @@ export interface RankBenefitsCardProps {
 }
 
 export interface EvidenceGroupCardProps {
+  disabled?: boolean;
   group: { id: string; name: string };
   groupEvidences: EvidenceFile[];
   handleFileUpload: (e: ChangeEvent<HTMLInputElement>, criteriaId: string) => void;
