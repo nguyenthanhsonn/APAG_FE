@@ -1,19 +1,26 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { createEvaluationTransport } from '../../../api/api';
+
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Send,
   CheckCircle,
   AlertTriangle,
   Calendar,
-  Info,
   Loader2,
+  Lock,
+  Paperclip,
+  ExternalLink,
+  FileText,
+  FileImage,
 } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
-import { API_Student } from '../../../api/API_Student';
+import { createStudentApi } from '../../../api/API_Student';
 import { API_URL } from '../../../api/api';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { uploadEvidenceFile } from '../../../services/cloudinaryUpload';
+import { logEvidenceUploadError, type EvidenceUploadStage } from '../../../services/evidenceUploadDiagnostics';
 import { useToast } from '../../../components/common/ToastProvider';
 import { getUserFriendlyError } from '../../../utils/errorHelper';
 import { CRITERIA_CODES } from '../../../constants/evaluationEnums';
@@ -51,11 +58,17 @@ const getDisplayName = (value: unknown) => {
   return '';
 };
 export const EvaluationFormQD4185 = () => {
+  const [versionContext] = useState(() => createEvaluationTransport('student-form'));
+  const [API_Student] = useState(() => createStudentApi(versionContext));
   const { user } = useAuthStore();
   const toast = useToast();
+  const submitLock = useRef(false);
+  const pendingSubmission = useRef<string | null>(null);
+  const uploadLock = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [alreadyEvaluated, setAlreadyEvaluated] = useState(false);
@@ -201,6 +214,7 @@ export const EvaluationFormQD4185 = () => {
       const keys = getEvidenceFileKeys(item);
 
       const file: UploadedEvidenceFile = {
+        id: item.sourceType === 'evidence' ? item.id : undefined,
         name: item.originalName || item.fileName || item.publicId || item.criterion?.title || item.criteria?.title || 'Minh chứng',
         url,
         type: item.mimeType || item.fileType || (item.imageUrl ? 'image' : undefined),
@@ -221,6 +235,15 @@ export const EvaluationFormQD4185 = () => {
     .flat()
     .filter((file, index, arr) => arr.findIndex((item) => item.url === file.url || item.name === file.name) === index);
 
+  const getFriendlyFileName = (name?: string, index: number = 0) => {
+    if (!name) return `Minh chứng ${index + 1}`;
+    const trimmed = name.trim();
+    if (!trimmed.includes('.') && !trimmed.includes(' ') && /^[a-zA-Z0-9_-]{10,}$/.test(trimmed)) {
+      return `Minh chứng ${index + 1}`;
+    }
+    return trimmed;
+  };
+
   const normalizeEvaluationStatus = (status?: string) => String(status || '').trim().toLowerCase();
 
   const canEditEvaluation = (form: any) => {
@@ -238,7 +261,7 @@ export const EvaluationFormQD4185 = () => {
 
   const handleFileUpload = async (criteriaKey: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || uploadLock.current || submitLock.current) return;
 
     const fileList = Array.from(files);
 
@@ -267,9 +290,10 @@ export const EvaluationFormQD4185 = () => {
     }
 
     try {
+      uploadLock.current = true;
       setUploadingEvidence(criteriaKey);
       setValidationError(null);
-      await ensureEvaluationDraftForEvidence();
+      const targetFormId = await ensureEvaluationDraftForEvidence();
 
       // Khởi tạo progress 0 cho tất cả file cùng lúc
       setFileProgress(prev => ({
@@ -280,33 +304,42 @@ export const EvaluationFormQD4185 = () => {
       // Upload song song toàn bộ file — Promise.allSettled không bị chặn khi 1 file lỗi
       const results = await Promise.allSettled(
         fileList.map(async (file) => {
-          const { secureUrl, publicId } = await uploadEvidenceFile(file, {
-            onProgress: (percent) => {
-              setFileProgress(prev => ({
-                ...prev,
-                [criteriaKey]: { ...(prev[criteriaKey] || {}), [file.name]: percent },
-              }));
-            },
-          });
-
           const evidenceCriteriaCode = mapEvidenceCriteriaCode(criteriaKey);
+          let stage: EvidenceUploadStage = 'cloudinary-upload';
           try {
-            await API_Student.linkEvidenceUrl({
+            const { secureUrl, publicId } = await uploadEvidenceFile(file, {
+              onProgress: (percent) => {
+                setFileProgress(prev => ({
+                  ...prev,
+                  [criteriaKey]: { ...(prev[criteriaKey] || {}), [file.name]: percent },
+                }));
+              },
+            });
+
+            stage = 'link-evidence';
+            const linked = await API_Student.linkEvidenceUrl({
+              evaluationFormId: targetFormId,
               criteriaCode: evidenceCriteriaCode,
               imageUrl: secureUrl,
               publicId,
             });
-          } catch (linkErr) {
-            console.warn('Backend linkEvidenceUrl failed, fallback to local draft state:', linkErr);
+
+            // Đánh dấu file này đã xong
+            setFileProgress(prev => ({
+              ...prev,
+              [criteriaKey]: { ...(prev[criteriaKey] || {}), [file.name]: 'done' },
+            }));
+
+            return { id: linked.id, name: file.name, url: secureUrl, type: file.type } as UploadedEvidenceFile;
+          } catch (error) {
+            logEvidenceUploadError(stage, error, {
+              evaluationFormId: targetFormId,
+              criteriaCode: evidenceCriteriaCode,
+              fileType: file.type,
+              fileSize: file.size,
+            });
+            throw error;
           }
-
-          // Đánh dấu file này đã xong
-          setFileProgress(prev => ({
-            ...prev,
-            [criteriaKey]: { ...(prev[criteriaKey] || {}), [file.name]: 'done' },
-          }));
-
-          return { name: file.name, url: secureUrl, type: file.type } as UploadedEvidenceFile;
         })
       );
 
@@ -318,7 +351,7 @@ export const EvaluationFormQD4185 = () => {
         if (result.status === 'fulfilled') {
           successItems.push(result.value);
         } else {
-          failedNames.push(fileList[idx].name);
+          failedNames.push(`${fileList[idx].name}: ${getUserFriendlyError(result.reason, 'Tải tệp thất bại. Xem Console để biết chi tiết.')}`);
           setFileProgress(prev => ({
             ...prev,
             [criteriaKey]: { ...(prev[criteriaKey] || {}), [fileList[idx].name]: 'error' },
@@ -334,11 +367,12 @@ export const EvaluationFormQD4185 = () => {
       }
 
       if (failedNames.length > 0) {
-        const msg = `Không thể tải lên: ${failedNames.join(', ')}. Vui lòng thử lại các file này.`;
+        const msg = `Không thể tải lên: ${failedNames.join('; ')}`;
         setValidationError(msg);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err: any) {
+      logEvidenceUploadError('prepare-form', err, { evaluationFormId: evaluationId, criteriaCode: mapEvidenceCriteriaCode(criteriaKey) });
       const message = getUserFriendlyError(err, 'Không thể tải minh chứng. Vui lòng thử lại.');
       if (err.statusCode === 409 || message.includes('khóa') || message.includes('locked')) {
         setIsLocked(true);
@@ -349,17 +383,22 @@ export const EvaluationFormQD4185 = () => {
       setValidationError(message);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
+      uploadLock.current = false;
       setUploadingEvidence(null);
       e.target.value = '';
     }
   };
 
-  const removeFile = (criteriaKey: string, index: number) => {
-    setUploadedFiles(prev => {
-      const copy = [...(prev[criteriaKey] || [])];
-      copy.splice(index, 1);
-      return { ...prev, [criteriaKey]: copy };
-    });
+  const removeFile = async (criteriaKey: string, index: number) => {
+    if (isReadOnly || isLocked || uploadLock.current || submitLock.current) return;
+    const file = uploadedFiles[criteriaKey]?.[index] as UploadedEvidenceFile & { id?: string };
+    if (!file?.id) { toast.error('Minh chứng cũ chưa có ID để xóa. Vui lòng tải lại phiếu.'); return; }
+    uploadLock.current = true;
+    try {
+      await API_Student.deleteEvidence(file.id);
+      setUploadedFiles(prev => ({ ...prev, [criteriaKey]: (prev[criteriaKey] || []).filter(item => item.url !== file.url) }));
+    } catch (error) { toast.error(getUserFriendlyError(error, 'Không thể xóa minh chứng.')); }
+    finally { uploadLock.current = false; }
   };
 
   // Score states for SV (Student) — all sv values also written to store via batchSet
@@ -395,6 +434,7 @@ export const EvaluationFormQD4185 = () => {
   // Sync student local state to store sv fields without touching class fields
   useEffect(() => {
     if (currentUserRole === 'student') {
+      const current = store.getState();
       store.getState().batchSet({
         svStudyAttitude,
         svNckh,
@@ -411,12 +451,12 @@ export const EvaluationFormQD4185 = () => {
         svPolicy,
         svSolidarity,
         svLocality,
-        svRoleType,
-        svCadrePosition,
-        svCadrePerformance,
-        svManagementLevel,
-        svClassParticipation,
-        svSpecialAchievement,
+        svRoleType: current.svRoleType || svRoleType,
+        svCadrePosition: current.svCadrePosition || svCadrePosition,
+        svCadrePerformance: current.svCadrePerformance || svCadrePerformance,
+        svManagementLevel: current.svManagementLevel || svManagementLevel,
+        svClassParticipation: current.svClassParticipation ?? svClassParticipation,
+        svSpecialAchievement: current.svSpecialAchievement || svSpecialAchievement,
         isSvViolationSec1,
         isSvViolationSec2,
         isSvViolationSec3,
@@ -436,7 +476,6 @@ export const EvaluationFormQD4185 = () => {
 
   // Validation / Save / Loading states
   const [saved, setSaved] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -764,7 +803,8 @@ export const EvaluationFormQD4185 = () => {
 
   const buildRolePayload = (s: ReturnType<typeof store.getState>) => {
     const rawRoleType = String(s.svRoleType || '').toUpperCase();
-    const positionGroup = ['LEADER_GROUP', 'MEMBER_GROUP'].includes(String(s.svCadrePosition))
+    const isOfficerRole = ['CLASS_OFFICER', 'UNION_OFFICER', 'CLUB_OFFICER', 'CADRE'].includes(rawRoleType);
+    const positionGroup = isOfficerRole && ['LEADER_GROUP', 'MEMBER_GROUP'].includes(String(s.svCadrePosition))
       ? String(s.svCadrePosition)
       : null;
     const isOfficer = Boolean(positionGroup);
@@ -1012,7 +1052,7 @@ export const EvaluationFormQD4185 = () => {
       }
     };
     loadMyEvals();
-  }, []);
+  }, [API_Student]);
 
   const academicYearOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -1310,6 +1350,7 @@ export const EvaluationFormQD4185 = () => {
   };
 
   const handleSubmit = async () => {
+    if (submitLock.current || uploadLock.current || isReadOnly || isLocked) return;
     const validationResult = validateForm();
     if (validationResult) {
       setValidationError(validationResult.message);
@@ -1319,8 +1360,17 @@ export const EvaluationFormQD4185 = () => {
       return;
     }
 
+    submitLock.current = true;
     setIsSubmitting(true);
     try {
+      // A timed-out submit may already have committed: replay it before attempting more draft writes.
+      if (pendingSubmission.current) {
+        await API_Student.submitEvaluation(pendingSubmission.current);
+        pendingSubmission.current = null;
+        toast.success('Gửi phiếu đánh giá thành công.');
+        router.replace('/student/history');
+        return;
+      }
       let currentId = evaluationId;
       if (!currentId) {
         const createRes = await API_Student.createEvaluation({ semester, academicYear });
@@ -1365,23 +1415,23 @@ export const EvaluationFormQD4185 = () => {
       });
 
       // Save detailed score sections
-      const saveRequests: Array<Promise<unknown>> = [
-        API_Student.updateActivityScore(currentId!, {
+      const saveRequests: Array<() => Promise<unknown>> = [
+        () => API_Student.updateActivityScore(currentId!, {
           politicalActivityLevel: mapActivity1(s.svActivity1),
           cultureSportLevel: mapActivity2(s.svActivity2),
           clubActivityLevel: mapActivity3(s.svActivity3),
           socialPreventionLevel: mapActivity4(s.svActivity4),
           rewardScore: s.svRewardPoints
         }),
-        API_Student.updateCommunityScore(currentId!, {
+        () => API_Student.updateCommunityScore(currentId!, {
           lawComplianceLevel: mapPolicy(s.svPolicy),
           volunteerActivityLevel: mapSolidarity(s.svSolidarity),
           communityRelationshipLevel: mapLocality(s.svLocality)
         }),
-        API_Student.updateRoleScore(currentId!, rolePayload)
+        () => API_Student.updateRoleScore(currentId!, rolePayload)
       ];
 
-      saveRequests.unshift(API_Student.updateDisciplineScore(currentId!, {
+      saveRequests.unshift(() => API_Student.updateDisciplineScore(currentId!, {
         baseScore: Math.min(25, Math.max(0, Number(s.svNoViolationScore) || 0)),
         violations: disciplineViolations,
       }));
@@ -1391,12 +1441,15 @@ export const EvaluationFormQD4185 = () => {
         studyPayload.academicRank ||
         (Array.isArray(studyPayload.activities) && studyPayload.activities.length > 0)
       ) {
-        saveRequests.unshift(API_Student.updateStudyScore(currentId!, studyPayload));
+        saveRequests.unshift(() => API_Student.updateStudyScore(currentId!, studyPayload));
       }
 
 
-      await Promise.all(saveRequests);
+      // Sections share one form version: write sequentially and stop on the first failure.
+      for (const save of saveRequests) await save();
+      pendingSubmission.current = currentId!;
       await API_Student.submitEvaluation(currentId!);
+      pendingSubmission.current = null;
 
       setIsSubmitting(false);
       setValidationError(null);
@@ -1406,6 +1459,7 @@ export const EvaluationFormQD4185 = () => {
       router.replace('/student/history');
     } catch (err: any) {
       setIsSubmitting(false);
+      if (err.statusCode && err.statusCode >= 400 && err.statusCode < 500) pendingSubmission.current = null;
       const message = getUserFriendlyError(err, 'Lỗi gửi duyệt phiếu đánh giá.');
       toast.error(message);
       const apiFieldErrors = mapApiErrorsToFields(err.errors);
@@ -1416,6 +1470,9 @@ export const EvaluationFormQD4185 = () => {
       setFieldErrors(apiFieldErrors);
       setValidationError(message);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      submitLock.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -1483,7 +1540,7 @@ export const EvaluationFormQD4185 = () => {
   };
 
   const persistScoreSection = async (section: 'study' | 'discipline' | 'activity' | 'community' | 'role') => {
-    if (!evaluationId || isReadOnly || isLocked || alreadyEvaluated) return;
+    if (!evaluationId || isReadOnly || isLocked || alreadyEvaluated || submitLock.current) return;
 
     try {
       const payloads = buildScorePayloads();
@@ -1758,48 +1815,68 @@ export const EvaluationFormQD4185 = () => {
 
           {/* Read-only Mode Indicator */}
           {isReadOnly && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-amber-800">
-              <Info className="shrink-0 mt-0.5 text-amber-600" />
-              <div>
-                <h4 className="font-bold text-sm">Chế độ Chỉ xem</h4>
-                <p className="text-xs mt-1">
-                  {alreadyEvaluated
-                    ? 'Học kỳ này đã đánh giá.'
-                    : isLocked
-                      ? 'Học kỳ này đã kết thúc, phiếu chỉ ở chế độ xem.'
-                      : 'Phiếu này đã được gửi hoặc phê duyệt, không thể chỉnh sửa.'}
-                </p>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-amber-900 shadow-2xs">
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 mt-0.5">
+                  <Lock size={16} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-amber-950">
+                    {alreadyEvaluated ? 'Học kỳ này đã đánh giá' : 'Chế độ Chỉ xem'}
+                  </h4>
+                  <p className="text-xs text-amber-800 mt-0.5">
+                    {alreadyEvaluated
+                      ? 'Phiếu tự đánh giá đã được hoàn thành. Bạn đang ở chế độ xem lại kết quả.'
+                      : isLocked
+                        ? 'Học kỳ này đã kết thúc, phiếu chỉ ở chế độ xem lại.'
+                        : 'Phiếu này đã được gửi hoặc phê duyệt, không thể chỉnh sửa.'}
+                  </p>
+                </div>
               </div>
+              <span className="shrink-0 hidden sm:inline-flex items-center rounded-full bg-amber-200/70 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                Chỉ xem
+              </span>
             </div>
           )}
 
+          {/* Minh chứng đã đính kèm */}
           {evidenceFilesForDisplay.length > 0 && (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-              <div className="mb-3 flex items-center gap-2 text-emerald-800">
-                <CheckCircle size={17} className="shrink-0 text-emerald-600" />
-                <h4 className="text-sm font-bold">Minh chứng đã nộp</h4>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-2xs">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50 text-blue-600">
+                    <Paperclip size={15} />
+                  </div>
+                  <h4 className="text-sm font-bold text-gray-800">Minh chứng đã đính kèm</h4>
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                    {evidenceFilesForDisplay.length} tệp
+                  </span>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {evidenceFilesForDisplay.map((file, index) => (
-                  <button
-                    key={`${file.url || file.name}-${index}`}
-                    type="button"
-                    onClick={() => file.url && window.open(file.url, '_blank', 'noopener,noreferrer')}
-                    disabled={!file.url}
-                    className="max-w-full truncate rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-900 disabled:cursor-not-allowed disabled:opacity-70"
-                    title={file.url ? 'Click để xem minh chứng' : 'Minh chứng chưa có đường dẫn xem trực tiếp'}
-                  >
-                    {file.name}
-                  </button>
-                ))}
+                {evidenceFilesForDisplay.map((file, index) => {
+                  const displayName = getFriendlyFileName(file.name, index);
+                  const isImage = file.type?.includes('image') || /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name || '');
+                  return (
+                    <button
+                      key={`${file.url || file.name}-${index}`}
+                      type="button"
+                      onClick={() => file.url && window.open(file.url, '_blank', 'noopener,noreferrer')}
+                      disabled={!file.url}
+                      className="group inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-white hover:border-blue-400 hover:text-blue-600 hover:shadow-2xs cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                      title={file.url ? `Xem tệp minh chứng: ${file.name}` : file.name}
+                    >
+                      {isImage ? (
+                        <FileImage size={13} className="text-blue-500 shrink-0" />
+                      ) : (
+                        <FileText size={13} className="text-gray-500 shrink-0 group-hover:text-blue-500" />
+                      )}
+                      <span className="max-w-[200px] truncate">{displayName}</span>
+                      {file.url && <ExternalLink size={11} className="opacity-40 group-hover:opacity-100 shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
-            </div>
-          )}
-
-          {alreadyEvaluated && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-amber-800">
-              <Info className="shrink-0 mt-0.5 text-amber-600" />
-              <p className="text-sm font-bold">Học kỳ này đã đánh giá</p>
             </div>
           )}
 
@@ -1822,7 +1899,7 @@ export const EvaluationFormQD4185 = () => {
             {!isReadOnly && (
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || Boolean(uploadingEvidence) || isReadOnly || isLocked}
                 className="flex items-center justify-center gap-2 px-6 py-2.5 bg-brand-primary hover:bg-red-700 text-white rounded-xl transition cursor-pointer text-xs font-bold min-h-[44px] disabled:opacity-50 shadow-sm"
               >
                 {isSubmitting ? (

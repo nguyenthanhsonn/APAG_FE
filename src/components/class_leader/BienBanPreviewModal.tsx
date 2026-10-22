@@ -33,9 +33,8 @@ export function BienBanPreviewModal({ data, onClose, onPrint, onExport, exportin
 
     window.addEventListener('afterprint', handleAfterPrint);
 
-    let raf1: number;
     let raf2: number;
-    raf1 = requestAnimationFrame(() => {
+    const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         window.print();
       });

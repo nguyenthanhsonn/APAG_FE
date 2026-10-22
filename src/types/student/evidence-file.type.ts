@@ -1,4 +1,5 @@
 export interface EvidenceFile {
+  evaluationFormId?: string;
   id: string;
   fileName: string;
   fileType: string;
@@ -10,6 +11,7 @@ export interface EvidenceFile {
 }
 
 export type UploadedEvidenceFile = {
+  id?: string;
   name: string;
   url: string;
   type?: string;

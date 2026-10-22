@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useMemo, useState, useRef } from 'react';
-import { CheckCircle, Info, X, XCircle } from 'lucide-react';
+import React, { createContext, useCallback, useContext, useMemo, useState, useRef, useEffect } from 'react';
+import { AlertTriangle, CheckCircle, Info, RotateCw, X, XCircle } from 'lucide-react';
 import type { ToastType, ToastItem, ToastContextValue } from '@/types/common';
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -26,6 +26,12 @@ const toastStyles: Record<ToastType, { icon: React.ReactNode; className: string;
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [conflict, setConflict] = useState<string | null>(null);
+  useEffect(() => {
+    const handler = (event: Event) => setConflict((event as CustomEvent<{ message?: string }>).detail?.message || 'Phiếu đã thay đổi. Vui lòng tải lại dữ liệu.');
+    window.addEventListener('evaluation_conflict', handler);
+    return () => window.removeEventListener('evaluation_conflict', handler);
+  }, []);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const lastToastRef = useRef<{ message: string; type: ToastType; timestamp: number } | null>(null);
 
@@ -61,6 +67,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [removeToast]
   );
 
+  const [isReloading, setIsReloading] = useState(false);
+
   const value = useMemo(
     () => ({
       success: (message: string) => pushToast(message, 'success'),
@@ -72,6 +80,74 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastContext.Provider value={value}>
+      {conflict && (
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200 cursor-pointer"
+            onClick={() => setConflict(null)}
+          />
+
+          {/* Modal Card */}
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all duration-200 animate-in zoom-in-95">
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setConflict(null)}
+              className="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Đóng thông báo"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              {/* Icon Container */}
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 ring-8 ring-amber-50/50">
+                <AlertTriangle size={28} />
+              </div>
+
+              {/* Title */}
+              <h3 className="mb-2 text-lg font-bold text-gray-900">Dữ liệu đã được cập nhật</h3>
+
+              {/* Message */}
+              <p className="mb-3 text-sm text-gray-600 leading-relaxed font-medium">
+                {conflict}
+              </p>
+
+              {/* Sub-note */}
+              <div className="mb-6 rounded-xl bg-amber-50/80 border border-amber-200/60 p-3 text-left w-full flex items-start gap-2.5">
+                <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 leading-normal">
+                  Vui lòng tải lại trang để hiển thị thông tin mới nhất từ máy chủ. Các thao tác chưa lưu trên màn hình có thể bị hủy bỏ.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex w-full gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConflict(null)}
+                  className="flex-1 cursor-pointer rounded-xl border border-gray-300 bg-white py-2.5 text-sm font-semibold text-gray-700 shadow-2xs transition hover:bg-gray-50 hover:text-gray-900"
+                >
+                  Để sau
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsReloading(true);
+                    window.location.reload();
+                  }}
+                  disabled={isReloading}
+                  className="flex-1 inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-amber-600 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-amber-700 transition active:scale-[0.98] disabled:opacity-60"
+                >
+                  <RotateCw size={16} className={isReloading ? 'animate-spin' : ''} />
+                  {isReloading ? 'Đang tải lại...' : 'Tải lại dữ liệu'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {children}
       <div className="fixed right-4 top-4 z-9999 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-2">
         {toasts.map((toast) => {

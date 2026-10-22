@@ -59,7 +59,6 @@ const FIELD_LABELS: Record<string, string> = {
   majorId: 'Ngành',
   semester: 'Học kỳ',
   academicYear: 'Năm học',
-  captchaCode: 'Mã xác nhận',
   regularScoreLevel: 'Mức độ tham gia học tập',
   academicRank: 'Xếp loại học tập',
   positionGroup: 'Chức vụ',
@@ -147,7 +146,7 @@ export function getUserFriendlyError(
   fallback = 'Đã có lỗi xảy ra. Vui lòng thử lại sau.'
 ): string {
   // Log đầy đủ lỗi kỹ thuật để dev debug
-  console.error('[API Error]:', error);
+  // API error logging is handled at the caller; avoid duplicate console output.
 
   if (!error) return fallback;
 
@@ -210,6 +209,11 @@ export function getUserFriendlyError(
     isLogin = true;
   }
 
+  if (statusCode === 401 && !isLogin) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  if (statusCode === 403) return 'Bạn không có quyền thực hiện thao tác này hoặc phân công đã thay đổi. Vui lòng liên hệ quản trị viên.';
+  if (statusCode === 409) return isSafeUserMessage(rawMessage)
+    ? rawMessage
+    : 'Phiếu đã thay đổi hoặc thao tác không còn hợp lệ. Vui lòng tải lại dữ liệu trước khi tiếp tục.';
   const normalized = rawMessage.toLowerCase();
 
   // ── Bước 1: Lỗi network / kết nối ───────────────────────────────────────

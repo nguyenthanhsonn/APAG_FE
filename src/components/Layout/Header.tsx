@@ -11,6 +11,7 @@ import { hasAccessToken } from '@/utils/authToken';
 
 import { useToast } from '@/components/common/ToastProvider';
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
+import { NotificationPopover } from './NotificationPopover';
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuthStore();
@@ -109,18 +110,10 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     try {
       if (!notification.isRead) {
         await API_Student.markAsRead(notification.id);
-      }
-      setNotifications((prev) =>
-        prev.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
-      );
-      await fetchUnreadCount();
-
-      if (
-        notification.title.includes('Mở đánh giá rèn luyện') ||
-        notification.title.includes('đã kết thúc')
-      ) {
-        setBellOpen(false);
-        router.push('/student/evaluation');
+        setNotifications((prev) =>
+          prev.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+        );
+        await fetchUnreadCount();
       }
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
@@ -206,56 +199,27 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                 <button
                   type="button"
                   onClick={() => setBellOpen(!bellOpen)}
-                  className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl hover:bg-gray-50 text-[#3D4A6B] transition select-none"
+                  className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl hover:bg-gray-100 text-[#3D4A6B] hover:text-brand-primary transition-all duration-150 select-none active:scale-95"
                   aria-expanded={bellOpen}
                   aria-haspopup="true"
+                  aria-label="Thông báo"
                 >
                   <Bell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm">
+                    <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-xs ring-2 ring-white animate-in zoom-in-75">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </button>
 
-                {bellOpen && (
-                  <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-2xl border border-[#E9ECEF] bg-white shadow-lg p-3.5 focus:outline-none animate-in fade-in-0 slide-in-from-top-2 duration-150 ease-out z-50">
-                    <div className="flex items-center justify-between mb-3 border-b border-[#E9ECEF] pb-2">
-                      <h3 className="text-xs font-bold text-gray-900">Thông báo & Yêu cầu</h3>
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={handleMarkAllRead}
-                          className="cursor-pointer text-[10px] font-bold text-brand-secondary hover:underline"
-                        >
-                          Đọc tất cả
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-                      {notifications.length === 0 ? (
-                        <p className="text-[11px] text-gray-500 text-center py-4">Không có thông báo mới</p>
-                      ) : (
-                        notifications.map((item) => (
-                          <div
-                            key={item.id}
-                            onClick={() => handleNotificationClick(item)}
-                            className={`flex items-start gap-2.5 rounded-xl border-l-[3px] p-2.5 transition cursor-pointer hover:opacity-90 select-none ${item.isRead
-                                ? 'border-l-gray-300 bg-gray-50'
-                                : 'border-l-amber-500 bg-amber-50/50'
-                              }`}
-                          >
-                            <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${item.isRead ? 'bg-gray-400' : 'bg-amber-500'}`} />
-                            <div className="min-w-0">
-                              <p className={`text-[11px] font-bold ${item.isRead ? 'text-gray-600' : 'text-amber-950'}`}>{item.title}</p>
-                              <p className="mt-0.5 text-[10px] font-medium leading-normal text-gray-500 wrap-break-word">{item.description}</p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
+                <NotificationPopover
+                  isOpen={bellOpen}
+                  onClose={() => setBellOpen(false)}
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  onMarkAsRead={handleNotificationClick}
+                  onMarkAllRead={handleMarkAllRead}
+                />
               </div>
             )}
 

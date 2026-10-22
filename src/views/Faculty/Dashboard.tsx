@@ -1,5 +1,7 @@
 'use client';
 
+import { useRef as useActionRef } from 'react';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -72,13 +74,16 @@ export function FacultyDashboard() {
     void loadClasses();
   }, [loadClasses]);
 
+  const actionLock = useActionRef(false);
   const handleFacultyApprove = async (record: FacultyClassRecord) => {
+    if (actionLock.current) return;
     const pendingEvaluations = record.evaluations.filter(
       (item) => ['advisor_approved', 'class_approved'].includes(item.rawStatus.toLowerCase()),
     );
 
     if (pendingEvaluations.length === 0) return;
 
+    actionLock.current = true;
     setLoading(true);
     setErrorMessage('');
     try {
@@ -87,7 +92,7 @@ export function FacultyDashboard() {
     } catch (err: any) {
       setErrorMessage(getUserFriendlyError(err, 'Không gửi được phiếu của lớp lên Phòng Đào tạo.'));
       setLoading(false);
-    }
+    } finally { actionLock.current = false; setLoading(false); }
   };
 
   const filteredClasses = useMemo(() => classes.filter((c) => {
@@ -123,7 +128,9 @@ export function FacultyDashboard() {
   };
 
   const handleBulkFacultyApprove = async () => {
+    if (actionLock.current) return;
     if (selectedClassIds.length === 0) return;
+    actionLock.current = true;
     setLoading(true);
     setErrorMessage('');
     try {
@@ -135,7 +142,7 @@ export function FacultyDashboard() {
     } catch (err: any) {
       setErrorMessage(getUserFriendlyError(err, 'Không gửi được các phiếu đã chọn lên Phòng Đào tạo.'));
       setLoading(false);
-    }
+    } finally { actionLock.current = false; setLoading(false); }
   };
 
   const totalClasses = classes.length;

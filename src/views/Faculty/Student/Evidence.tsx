@@ -1,15 +1,25 @@
 'use client';
 
-import { useCallback, useEffect, useState, ChangeEvent } from 'react';
+import { createEvaluationTransport } from '../../../api/api';
+
+import { useCallback, useEffect, useState, useRef, ChangeEvent } from 'react';
 import { EvidenceFile } from '../../../types';
 import { EvidenceGuidelines } from '../../../components/student/EvidenceGuidelines';
 import { EvidenceGroupCard } from '../../../components/student/EvidenceGroupCard';
-import { API_Student } from '../../../api/API_Student';
+import { createStudentApi } from '../../../api/API_Student';
 import { uploadEvidenceFile } from '../../../services/cloudinaryUpload';
+import { logEvidenceUploadError, type EvidenceUploadStage } from '../../../services/evidenceUploadDiagnostics';
 import { getUserFriendlyError } from '../../../utils/errorHelper';
 import { CRITERIA_CODES } from '../../../constants/evaluationEnums';
 
 export const StudentEvidence = () => {
+  const [versionContext] = useState(() => createEvaluationTransport('student-evidence'));
+  const [API_Student] = useState(() => createStudentApi(versionContext));
+  const [forms, setForms] = useState<Array<{ id: string; label: string; editable: boolean }>>([]);
+  const [selectedFormId, setSelectedFormId] = useState('');
+  const [formReady, setFormReady] = useState(false);
+  const mutationLock = useRef(false);
+  const [busy, setBusy] = useState(false);
   const [evidences, setEvidences] = useState<EvidenceFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadingGroup, setUploadingGroup] = useState<string | null>(null);
@@ -26,7 +36,16 @@ export const StudentEvidence = () => {
     fileType: item.fileType || item.mimeType || 'application/octet-stream',
     fileSize: item.fileSize || item.size || 0,
     url: getEvidenceUrl(item),
-    criteriaId: item.criteriaId || item.criteriaCode || 'TC1',
+    evaluationFormId: item.evaluationFormId,
+    criteriaId: (() => {
+      const code = item.criterion?.code || item.criteriaCode || item.criteriaId || '';
+      if (/^(I\.|TC1)/.test(code)) return 'TC1';
+      if (/^(II\.|TC2)/.test(code)) return 'TC2';
+      if (/^(III\.|TC3)/.test(code)) return 'TC3';
+      if (/^(IV\.|TC4)/.test(code)) return 'TC4';
+      if (/^(V\.|TC5)/.test(code)) return 'TC5';
+      return code;
+    })(),
     uploadDate: item.uploadDate || item.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
     aiVerification: item.aiVerification || 'manual_review',
   }), [getEvidenceUrl]);
@@ -54,15 +73,30 @@ export const StudentEvidence = () => {
     } finally {
       setLoading(false);
     }
-  }, [mapEvidence]);
+  }, [mapEvidence, API_Student]);
 
   useEffect(() => {
     loadEvidences();
-  }, [loadEvidences]);
+    API_Student.getMyEvaluations().then(items => setForms(items.map(item => ({
+      id: item.id,
+      label: `${typeof item.semester === 'object' ? item.semester.semester : item.semester || ''} / ${item.academicYear || (typeof item.semester === 'object' ? item.semester.year : '')} — ${item.status}`,
+      editable: ['draft', 'rejected'].includes(item.status) && !item.isLocked && item.semesterIsActive !== false,
+    })))).catch(err => setError(getUserFriendlyError(err)));
+  }, [loadEvidences, API_Student]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFormReady(false);
+    if (selectedFormId) API_Student.getEvaluationDetail(selectedFormId)
+      .then(() => { if (!cancelled) setFormReady(true); })
+      .catch(err => { if (!cancelled) setError(getUserFriendlyError(err)); });
+    return () => { cancelled = true; };
+  }, [selectedFormId, API_Student]);
+  const editable = formReady && Boolean(forms.find(form => form.id === selectedFormId)?.editable);
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, criteriaId: string) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || mutationLock.current || !editable) return;
 
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
     const fileList = Array.from(files);
@@ -74,54 +108,69 @@ export const StudentEvidence = () => {
     }
 
     try {
+      mutationLock.current = true;
+      setBusy(true);
       setUploadingGroup(criteriaId);
       setError(null);
 
       // Upload song song toàn bộ file — tích hợp compression tự động trong uploadEvidenceFile
       const results = await Promise.allSettled(
         fileList.map(async (file) => {
-          const { secureUrl, publicId } = await uploadEvidenceFile(file);
           const evidenceCriteriaCode = mapEvidenceCriteriaCode(criteriaId);
+          let stage: EvidenceUploadStage = 'cloudinary-upload';
           try {
+            const { secureUrl, publicId } = await uploadEvidenceFile(file);
+            stage = 'link-evidence';
             await API_Student.linkEvidenceUrl({
+              evaluationFormId: selectedFormId,
               criteriaCode: evidenceCriteriaCode,
               imageUrl: secureUrl,
               publicId,
             });
-          } catch (linkErr) {
-            console.warn('Backend linkEvidenceUrl failed:', linkErr);
+          } catch (error) {
+            logEvidenceUploadError(stage, error, {
+              evaluationFormId: selectedFormId,
+              criteriaCode: evidenceCriteriaCode,
+              fileType: file.type,
+              fileSize: file.size,
+            });
+            throw error;
           }
         })
       );
 
       // Thông báo file lỗi nếu có
       const failedNames = results
-        .map((r, i) => (r.status === 'rejected' ? fileList[i].name : null))
+        .map((r, i) => (r.status === 'rejected' ? `${fileList[i].name}: ${getUserFriendlyError(r.reason, 'Tải tệp thất bại. Xem Console để biết chi tiết.')}` : null))
         .filter(Boolean) as string[];
 
+      // Chỉ tải lại nếu có tệp đã lưu; hiển thị lỗi sau để không bị xóa khi reload.
+      if (results.some(result => result.status === 'fulfilled')) await loadEvidences();
       if (failedNames.length > 0) {
-        setError(`Không thể tải lên: ${failedNames.join(', ')}. Vui lòng thử lại.`);
+        setError(`Không thể tải lên: ${failedNames.join('; ')}`);
       }
-
-      // Reload danh sách từ server để đảm bảo đồng bộ
-      await loadEvidences();
     } catch (err: any) {
       setError(getUserFriendlyError(err, 'Không thể tải minh chứng. Vui lòng thử lại.'));
     } finally {
+      mutationLock.current = false;
+      setBusy(false);
       setUploadingGroup(null);
       e.target.value = '';
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (mutationLock.current || !editable) return;
     if (confirm('Bạn có chắc muốn xóa minh chứng này?')) {
+      mutationLock.current = true;
+      setBusy(true);
       try {
         setError(null);
         await API_Student.deleteEvidence(id);
         setEvidences((prev) => prev.filter((e) => e.id !== id));
       } catch (err: any) {
         setError(getUserFriendlyError(err, 'Không thể xóa minh chứng.'));
-      }
+      } finally { mutationLock.current = false; setBusy(false); }
     }
   };
 
@@ -143,6 +192,14 @@ export const StudentEvidence = () => {
     <div className="p-4 sm:p-6 max-w-6xl mx-auto w-full space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Quản lý minh chứng</h1>
 
+      <label className="block text-sm font-semibold text-gray-700">
+        Phiếu đánh giá
+        <select aria-label="Phiếu đánh giá" value={selectedFormId} disabled={busy} onChange={event => setSelectedFormId(event.target.value)} className="mt-2 block w-full rounded-lg border p-3">
+          <option value="">Chọn phiếu cần xem hoặc thêm minh chứng</option>
+          {forms.map(form => <option key={form.id} value={form.id}>{form.label}</option>)}
+        </select>
+      </label>
+      {selectedFormId && !editable && <p className="text-sm text-amber-700">Phiếu đang tải hoặc không còn được chỉnh sửa.</p>}
       <EvidenceGuidelines />
 
       {loading && (
@@ -164,12 +221,13 @@ export const StudentEvidence = () => {
       )}
 
       {criteriaGroups.map((group) => {
-        const groupEvidences = evidences.filter((e) => e.criteriaId === group.id);
+        const groupEvidences = evidences.filter((e) => e.criteriaId === group.id && (e as EvidenceFile & { evaluationFormId?: string }).evaluationFormId === selectedFormId);
 
         return (
           <EvidenceGroupCard
             key={group.id}
             group={group}
+            disabled={!editable || busy}
             groupEvidences={groupEvidences}
             handleFileUpload={handleFileUpload}
             handleDelete={handleDelete}

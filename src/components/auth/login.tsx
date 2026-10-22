@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
   AlertCircle,
   Eye,
@@ -10,12 +9,10 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { API_Auth } from '../../api/API_Auth';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import type { UserRole } from '../../types/common';
 import { getUserFriendlyError } from '../../utils/errorHelper';
-import { useToast } from '../../components/common/ToastProvider';
 import ForgotPassword from './forgotPassword';
 
 const LoginSchema = Yup.object().shape({
@@ -24,7 +21,6 @@ const LoginSchema = Yup.object().shape({
     .min(6, 'Mật khẩu tối thiểu 6 ký tự')
     .max(50, 'Mật khẩu tối đa 50 ký tự')
     .required('Vui lòng nhập mật khẩu'),
-  captchaCode: Yup.string().trim().required('Vui lòng nhập mã captcha'),
 });
 
 const FORM_WIDTH = 720;
@@ -59,29 +55,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [captchaId, setCaptchaId] = useState('');
-  const [captchaImage, setCaptchaImage] = useState('');
-  const [captchaLoading, setCaptchaLoading] = useState(false);
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
-  const wrongCaptchaCountRef = useRef(0);
-  const toast = useToast();
   const { scale, outerRef } = useFitScale(FORM_WIDTH, 32);
-
-  const loadCaptcha = async (showError = false) => {
-    try {
-      setCaptchaLoading(true);
-      const captcha = await API_Auth.getCaptcha();
-      setCaptchaId(captcha.captchaId || '');
-      setCaptchaImage(captcha.image || '');
-    } catch (err: any) {
-      if (showError) setError(getUserFriendlyError(err, 'Không thể tải mã xác nhận. Vui lòng thử lại.'));
-    } finally {
-      setCaptchaLoading(false);
-    }
-  };
-
-  useEffect(() => { loadCaptcha(false); }, []);
 
   const getRoleHome = (role: UserRole) => {
     switch (role) {
@@ -96,19 +72,14 @@ export default function Login() {
   };
 
   const formik = useFormik<Yup.InferType<typeof LoginSchema>>({
-    initialValues: { username: '', password: '', captchaCode: '' },
+    initialValues: { username: '', password: '' },
     validationSchema: LoginSchema,
     validateOnBlur: false,
     validateOnChange: false,
     onSubmit: async (values, { setSubmitting }) => {
       setError('');
       try {
-        if (!captchaId) {
-          setError('Vui lòng tải lại mã captcha.');
-          await loadCaptcha(true);
-          return;
-        }
-        const success = await login(values.username, values.password, captchaId, values.captchaCode);
+        const success = await login(values.username, values.password);
         if (success) {
           const user = useAuthStore.getState().user;
           router.push(user?.role ? getRoleHome(user.role) : '/student');
@@ -116,27 +87,7 @@ export default function Login() {
           setError('Tên đăng nhập hoặc mật khẩu không đúng');
         }
       } catch (err: any) {
-        const errMessage = err.message || '';
-        const isCaptchaError =
-          errMessage.toLowerCase().includes('captcha') ||
-          errMessage.includes('xác thực') ||
-          errMessage.includes('mã') ||
-          (err.errors && JSON.stringify(err.errors).toLowerCase().includes('captcha'));
-
-        if (isCaptchaError) {
-          formik.setFieldError('captchaCode', 'Mã captcha không đúng, vui lòng nhập lại');
-          formik.setFieldValue('captchaCode', '');
-          await loadCaptcha(false);
-          wrongCaptchaCountRef.current += 1;
-          if (wrongCaptchaCountRef.current >= 3) {
-            wrongCaptchaCountRef.current = 0;
-            toast.error('Bạn đã nhập sai nhiều lần, mã captcha mới đã được tạo.');
-          }
-        } else {
-          setError(getUserFriendlyError(err, 'Đăng nhập không thành công. Vui lòng kiểm tra lại.'));
-          formik.setFieldValue('captchaCode', '');
-          await loadCaptcha(false);
-        }
+        setError(getUserFriendlyError(err, 'Đăng nhập không thành công. Vui lòng kiểm tra lại.'));
       } finally {
         setSubmitting(false);
       }
@@ -258,34 +209,7 @@ export default function Login() {
                       {formik.errors.password && <p style={{ marginTop: 2, fontSize: 11, fontWeight: 500, color: '#fca5a5' }}>{formik.errors.password}</p>}
                     </div>
 
-                    <div>
-                      <label style={{ display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>Mã xác nhận</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-
-                        <input type="text" placeholder="Nhập mã" autoComplete="off"
-                          className={`h-10 flex-1 rounded-xl border bg-white px-3 text-sm font-bold uppercase tracking-widest text-gray-900 outline-none transition placeholder:text-gray-400 placeholder:normal-case placeholder:tracking-normal ${formik.touched.captchaCode && formik.errors.captchaCode
-                              ? 'border-red-400 focus:border-[#ED1C24] focus:ring-2 focus:ring-[#ED1C24]/20'
-                              : 'border-gray-300 focus:border-[#ED1C24] focus:ring-2 focus:ring-[#ED1C24]/20'
-                            }`}
-                          {...formik.getFieldProps('captchaCode')}
-                          onChange={(e) => { formik.handleChange(e); if (formik.errors.captchaCode) formik.setFieldError('captchaCode', undefined); }} />
-                        <div
-                          style={{ width: 112, height: 40, flexShrink: 0, borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          aria-label="Mã captcha"
-                        >
-                          {captchaImage ? (
-                            <Image src={captchaImage} alt="Captcha" width={108} height={36} unoptimized style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }} />
-                          ) : (
-                            <span style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af' }}>{captchaLoading ? '...' : 'Trống'}</span>
-                          )}
-                        </div>
-                      </div>
-                      {formik.touched.captchaCode && formik.errors.captchaCode && (
-                        <p style={{ marginTop: 2, fontSize: 11, fontWeight: 500, color: '#fca5a5' }}>{formik.errors.captchaCode}</p>
-                      )}
-                    </div>
-
-                    <button type="submit" disabled={formik.isSubmitting || captchaLoading}
+                    <button type="submit" disabled={formik.isSubmitting}
                       style={{ marginTop: 4, height: 44, width: '100%', borderRadius: 12, background: '#ED1C24', border: 'none', color: '#fff', fontSize: 14, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 18px rgba(237,28,36,0.4)' }}>
                       {formik.isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                     </button>

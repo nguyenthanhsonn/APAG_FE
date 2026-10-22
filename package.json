@@ -10,7 +10,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:api": "node --test test/evaluation-api.test.cjs",
+    "test:profile": "node --test test/profile-academic-context.test.cjs",
+    "test:socket": "node --test test/notification-socket.test.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",

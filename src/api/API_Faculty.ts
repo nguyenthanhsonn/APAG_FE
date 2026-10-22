@@ -1,4 +1,4 @@
-import { axiosInstance, buildQueryParams, get, post } from './api';
+import { axiosInstance, buildQueryParams, get } from './api';
 import type { AdminEvaluationItem, AdminEvaluationListQuery } from '../types';
 
 export type FacultyReportExportFormat = 'excel' | 'word';
@@ -38,16 +38,6 @@ export const API_Faculty = {
       '/training-evaluations',
       { params: buildQueryParams({ facultyId, ...query }) },
     );
-  },
-
-  /** Khoa duyệt một phiếu đã được CVHT chốt */
-  approveFacultyEvaluation: (id: string) => {
-    return post<AdminEvaluationItem>(`/training-evaluations/${id}/review`, { action: 'approve' });
-  },
-
-  /** Khoa trả phiếu về CVHT kèm lý do */
-  rejectFacultyEvaluation: (id: string, reason: string) => {
-    return post<AdminEvaluationItem>(`/training-evaluations/${id}/review`, { action: 'reject', comment: reason });
   },
 
   /** Khoa xuất biên bản họp khoa theo template từ BE */

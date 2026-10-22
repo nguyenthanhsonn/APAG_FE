@@ -89,11 +89,13 @@ export interface AdminEvaluationListQuery extends PaginationQuery {
 
 /** Thông tin mở lại phiếu đánh giá. */
 export interface ReopenEvaluationPayload {
+  expectedVersion?: number;
   reason?: string;
 }
 
 /** Thông tin hội đồng lớp ghi điểm. */
 export interface ReviewScoresPayload {
+  expectedVersion?: number;
   scores: Array<{
     criteriaCode: string;
     classScore: number;
@@ -103,6 +105,7 @@ export interface ReviewScoresPayload {
 
 /** Thông tin duyệt hoặc từ chối phiếu. */
 export interface ReviewEvaluationPayload {
+  expectedVersion?: number;
   action: 'approve' | 'reject';
   classScore?: number;
   comment?: string;
@@ -111,6 +114,7 @@ export interface ReviewEvaluationPayload {
 
 /** Thông tin admin phê duyệt cuối. */
 export interface FinalizeEvaluationPayload {
+  expectedVersion?: number;
   finalScore?: number;
 }
 
@@ -241,6 +245,7 @@ export interface ImportStudentsResult {
   validRows?: ImportStudentPreviewItem[];
   createdStudents?: ImportStudentPreviewItem[];
   emailSentCount?: number;
+  emailQueuedCount?: number;
   emailFailedCount?: number;
   emailErrors?: ImportEmailErrorItem[];
   failedCount: number;
@@ -346,6 +351,7 @@ export interface SubmitClassEvaluationResponse {
 }
 
 export interface ReturnEvaluationToStudentPayload {
+  expectedVersion?: number;
   reason: string;
 }
 

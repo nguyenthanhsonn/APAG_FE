@@ -66,6 +66,7 @@ export type AdminFaculty = Faculty & {
 /** Phiếu đánh giá trong danh sách quản trị. */
 export type AdminEvaluationItem = {
   id: string;
+  version: number;
   status: string;
   statusLabel?: string;
   submittedAt?: string;

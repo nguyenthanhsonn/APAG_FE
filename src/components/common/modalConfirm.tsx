@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { AlertTriangle, Trash2, Info, X } from 'lucide-react';
 import type { ModalConfirmProps } from '@/types/common';
 
@@ -20,6 +20,15 @@ export default function ModalConfirm({
   onConfirm,
   onCancel,
 }: ModalConfirmProps) {
+  const lock = useRef(false);
+  const [pending, setPending] = useState(false);
+  const confirmOnce = async () => {
+    if (lock.current) return;
+    lock.current = true; setPending(true);
+    try { await onConfirm(); }
+    finally { lock.current = false; setPending(false); }
+  };
+  const cancel = () => { if (!lock.current) onCancel(); };
   if (!isOpen) return null;
 
   const getTheme = () => {
@@ -84,7 +93,7 @@ export default function ModalConfirm({
       {/* Overlay backdrop */}
       <div
         className="fixed inset-0 z-50 cursor-pointer bg-black/40 backdrop-blur-[2px]"
-        onClick={onCancel}
+        onClick={cancel}
       />
 
       {/* Modal dialog wrapper */}
@@ -94,7 +103,7 @@ export default function ModalConfirm({
           {/* Close button */}
           <button
             type="button"
-            onClick={onCancel}
+            onClick={cancel}
             className="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#868E96] transition hover:bg-[#F8F9FA] hover:text-[#1A1B1E]"
           >
             <X size={16} />
@@ -131,18 +140,18 @@ export default function ModalConfirm({
             <div className="flex w-full gap-3">
               <button
                 type="button"
-                onClick={onCancel}
+                onClick={cancel}
                 className="flex-1 cursor-pointer rounded-lg border border-[#DEE2E6] bg-white py-2.5 text-sm font-semibold text-[#495057] transition hover:bg-[#F8F9FA]"
               >
                 {cancelText}
               </button>
               <button
                 type="button"
-                onClick={onConfirm}
-                disabled={isConfirmDisabled}
+                onClick={confirmOnce}
+                disabled={pending || isConfirmDisabled}
                 className={`flex-1 cursor-pointer rounded-lg py-2.5 text-sm font-semibold text-white transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${theme.confirmBtn}`}
               >
-                {confirmText}
+                {pending ? 'Đang xử lý...' : confirmText}
               </button>
             </div>
           </div>

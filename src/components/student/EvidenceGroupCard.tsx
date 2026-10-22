@@ -2,6 +2,7 @@ import { Upload, File, CheckCircle, AlertCircle, Eye, Trash2 } from 'lucide-reac
 import { EvidenceGroupCardProps } from '../../types';
 
 export const EvidenceGroupCard = ({
+  disabled = false,
   group,
   groupEvidences,
   handleFileUpload,
@@ -16,6 +17,7 @@ export const EvidenceGroupCard = ({
           <Upload size={16} />
           Tải lên
           <input
+            disabled={disabled}
             type="file"
             multiple
             accept="image/*,.pdf"
@@ -88,6 +90,7 @@ export const EvidenceGroupCard = ({
                   <Eye size={20} />
                 </button>
                 <button
+                  disabled={disabled}
                   onClick={() => handleDelete(evidence.id)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
                 >
