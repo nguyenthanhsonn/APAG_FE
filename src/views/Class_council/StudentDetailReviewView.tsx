@@ -1,10 +1,14 @@
 'use client';
 
+import { createEvaluationTransport } from '@/api/api';
+
+import { useRef } from 'react';
+
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { CheckCircle2, FileText, Loader2, Paperclip, RefreshCw, RotateCcw, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { API_Admin } from '@/api/API_Admin';
-import { API_Shared } from '@/api/API_Shared';
+import { createAdminApi } from '@/api/API_Admin';
+import { createSharedApi } from '@/api/API_Shared';
 import { CouncilCriteriaReviewTable } from '@/components/class_council/CouncilCriteriaReviewTable';
 import EvidenceReviewModal, { type ReviewEvidence } from '@/components/class_council/EvidenceReviewModal';
 import StudentReviewHeader from '@/components/class_council/StudentReviewHeader';
@@ -177,9 +181,13 @@ const reverseMapSpecialAchievement = (value?: string | null) => {
 };
 
 export function StudentDetailReviewView() {
+  const [versionContext] = useState(() => createEvaluationTransport('review-detail'));
+  const [API_Admin] = useState(() => createAdminApi(versionContext));
+  const [API_Shared] = useState(() => createSharedApi(versionContext));
   const router = useRouter();
   const params = useParams();
   const toast = useToast();
+  const actionLock = useRef(false);
   const user = useAuthStore((state) => state.user);
   const classId = getParam(params.classId);
   const evaluationId = getParam(params.studentId);
@@ -379,7 +387,7 @@ export function StudentDetailReviewView() {
     } finally {
       setLoading(false);
     }
-  }, [classId, deductionWeights, evaluationId, store, toast, user]);
+  }, [classId, deductionWeights, evaluationId, store, toast, user, API_Admin]);
 
   useEffect(() => {
     loadEvaluationDetail();
@@ -398,12 +406,14 @@ export function StudentDetailReviewView() {
   const canConfirm = canConfirmReview(user?.role, { status: workflowStatus, classScore: 1 });
 
   const handleConfirmReview = async () => {
+    if (actionLock.current) return;
     if (!evaluationId) {
       toast.error('Không tìm thấy phiếu đánh giá.');
       return;
     }
 
     try {
+      actionLock.current = true;
       setConfirming(true);
       const { computeCouncilScores } = await import('@/store/councilReviewStore');
       const storeState = store.getState();
@@ -448,6 +458,7 @@ export function StudentDetailReviewView() {
     } catch (error: any) {
       toast.error(getUserFriendlyError(error, 'Không xác nhận được đánh giá.'));
     } finally {
+      actionLock.current = false;
       setConfirming(false);
     }
   };
@@ -478,6 +489,7 @@ export function StudentDetailReviewView() {
   };
 
   const handleReturnToStudent = async () => {
+    if (actionLock.current) return;
     const reason = returnReason.trim();
 
     if (!evaluationId) {
@@ -491,6 +503,7 @@ export function StudentDetailReviewView() {
     }
 
     try {
+      actionLock.current = true;
       setReturning(true);
       await API_Admin.returnEvaluationToStudent(evaluationId, { reason });
       toast.success('Đã gửi lại phiếu cho sinh viên.');
@@ -500,6 +513,7 @@ export function StudentDetailReviewView() {
     } catch (error: any) {
       toast.error(getUserFriendlyError(error, 'Không gửi lại được phiếu cho sinh viên.'));
     } finally {
+      actionLock.current = false;
       setReturning(false);
     }
   };
@@ -661,8 +675,14 @@ export function StudentDetailReviewView() {
         isOpen={evidenceModalOpen}
         evidences={evidences}
         onClose={() => setEvidenceModalOpen(false)}
-        onApprove={(evidenceId) => updateEvidence(evidenceId, { status: 'approved', rejectReason: undefined })}
-        onReject={(evidenceId, reason) => updateEvidence(evidenceId, { status: 'rejected', rejectReason: reason })}
+        onApprove={(evidenceId) => {
+          updateEvidence(evidenceId, { status: 'approved', rejectReason: undefined });
+          toast.success('Đã duyệt minh chứng.');
+        }}
+        onReject={(evidenceId, reason) => {
+          updateEvidence(evidenceId, { status: 'rejected', rejectReason: reason });
+          toast.info('Đã từ chối minh chứng.');
+        }}
       />
     </div>
   );

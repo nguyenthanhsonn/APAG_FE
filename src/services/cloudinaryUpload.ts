@@ -70,20 +70,6 @@ async function compressImageFile(file: File): Promise<File> {
   });
 }
 
-const rawCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-const rawPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-if (!rawCloudName || !rawPreset) {
-  throw new Error(
-    'Thiếu cấu hình Cloudinary: kiểm tra lại NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME và NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET trong file .env'
-  );
-}
-
-const CLOUDINARY_CLOUD_NAME = rawCloudName;
-const CLOUDINARY_UPLOAD_PRESET = rawPreset;
-
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
-
 export interface UploadEvidenceOptions {
   /** Callback trả về % tiến trình upload (0–100). */
   onProgress?: (percent: number) => void;
@@ -98,12 +84,17 @@ export async function uploadEvidenceFile(
   file: File,
   options?: UploadEvidenceOptions,
 ): Promise<{ secureUrl: string; publicId: string }> {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
+  if (!cloudName || !preset || /^\*+$/.test(cloudName) || /^\*+$/.test(preset)) {
+    throw new Error('Thiếu cấu hình Cloudinary: kiểm tra NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME và NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET rồi khởi động/build lại ứng dụng.');
+  }
   // Bước 1: Nén ảnh (chỉ image/*, fallback file gốc nếu lỗi)
   const fileToUpload = await compressImageFile(file);
 
   const formData = new FormData();
   formData.append('file', fileToUpload);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('upload_preset', preset);
 
   // Bước 2: Upload qua XHR để bắt onprogress
   return new Promise((resolve, reject) => {
@@ -119,22 +110,32 @@ export async function uploadEvidenceFile(
     }
 
     xhr.onload = () => {
+      let data;
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        reject(Object.assign(new Error(`Phản hồi từ Cloudinary không hợp lệ (HTTP ${xhr.status}).`), { statusCode: xhr.status }));
+        return;
+      }
       if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
+        if (typeof data?.secure_url === 'string' && data.secure_url.trim() &&
+            typeof data?.public_id === 'string' && data.public_id.trim()) {
           resolve({ secureUrl: data.secure_url, publicId: data.public_id });
-        } catch {
+        } else {
           reject(new Error('Phản hồi từ Cloudinary không hợp lệ.'));
         }
       } else {
-        reject(new Error(`Upload file lên Cloudinary thất bại (HTTP ${xhr.status}).`));
+        const reason = typeof data?.error?.message === 'string' ? ` ${data.error.message}` : '';
+        reject(Object.assign(new Error(`Upload file lên Cloudinary thất bại (HTTP ${xhr.status}).${reason}`), { statusCode: xhr.status }));
       }
     };
 
     xhr.onerror = () => reject(new Error('Lỗi kết nối khi upload file lên Cloudinary.'));
     xhr.ontimeout = () => reject(new Error('Upload file bị timeout.'));
+    xhr.onabort = () => reject(new Error('Upload file đã bị hủy.'));
 
-    xhr.open('POST', CLOUDINARY_UPLOAD_URL);
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+    xhr.timeout = 120_000;
     xhr.send(formData);
   });
 }

@@ -16,6 +16,7 @@ export interface StudentManagementItem {
   admissionYear?: string;
   isActive: boolean;
   accountEmailSent?: boolean;
+  accountEmailQueued?: boolean;
   accountEmailError?: string;
   managedFaculties?: Array<{
     id?: string;

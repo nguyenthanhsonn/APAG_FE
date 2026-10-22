@@ -1,10 +1,14 @@
 'use client';
 
+import { createEvaluationTransport } from '@/api/api';
+
+import { useRef as useActionRef } from 'react';
+
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Loader2, Search, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { API_Admin } from '@/api/API_Admin';
-import { API_Shared } from '@/api/API_Shared';
+import { createAdminApi } from '@/api/API_Admin';
+import { createSharedApi } from '@/api/API_Shared';
 import CustomSelect from '@/components/common/CustomSelect';
 import { useToast } from '@/components/common/ToastProvider';
 import { useAuthStore } from '@/store/authStore';
@@ -98,6 +102,9 @@ const classDataCache = new Map<string, {
 
 /* ── Main Component ── */
 export default function AdvisorClassDetailPage() {
+  const [versionContext] = useState(() => createEvaluationTransport('class-review'));
+  const [API_Admin] = useState(() => createAdminApi(versionContext));
+  const [API_Shared] = useState(() => createSharedApi(versionContext));
   const router = useRouter();
   const params = useParams();
   const toast = useToast();
@@ -168,7 +175,8 @@ export default function AdvisorClassDetailPage() {
 
         try {
           detailResult = await API_Shared.getClassDetails(classId);
-        } catch {
+        } catch (error: unknown) {
+          if ([401, 403].includes(Number((error as { statusCode?: number }).statusCode))) throw error;
           detailResult = null;
         }
 
@@ -191,7 +199,8 @@ export default function AdvisorClassDetailPage() {
 
         try {
           studentsResult = await API_Shared.getClassStudents(classId, { page: 1, limit: 100 });
-        } catch {
+        } catch (error: unknown) {
+          if ([401, 403].includes(Number((error as { statusCode?: number }).statusCode))) throw error;
           studentsResult = [];
         }
 
@@ -203,7 +212,8 @@ export default function AdvisorClassDetailPage() {
             page: 1,
             limit: 100,
           });
-        } catch {
+        } catch (error: unknown) {
+          if ([401, 403].includes(Number((error as { statusCode?: number }).statusCode))) throw error;
           evaluationsResult = [];
         }
 
@@ -342,7 +352,7 @@ export default function AdvisorClassDetailPage() {
         window.removeEventListener('evaluation_confirmed', handleRefresh);
       }
     };
-  }, [classId, user?.role]);
+  }, [classId, user?.role, API_Shared]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -414,12 +424,15 @@ export default function AdvisorClassDetailPage() {
     [classId, router, user],
   );
 
+  const submitLock = useActionRef(false);
   const handleSubmitClass = useCallback(async () => {
+    if (submitLock.current) return;
     if (!classId || submittingClass || selectedIds.length === 0) {
       return;
     }
 
     try {
+      submitLock.current = true;
       setSubmittingClass(true);
       const payload = { evaluationIds: selectedIds };
       const result =
@@ -442,9 +455,10 @@ export default function AdvisorClassDetailPage() {
     } catch (error: any) {
       toast.error(getUserFriendlyError(error, 'Không gửi được danh sách phiếu đánh giá.'));
     } finally {
+      submitLock.current = false;
       setSubmittingClass(false);
     }
-  }, [classId, selectedIds, submittingClass, toast, user]);
+  }, [classId, selectedIds, submittingClass, toast, user, submitLock, API_Admin]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">

@@ -1,6 +1,5 @@
 export type {
   AuthState,
-  CaptchaResponse,
   ChangePasswordPayload,
   LoginPayload,
   LoginResponse,

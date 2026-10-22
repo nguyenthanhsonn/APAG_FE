@@ -124,7 +124,7 @@ export const EvaluationSection4 = ({
           {/* Criteria 4.1 */}
           <div className="border-b pb-4 space-y-3">
             <h3 className="text-sm font-bold text-gray-800">4.1 Ý thức chấp hành và tham gia tuyên truyền các chủ trương, đường lối của Đảng, chính sách pháp luật của Nhà nước, quy định nơi cư trú, giữ gìn an ninh- trật tự, an toàn giao thông, quy định trong cộng đồng (Điểm tối đa: 10đ)</h3>
-            <p className="text-xs text-gray-500 mt-0.5">* Mức "được địa phương / Học viện khen thưởng" yêu cầu đính kèm minh chứng.</p>
+            <p className="text-xs text-gray-500 mt-0.5">* Mức &quot;được địa phương / Học viện khen thưởng&quot; yêu cầu đính kèm minh chứng.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* SV Column */}
@@ -193,7 +193,7 @@ export const EvaluationSection4 = ({
           {/* Criteria 4.2 */}
           <div className="border-b pb-4 space-y-3">
             <h3 className="text-sm font-bold text-gray-800">4.2 Tham gia các hoạt động nhân đạo, từ thiện vì cộng đồng, phong trào thanh niên tình nguyện, phong trào giúp đỡ nhân dân và bạn bè khi gặp thiên tai, khó khăn, hoạn nạn (Điểm tối đa: 10đ)</h3>
-            <p className="text-xs text-gray-500 mt-0.5">* Mức "được khen thưởng" yêu cầu đính kèm minh chứng.</p>
+            <p className="text-xs text-gray-500 mt-0.5">* Mức &quot;được khen thưởng&quot; yêu cầu đính kèm minh chứng.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* SV Column */}

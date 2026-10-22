@@ -29,7 +29,7 @@ export const API_EvaluationForm = {
 
   /** Mở lại phiếu đánh giá đã nộp */
   reopenEvaluation: (id: string, payload?: ReopenEvaluationPayload) => {
-    return post<AdminEvaluationItem>(`/training-evaluations/${id}/reopen`, payload);
+    return post<AdminEvaluationItem>(`/admin/evaluations/${id}/reopen`, payload);
   },
 
   /** Ghi nhận điểm Hội đồng tự chấm cho lớp */
@@ -46,7 +46,7 @@ export const API_EvaluationForm = {
   bulkFinalizeEvaluations: (payload: BulkFinalizeEvaluationsPayload) => {
     return patch<{ finalizedCount?: number; items?: AdminEvaluationItem[] }>(
       '/admin/evaluations/bulk-finalize',
-      payload,
+      { ids: payload.evaluationIds },
     );
   },
 

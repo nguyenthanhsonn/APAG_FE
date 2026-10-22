@@ -1,7 +1,6 @@
 import { get, patch, post } from './api';
 
 import type {
-  CaptchaResponse,
   ChangePasswordPayload,
   LoginPayload,
   LoginResponse,
@@ -9,18 +8,11 @@ import type {
   User,
 } from '../types';
 
-/** Lấy mã xác nhận khi đăng nhập. */
-async function getCaptcha() {
-  return get<CaptchaResponse>('/auth/captcha', { skipAuth: true, skipAuthRefresh: true } as any);
-}
-
 /** Đăng nhập tài khoản. */
-async function login(username: string, password: string, captchaId: string, captchaCode: string) {
+async function login(username: string, password: string) {
   return post<LoginResponse>('/auth/login', {
     username,
     password,
-    captchaId,
-    captchaCode,
   } satisfies LoginPayload, { skipAuth: true, skipAuthRefresh: true } as any);
 }
 
@@ -67,7 +59,6 @@ async function forgotPassword(identifier: string) {
 }
 
 export const API_Auth = {
-  getCaptcha,
   login,
   getMe,
   getProfile,

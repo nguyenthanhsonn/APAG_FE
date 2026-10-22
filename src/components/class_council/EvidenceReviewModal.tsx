@@ -18,6 +18,14 @@ export default function EvidenceReviewModal({
 
   if (!isOpen) return null;
 
+  const handleApprove = (evidenceId: string) => {
+    if (rejectingId === evidenceId) {
+      setRejectingId(null);
+      setReason('');
+    }
+    onApprove(evidenceId);
+  };
+
   const handleReject = (evidenceId: string) => {
     if (rejectingId !== evidenceId) {
       setRejectingId(evidenceId);
@@ -53,8 +61,20 @@ export default function EvidenceReviewModal({
           <div className="space-y-3 overflow-y-auto px-6 py-5">
             {evidences.map((evidence) => {
               const FileIcon = evidence.fileType === 'pdf' ? FileText : FileImage;
+              const isApproved = evidence.status === 'approved';
+              const isRejected = evidence.status === 'rejected';
+
               return (
-                <div key={evidence.id} className="rounded-xl border border-[#E9ECEF] p-4">
+                <div
+                  key={evidence.id}
+                  className={`rounded-xl border p-4 transition-colors ${
+                    isApproved
+                      ? 'border-[#D3F9D8] bg-[#F4FCE3]/20'
+                      : isRejected
+                        ? 'border-[#FFE3E3] bg-[#FFF5F5]/30'
+                        : 'border-[#E9ECEF] bg-white'
+                  }`}
+                >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EDF2FF] text-[#3B5BDB]">
@@ -62,9 +82,24 @@ export default function EvidenceReviewModal({
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[#1A1B1E]">{evidence.fileName}</p>
-                        <p className="mt-0.5 text-xs text-[#868E96]">
-                          {evidence.status === 'approved' ? 'Đã duyệt' : evidence.status === 'rejected' ? 'Đã từ chối' : 'Chờ duyệt'}
-                        </p>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          {isApproved ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#2F9E44]">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#2F9E44]" />
+                              Đã duyệt
+                            </span>
+                          ) : isRejected ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#C92A2A]">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#C92A2A]" />
+                              Đã từ chối{evidence.rejectReason ? `: ${evidence.rejectReason}` : ''}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-[#868E96]">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#ADB5BD]" />
+                              Chờ duyệt
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -79,35 +114,74 @@ export default function EvidenceReviewModal({
                       </a>
                       <button
                         type="button"
-                        onClick={() => onApprove(evidence.id)}
-                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#2F9E44] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#2B8A3E]"
+                        onClick={() => handleApprove(evidence.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                          isApproved
+                            ? 'bg-[#2F9E44] text-white shadow-sm ring-2 ring-[#2F9E44]/20 cursor-default'
+                            : isRejected
+                              ? 'border border-[#DEE2E6] bg-white text-[#868E96] hover:border-[#2F9E44] hover:text-[#2F9E44] hover:bg-[#EBFBEE] cursor-pointer'
+                              : 'border border-[#2F9E44] bg-[#EBFBEE] text-[#2F9E44] hover:bg-[#2F9E44] hover:text-white cursor-pointer'
+                        }`}
                       >
-                        <Check size={15} />
-                        Duyệt
+                        <Check size={15} className={isApproved ? 'stroke-[2.5]' : ''} />
+                        {isApproved ? 'Đã duyệt' : 'Duyệt'}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleReject(evidence.id)}
                         disabled={rejectingId === evidence.id && !reason.trim()}
-                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#C92A2A] bg-white px-3 py-2 text-sm font-semibold text-[#C92A2A] transition hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-50"
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                          isRejected
+                            ? 'bg-[#C92A2A] text-white shadow-sm ring-2 ring-[#C92A2A]/20 cursor-default'
+                            : isApproved
+                              ? 'border border-[#DEE2E6] bg-white text-[#868E96] hover:border-[#C92A2A] hover:text-[#C92A2A] hover:bg-[#FFF5F5] cursor-pointer'
+                              : 'border border-[#C92A2A] bg-white text-[#C92A2A] hover:bg-[#FFF5F5] cursor-pointer'
+                        }`}
                       >
-                        <X size={15} />
-                        Từ chối
+                        <X size={15} className={isRejected ? 'stroke-[2.5]' : ''} />
+                        {isRejected ? 'Đã từ chối' : 'Từ chối'}
                       </button>
                     </div>
                   </div>
 
                   {rejectingId === evidence.id && (
-                    <div className="mt-3">
-                      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#868E96]">
-                        Lý do từ chối <span className="text-[#C92A2A]">*</span>
-                      </label>
+                    <div className="mt-3 border-t border-[#F1F3F5] pt-3">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-[#868E96]">
+                          Lý do từ chối <span className="text-[#C92A2A]">*</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => { setRejectingId(null); setReason(''); }}
+                          className="cursor-pointer text-xs font-medium text-[#868E96] hover:text-[#1A1B1E]"
+                        >
+                          Hủy
+                        </button>
+                      </div>
                       <textarea
                         value={reason}
                         onChange={(event) => setReason(event.target.value)}
                         className="h-20 w-full rounded-lg border border-[#DEE2E6] p-2.5 text-sm text-[#1A1B1E] outline-none transition focus:border-[#C92A2A] focus:ring-2 focus:ring-[#C92A2A]/10"
                         placeholder="Nhập lý do từ chối minh chứng"
+                        autoFocus
                       />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setRejectingId(null); setReason(''); }}
+                          className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-[#495057] transition hover:bg-[#F8F9FA]"
+                        >
+                          Đóng
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleReject(evidence.id)}
+                          disabled={!reason.trim()}
+                          className="cursor-pointer rounded-lg bg-[#C92A2A] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#B02525] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Xác nhận từ chối
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

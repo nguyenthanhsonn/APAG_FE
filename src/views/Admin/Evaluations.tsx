@@ -1,8 +1,12 @@
 'use client';
 
+import { createEvaluationTransport } from '../../api/api';
+
+import { useRef } from 'react';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, BarChart3, CheckCircle2, Eye, Loader2, Search, ShieldCheck } from 'lucide-react';
-import { API_Admin } from '../../api/API_Admin';
+import { createAdminApi } from '../../api/API_Admin';
 import EvaluationStatusStepper from '../../components/common/EvaluationStatusStepper';
 import { useToast } from '../../components/common/ToastProvider';
 import type { AdminClass, AdminFaculty, AdminSemester, EvaluationRow, PagedResult } from '../../types';
@@ -94,7 +98,10 @@ function getSemesterLabel(semester: AdminSemester) {
 }
 
 export function AdminEvaluations() {
+  const [versionContext] = useState(() => createEvaluationTransport('admin-evaluations'));
+  const [API_Admin] = useState(() => createAdminApi(versionContext));
   const toast = useToast();
+  const actionLock = useRef(false);
   const [evaluations, setEvaluations] = useState<EvaluationRow[]>([]);
   const [faculties, setFaculties] = useState<AdminFaculty[]>([]);
   const [classes, setClasses] = useState<AdminClass[]>([]);
@@ -131,7 +138,7 @@ export function AdminEvaluations() {
     } catch {
       toast.error('Không tải được bộ lọc khoa/lớp/học kỳ.');
     }
-  }, [toast]);
+  }, [toast, API_Admin]);
 
   const loadEvaluations = useCallback(async () => {
     try {
@@ -155,7 +162,7 @@ export function AdminEvaluations() {
     } finally {
       setLoading(false);
     }
-  }, [classId, facultyId, keyword, page, pageSize, selectedSemester]);
+  }, [classId, facultyId, keyword, page, pageSize, selectedSemester, API_Admin]);
 
   useEffect(() => {
     loadFilters();
@@ -205,12 +212,14 @@ export function AdminEvaluations() {
   };
 
   const finalizeSelectedEvaluations = async (rows: EvaluationRow[]) => {
+    if (actionLock.current) return;
     if (rows.length === 0) {
       toast.error('Vui lòng chọn ít nhất một phiếu cần phê duyệt.');
       return;
     }
 
     try {
+      actionLock.current = true;
       setSubmitting(true);
       await API_Admin.bulkFinalizeEvaluations({ evaluationIds: rows.map((item) => item.id) });
       toast.success(`Đã phê duyệt ${rows.length} phiếu đánh giá.`);
@@ -219,33 +228,38 @@ export function AdminEvaluations() {
     } catch (err) {
       toast.error(getUserFriendlyError(err, 'Không thể phê duyệt hàng loạt. Vui lòng thử lại sau.'));
     } finally {
+      actionLock.current = false;
       setSubmitting(false);
     }
   };
 
   const handleFinalize = async () => {
-    if (!selectedEvaluation) return;
+    if (!selectedEvaluation || actionLock.current) return;
 
     try {
+      actionLock.current = true;
       setSubmitting(true);
       await API_Admin.finalizeEvaluation(selectedEvaluation.id, {});
       toast.success('Đã phê duyệt phiếu đánh giá.');
-      closeFinalizeModal();
+      setSelectedEvaluation(null);
       await loadEvaluations();
     } catch (err) {
       toast.error(getUserFriendlyError(err, 'Không thể phê duyệt phiếu. Vui lòng thử lại sau.'));
     } finally {
+      actionLock.current = false;
       setSubmitting(false);
     }
   };
 
   const handleConfirmBulk = async () => {
+    if (actionLock.current) return;
     if (confirmMode === 'selected') {
       await finalizeSelectedEvaluations(selectedRows);
       return;
     }
 
     try {
+      actionLock.current = true;
       setSubmitting(true);
       await API_Admin.finalizeEvaluationsByFilter({
         semesterId: semesterFilter || undefined,
@@ -259,6 +273,7 @@ export function AdminEvaluations() {
     } catch (err) {
       toast.error(getUserFriendlyError(err, 'Không thể phê duyệt toàn bộ danh sách đang lọc.'));
     } finally {
+      actionLock.current = false;
       setSubmitting(false);
     }
   };
