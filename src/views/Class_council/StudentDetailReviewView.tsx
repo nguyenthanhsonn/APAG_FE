@@ -92,32 +92,32 @@ const reverseMapActivity1 = (value?: string | null) => {
 };
 
 const reverseMapActivity2 = (value?: string | null) => {
-  if (!value) return 'none';
-  const val = String(value).toLowerCase();
-  if (['full_effective_participation', 'many', 'over50', 'excellent'].includes(val)) return 'many';
-  if (['effective_participation_from_half', 'some', '50'].includes(val)) return 'some';
-  if (['encouraged_others', 'active', 'encourage'].includes(val)) return 'active';
-  if (['absent_over_half', 'full', 'under50'].includes(val)) return 'full';
-  return 'none';
+  if (!value) return 'NOT_PARTICIPATED';
+  const val = String(value).toUpperCase();
+  if (['FULL_EFFECTIVE_PARTICIPATION', 'MANY', 'OVER50', 'EXCELLENT'].includes(val)) return 'FULL_EFFECTIVE_PARTICIPATION';
+  if (['EFFECTIVE_PARTICIPATION_FROM_HALF', 'SOME', '50'].includes(val)) return 'EFFECTIVE_PARTICIPATION_FROM_HALF';
+  if (['ENCOURAGED_OTHERS', 'ACTIVE', 'ENCOURAGE'].includes(val)) return 'ENCOURAGED_OTHERS';
+  if (['ABSENT_OVER_HALF', 'FULL', 'UNDER50'].includes(val)) return 'ABSENT_OVER_HALF';
+  return 'NOT_PARTICIPATED';
 };
 
 const reverseMapActivity3 = (value?: string | null) => {
-  if (!value) return 'none';
-  const val = String(value).toLowerCase();
-  if (['full_effective_participation', 'prize_or_org', 'leader'].includes(val)) return 'prize_or_org';
-  if (['active_one_or_more', 'active', 'member'].includes(val)) return 'active';
-  if (['active_supporter', 'some'].includes(val)) return 'some';
-  if (['absent_over_half', 'full', 'under50'].includes(val)) return 'full';
-  return 'none';
+  if (!value) return 'NOT_PARTICIPATED';
+  const val = String(value).toUpperCase();
+  if (['FULL_EFFECTIVE_PARTICIPATION', 'PRIZE_OR_ORG', 'LEADER'].includes(val)) return 'FULL_EFFECTIVE_PARTICIPATION';
+  if (['ACTIVE_ONE_OR_MORE', 'ACTIVE', 'MEMBER'].includes(val)) return 'ACTIVE_ONE_OR_MORE';
+  if (['ACTIVE_SUPPORTER', 'SOME'].includes(val)) return 'ACTIVE_SUPPORTER';
+  if (['ABSENT_OVER_HALF', 'FULL', 'UNDER50'].includes(val)) return 'ABSENT_OVER_HALF';
+  return 'NOT_PARTICIPATED';
 };
 
 const reverseMapActivity4 = (value?: string | null) => {
-  if (!value) return 'none';
-  const val = String(value).toLowerCase();
-  if (['multiple_activities_or_reporting', 'active', 'very_active'].includes(val)) return 'active';
-  if (['one_effective_activity', 'full'].includes(val)) return 'full';
-  if (['awareness_or_support', 'some', 'aware'].includes(val)) return 'some';
-  return 'none';
+  if (!value) return 'REMINDED_VIOLATION';
+  const val = String(value).toUpperCase();
+  if (['MULTIPLE_ACTIVITIES_OR_REPORTING', 'ACTIVE', 'VERY_ACTIVE'].includes(val)) return 'MULTIPLE_ACTIVITIES_OR_REPORTING';
+  if (['ONE_EFFECTIVE_ACTIVITY', 'FULL', 'PARTICIPATED'].includes(val)) return 'ONE_EFFECTIVE_ACTIVITY';
+  if (['AWARENESS_OR_SUPPORT', 'SOME', 'AWARE', 'POOR'].includes(val)) return 'AWARENESS_OR_SUPPORT';
+  return 'REMINDED_VIOLATION';
 };
 
 const reverseMapPolicy = (value?: string | null) => {
@@ -130,12 +130,13 @@ const reverseMapPolicy = (value?: string | null) => {
 };
 
 const reverseMapSolidarity = (value?: string | null) => {
-  if (!value) return 'none';
-  const val = String(value).toLowerCase();
-  if (['active_with_reward', 'excellent_achievements', 'awarded'].includes(val)) return 'excellent_achievements';
-  if (['active', 'regular', 'good'].includes(val)) return 'regular';
-  if (['participated', 'some', 'aware'].includes(val)) return 'some';
-  return 'none';
+  if (!value) return 'NOT_PARTICIPATED';
+  const val = String(value).toUpperCase();
+  if (['ACTIVE_WITH_REWARD', 'EXCELLENT_ACHIEVEMENTS', 'AWARDED'].includes(val)) return 'ACTIVE_WITH_REWARD';
+  if (['ACTIVE', 'REGULAR', 'GOOD'].includes(val)) return 'ACTIVE';
+  if (['PARTICIPATED', 'SOME', 'AWARE'].includes(val)) return 'PARTICIPATED';
+  if (['DISUNITY'].includes(val)) return 'DISUNITY';
+  return 'NOT_PARTICIPATED';
 };
 
 const reverseMapLocality = (value?: string | null) => {
@@ -147,22 +148,21 @@ const reverseMapLocality = (value?: string | null) => {
 };
 
 const reverseMapCadrePerformance = (value?: string | null) => {
-  const map: Record<string, string> = {
-    EXCELLENT: 'excellent',
-    GOOD: 'good',
-    FAIR: 'average',
-    POOR: 'unsatisfactory',
-  };
-  return value ? map[value] || value : 'unsatisfactory';
+  if (!value) return 'POOR';
+  const val = String(value).toUpperCase();
+  if (['EXCELLENT'].includes(val)) return 'EXCELLENT';
+  if (['GOOD'].includes(val)) return 'GOOD';
+  if (['COMPLETED', 'COMPLETE', 'FAIR', 'AVERAGE'].includes(val)) return 'COMPLETED';
+  return 'POOR';
 };
 
 const reverseMapManagementLevel = (value?: string | null) => {
-  const map: Record<string, string> = {
-    HEAD_POSITION: 'head',
-    DEPUTY_POSITION: 'deputy',
-    MEMBER_POSITION: 'member',
-  };
-  return value ? map[value] || value : 'none';
+  if (!value) return '';
+  const val = String(value).toUpperCase();
+  if (['HEAD_POSITION', 'HEAD'].includes(val)) return 'HEAD_POSITION';
+  if (['DEPUTY_POSITION', 'DEPUTY'].includes(val)) return 'DEPUTY_POSITION';
+  if (['MEMBER_POSITION', 'MEMBER'].includes(val)) return 'MEMBER_POSITION';
+  return '';
 };
 
 const reverseMapSpecialAchievement = (value?: string | null) => {
@@ -275,9 +275,9 @@ export function StudentDetailReviewView() {
           deductionCounts[index] = Number(violation.count) || 0;
         }
       });
-      const baseScore = discipline.baseScore !== undefined
+      const baseScore = discipline.baseScore !== undefined && discipline.baseScore !== null
         ? Math.min(25, Math.max(0, Number(discipline.baseScore) || 0))
-        : 0;
+        : 25;
 
       const roleTypeVal = String(role.studentRoleType || role.roleType || '').toUpperCase();
       const isClassOfficer = ['CLASS_OFFICER', 'CLASS_LEADER', 'CLASS_MONITOR', 'CADRE', 'OFFICER'].includes(roleTypeVal);

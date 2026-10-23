@@ -86,8 +86,8 @@ export const AdminStudents = () => {
       setErrorMsg('');
       const created = await API_Admin.createStudent(values);
       await fetchStudents();
-      if (created.accountEmailQueued === true) {
-        toast.success('Tạo sinh viên thành công. Email đã được đưa vào hàng đợi.');
+      if (created.accountEmailSent === true) {
+        toast.success('Tạo sinh viên và gửi email thành công.');
       } else if (created.accountEmailSent === false && created.accountEmailError) {
         toast.error('Tài khoản đã tạo, nhưng email chưa được gửi.');
       } else {
