@@ -10,6 +10,13 @@ import { canEditReviewScores } from '@/utils/permissionHelpers';
 import {
   REGULAR_SCORE_LEVEL_OPTIONS,
   ACADEMIC_RANK_OPTIONS,
+  POLITICAL_ACTIVITY_LEVEL_OPTIONS,
+  CULTURE_SPORT_LEVEL_OPTIONS,
+  CLUB_ACTIVITY_LEVEL_OPTIONS,
+  SOCIAL_PREVENTION_LEVEL_OPTIONS,
+  LAW_COMPLIANCE_LEVEL_OPTIONS,
+  VOLUNTEER_ACTIVITY_LEVEL_OPTIONS,
+  COMMUNITY_RELATIONSHIP_LEVEL_OPTIONS,
   TASK_COMPLETION_LEVEL_A1_OPTIONS,
   TASK_COMPLETION_LEVEL_A2_OPTIONS,
   MANAGEMENT_SKILL_LEVEL_OPTIONS,
@@ -113,13 +120,16 @@ const DeductionStepper = ({ isSv, index, value, onChange, disabled, weight, noVi
 };
 
 const ScoreSelect = ({ options, value, onChange, disabled }: { options: {label:string;value:string}[]; value:string; onChange:(v:string)=>void; disabled:boolean }) => (
-  <div className="relative inline-flex items-center w-full min-w-[80px]">
+  <div className="relative inline-flex items-center w-full min-w-[160px]">
     <select
-      value={value}
+      value={options.some(option => option.value === value) ? value : ''}
       onChange={e=>onChange(e.target.value)}
       disabled={disabled}
       className="w-full h-10 pl-2.5 pr-7 text-sm sm:text-base border border-gray-300 rounded-md bg-white text-gray-800 font-semibold outline-none appearance-none cursor-pointer disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed shadow-sm"
     >
+      {!options.some(option => option.value === value) && (
+        <option value="" disabled>{value ? 'Chưa xác định điểm' : 'Chưa có điểm'}</option>
+      )}
       {options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
     <div className="absolute right-2 pointer-events-none text-gray-500">
@@ -156,13 +166,29 @@ const MiniUpload = ({ fileKey, disabled, required }: { fileKey:string; disabled:
   );
 };
 
-const SectionHeaderRow = ({ tt, title, maxScore }: { tt:string; title:string; maxScore:number }) => (
+const SectionHeaderRow = ({
+  tt,
+  title,
+  maxScore,
+  svScore,
+  classScore,
+}: {
+  tt: string;
+  title: string;
+  maxScore: number;
+  svScore?: number;
+  classScore?: number;
+}) => (
   <tr className="bg-gray-100 border-t-2 border-b border-gray-300 font-extrabold">
     <td className="px-2 py-3 text-xs font-black text-gray-900 align-middle border-r border-gray-300 text-center whitespace-nowrap">{tt}</td>
     <td className="px-3 py-3 text-xs font-black text-gray-950 uppercase tracking-wider align-middle border-r border-gray-300" colSpan={2}>{title}</td>
     <td className="px-2 py-3 text-xs font-black text-gray-900 align-middle border-r border-gray-300 text-center whitespace-nowrap">{maxScore.toFixed(2)}</td>
-    <td className="px-2 py-3 align-middle border-r border-gray-300" colSpan={2}></td>
-    <td className="px-2 py-3 align-middle" colSpan={2}></td>
+    <td className="px-2 py-3 text-center text-blue-700 text-xs font-black align-middle border-r border-gray-300" colSpan={2}>
+      {typeof svScore === 'number' ? `${svScore.toFixed(2)} / ${maxScore.toFixed(2)}` : ''}
+    </td>
+    <td className="px-2 py-3 text-center text-[#D93A3C] text-xs font-black align-middle" colSpan={2}>
+      {typeof classScore === 'number' ? `${classScore.toFixed(2)} / ${maxScore.toFixed(2)}` : ''}
+    </td>
   </tr>
 );
 
@@ -172,8 +198,6 @@ export const CouncilCriteriaReviewTable = () => {
   // ── Read all state from council review store via fine-grained selectors ───
   const currentUserRole = useCouncilReviewStore(s => s.currentUserRole);
   const isReadOnly = useCouncilReviewStore(s => s.isReadOnly);
-  const dbStudentTotalScore = useCouncilReviewStore(s => s.dbStudentTotalScore);
-  const dbClassTotalScore = useCouncilReviewStore(s => s.dbClassTotalScore);
   const svScores = useCouncilReviewStore(useShallow((s: CouncilReviewState) => computeCouncilScores(s, true)));
   const classScores = useCouncilReviewStore(useShallow((s: CouncilReviewState) => computeCouncilScores(s, false)));
   const workflowStatus = useCouncilReviewStore(s => (s as any).workflowStatus || 'submitted');
@@ -181,13 +205,8 @@ export const CouncilCriteriaReviewTable = () => {
   const isSvEditable = false;
   const isClassEditable = canEditReviewScores(currentUserRole, workflowStatus);
 
-  const displaySvTotal = (isReadOnly && typeof dbStudentTotalScore === 'number')
-    ? dbStudentTotalScore
-    : svScores.total;
-
-  const displayClassTotal = (!isClassEditable && typeof dbClassTotalScore === 'number')
-    ? dbClassTotalScore
-    : classScores.total;
+  const displaySvTotal = svScores.total;
+  const displayClassTotal = classScores.total;
 
   // Sec 1
   const svStudyAttitude = useCouncilReviewStore(s => s.svStudyAttitude);
@@ -361,50 +380,13 @@ export const CouncilCriteriaReviewTable = () => {
   const studyAttitudeOpts = REGULAR_SCORE_LEVEL_OPTIONS;
   const academicRankOpts = ACADEMIC_RANK_OPTIONS;
 
-  const act1Opts = [
-    {value:'GOOD_PARTICIPATION',label:'5đ - Tham gia và chấp hành tốt các hoạt động'},
-    {value:'ABSENT_ONCE',label:'3đ - Vắng 01 buổi không có lý do'},
-    {value:'ABSENT_TWICE',label:'2đ - Vắng 02 buổi không có lý do'},
-    {value:'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',label:'0đ - Vắng từ 02 buổi trở lên không có lý do hoặc không tham gia'}
-  ];
-  const act2Opts = [
-    {value:'FULL_EFFECTIVE_PARTICIPATION',label:'5đ - Tham gia đầy đủ, có hiệu quả các hoạt động lớp hoặc các đơn vị tổ chức ghi nhận'},
-    {value:'EFFECTIVE_PARTICIPATION_FROM_HALF',label:'3đ - Tham gia có hiệu quả từ 50% các hoạt động trở lên được lớp hoặc đơn vị tổ chức ghi nhận'},
-    {value:'ENCOURAGED_OTHERS',label:'2đ - Tích cực vận động mọi người tham gia hoặc hưởng ứng tích cực các phong trào'},
-    {value:'ABSENT_OVER_HALF',label:'1đ - Vắng trên 50% số buổi của các hoạt động'},
-    {value:'NOT_PARTICIPATED',label:'0đ - Không tham gia'}
-  ];
-  const act3Opts = [
-    {value:'FULL_EFFECTIVE_PARTICIPATION',label:'5đ - Tham gia đầy đủ, có hiệu quả các hoạt động'},
-    {value:'ACTIVE_ONE_OR_MORE',label:'3đ - Tham gia tích cực, có hiệu quả từ 01 hoạt động trở lên'},
-    {value:'ACTIVE_SUPPORTER',label:'2đ - Là thành viên tích cực hưởng ứng các hoạt động'},
-    {value:'ABSENT_OVER_HALF',label:'1đ - Vắng trên 50% số buổi của các hoạt động'},
-    {value:'NOT_PARTICIPATED',label:'0đ - Không tham gia'}
-  ];
-  const act4Opts = [
-    {value:'ACTIVE',label:'3đ - Tham gia tích cực'},
-    {value:'PARTICIPATED',label:'2đ - Có tham gia'},
-    {value:'POOR',label:'1đ - Tham gia khi được phân công'},
-    {value:'NOT_PARTICIPATED',label:'0đ - Không tham gia'}
-  ];
-  const policyOpts = [
-    {value:'GOOD_WITH_REWARD',label:'10đ - Chấp hành đúng và tham gia tuyên truyền tốt, được khen thưởng'},
-    {value:'GOOD',label:'8đ - Chấp hành đúng và tham gia tuyên truyền tốt'},
-    {value:'AVERAGE',label:'5đ - Chấp hành đúng các quy định'},
-    {value:'VIOLATED',label:'0đ - Bị nhắc nhở, lập biên bản do vi phạm các quy định'}
-  ];
-  const solidarityOpts = [
-    {value:'ACTIVE_WITH_REWARD',label:'10đ - Tích cực, nhiệt tình tham gia các hoạt động đạt hiệu quả được Học viện, các tổ chức khen thưởng'},
-    {value:'ACTIVE',label:'8đ - Tham gia tích cực các hoạt động được lớp hoặc tập thể ghi nhận'},
-    {value:'PARTICIPATED',label:'5đ - Có ý thức tham gia hoặc hưởng ứng các hoạt động'},
-    {value:'DISUNITY',label:'0đ - Tham gia các hoạt động nhưng gây mất đoàn kết'},
-    {value:'NOT_PARTICIPATED',label:'0đ - Không tham gia'}
-  ];
-  const localityOpts = [
-    {value:'GOOD',label:'5đ - Có ý thức xây dựng tập thể lớp đoàn kết, giữ gìn giảng đường, nơi cư trú văn minh, sạch đẹp, thực hiện tốt văn hóa học đường'},
-    {value:'ONE_WARNING',label:'1đ - Bị nhắc nhở hoặc kiểm điểm 1 lần'},
-    {value:'TWO_WARNINGS',label:'0đ - Bị nhắc nhở hoặc kiểm điểm 2 lần'}
-  ];
+  const act1Opts = POLITICAL_ACTIVITY_LEVEL_OPTIONS;
+  const act2Opts = CULTURE_SPORT_LEVEL_OPTIONS;
+  const act3Opts = CLUB_ACTIVITY_LEVEL_OPTIONS;
+  const act4Opts = SOCIAL_PREVENTION_LEVEL_OPTIONS;
+  const policyOpts = LAW_COMPLIANCE_LEVEL_OPTIONS;
+  const solidarityOpts = VOLUNTEER_ACTIVITY_LEVEL_OPTIONS;
+  const localityOpts = COMMUNITY_RELATIONSHIP_LEVEL_OPTIONS;
   const a1PerfOpts = TASK_COMPLETION_LEVEL_A1_OPTIONS;
   const a2PerfOpts = TASK_COMPLETION_LEVEL_A2_OPTIONS;
   const mgmtOpts = MANAGEMENT_SKILL_LEVEL_OPTIONS;
@@ -436,7 +418,7 @@ export const CouncilCriteriaReviewTable = () => {
       )}
 
       <div className="w-full overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full min-w-[1100px] border-collapse text-sm">
           <thead>
             <tr className="bg-gray-100 border-b border-gray-300 text-gray-700 text-center font-bold">
               <th rowSpan={2} className="px-2 py-3 border-r border-gray-300 w-10 align-middle">TT</th>
@@ -454,7 +436,7 @@ export const CouncilCriteriaReviewTable = () => {
           </thead>
           <tbody>
             {/* ═══ MỤC I ═══ */}
-            <SectionHeaderRow tt="I" title="Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện)" maxScore={20}/>
+            <SectionHeaderRow tt="I" title="Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện)" maxScore={20} svScore={svScores.sec1} classScore={classScores.sec1}/>
             <ViolationCheckRow label="[SV] Vi phạm thi cử nghiêm trọng (Hủy điểm Mục I)" checked={isSvViolationSec1} onChange={v=>{if(isSvEditable)setIsSvViolationSec1(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm nghiêm trọng Mục I" checked={isClassViolationSec1} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec1(v);}}} disabled={!isClassEditable}/>
 
@@ -535,7 +517,7 @@ export const CouncilCriteriaReviewTable = () => {
             </tr>
 
             {/* ═══ MỤC II ═══ */}
-            <SectionHeaderRow tt="II" title="Đánh giá ý thức chấp hành nội quy, quy chế nhà trường" maxScore={25}/>
+            <SectionHeaderRow tt="II" title="Đánh giá ý thức chấp hành nội quy, quy chế nhà trường" maxScore={25} svScore={svScores.sec2} classScore={classScores.sec2}/>
             <ViolationCheckRow label="[SV] Vi phạm nghiêm trọng quy chế thi / kỷ luật (Hủy điểm Mục II)" checked={isSvViolationSec2} onChange={v=>{if(isSvEditable)setIsSvViolationSec2(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm nghiêm trọng Mục II" checked={isClassViolationSec2} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec2(v);}}} disabled={!isClassEditable}/>
 
@@ -576,7 +558,7 @@ export const CouncilCriteriaReviewTable = () => {
             ))}
 
             {/* ═══ MỤC III ═══ */}
-            <SectionHeaderRow tt="III" title="Đánh giá về ý thức và kết quả tham gia các hoạt động chính trị, xã hội, văn hóa, văn nghệ, thể thao, phòng chống tệ nạn xã hội" maxScore={20}/>
+            <SectionHeaderRow tt="III" title="Đánh giá về ý thức và kết quả tham gia các hoạt động chính trị, xã hội, văn hóa, văn nghệ, thể thao, phòng chống tệ nạn xã hội" maxScore={20} svScore={svScores.sec3} classScore={classScores.sec3}/>
             <ViolationCheckRow label="[SV] Không tham gia (Hủy điểm Mục III)" checked={isSvViolationSec3} onChange={v=>{if(isSvEditable)setIsSvViolationSec3(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận không tham gia Mục III" checked={isClassViolationSec3} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec3(v);}}} disabled={!isClassEditable}/>
 
@@ -613,7 +595,7 @@ export const CouncilCriteriaReviewTable = () => {
             </tr>
 
             {/* ═══ MỤC IV ═══ */}
-            <SectionHeaderRow tt="IV" title="Đánh giá về ý thức công dân trong quan hệ cộng đồng" maxScore={25}/>
+            <SectionHeaderRow tt="IV" title="Đánh giá về ý thức công dân trong quan hệ cộng đồng" maxScore={25} svScore={svScores.sec4} classScore={classScores.sec4}/>
             <ViolationCheckRow label="[SV] Vi phạm nghiêm trọng quan hệ cộng đồng (Hủy điểm Mục IV)" checked={isSvViolationSec4} onChange={v=>{if(isSvEditable)setIsSvViolationSec4(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm Mục IV" checked={isClassViolationSec4} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec4(v);}}} disabled={!isClassEditable}/>
             {sec4Rows.map(row=>(
@@ -643,7 +625,7 @@ export const CouncilCriteriaReviewTable = () => {
             ))}
 
             {/* ═══ MỤC V ═══ */}
-            <SectionHeaderRow tt="V" title="Đánh giá về ý thức và kết quả tham gia Ban cán sự lớp, BCH Đoàn, Ban chủ nhiệm các Ban, CLB, Đội, Hội, Nhóm được thành lập theo quy định." maxScore={10}/>
+            <SectionHeaderRow tt="V" title="Đánh giá về ý thức và kết quả tham gia Ban cán sự lớp, BCH Đoàn, Ban chủ nhiệm các Ban, CLB, Đội, Hội, Nhóm được thành lập theo quy định." maxScore={10} svScore={svScores.sec5} classScore={classScores.sec5}/>
             <ViolationCheckRow label="[SV] Không tham gia đoàn thể (Hủy điểm Mục V)" checked={isSvViolationSec5} onChange={v=>{if(isSvEditable)setIsSvViolationSec5(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận không tham gia Mục V" checked={isClassViolationSec5} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec5(v);}}} disabled={!isClassEditable}/>
 
@@ -952,7 +934,7 @@ export const CouncilCriteriaReviewTable = () => {
               <td className="px-2 py-3 text-center text-[#D93A3C] text-sm font-black" colSpan={2}>{f(displayClassTotal)} / 100</td>
             </tr>
             <tr className="bg-gray-50 text-gray-600 border-t border-gray-200 font-bold">
-              <td className="px-3 py-2.5 text-xs border-r border-gray-200" colSpan={3}>Tổng cộng (Điểm thực nhận tối đa)</td>
+              <td className="px-3 py-2.5 text-xs border-r border-gray-200" colSpan={3}>Tổng điểm tối đa của thang đánh giá</td>
               <td className="px-2 py-2.5 text-center border-r border-gray-200">100</td>
               <td className="px-2 py-2.5 text-center text-blue-600 border-r border-gray-200" colSpan={2}>100</td>
               <td className="px-2 py-2.5 text-center text-[#D93A3C]" colSpan={2}>100</td>

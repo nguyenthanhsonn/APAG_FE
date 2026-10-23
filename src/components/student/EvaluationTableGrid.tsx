@@ -115,13 +115,16 @@ const DeductionStepper = ({ isSv, index, value, onChange, disabled, weight, noVi
 };
 
 const ScoreSelect = ({ options, value, onChange, disabled }: { options: { label: string; value: string }[]; value: string; onChange: (v: string) => void; disabled: boolean }) => (
-  <div className="relative inline-flex items-center w-full min-w-[80px]">
+  <div className="relative inline-flex items-center w-full min-w-[160px]">
     <select
-      value={value}
+      value={options.some(option => option.value === value) ? value : ''}
       onChange={e => onChange(e.target.value)}
       disabled={disabled}
       className="w-full h-10 pl-2.5 pr-7 text-sm sm:text-base border border-gray-300 rounded-md bg-white text-gray-800 font-semibold outline-none appearance-none cursor-pointer disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed shadow-sm"
     >
+      {!options.some(option => option.value === value) && (
+        <option value="" disabled>{value ? 'Chưa xác định điểm' : 'Chưa có điểm'}</option>
+      )}
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
     <div className="absolute right-2 pointer-events-none text-gray-500">
@@ -204,13 +207,29 @@ const MiniUpload = ({ fileKey, disabled }: { fileKey: string; disabled: boolean;
   );
 };
 
-const SectionHeaderRow = ({ tt, title, maxScore }: { tt: string; title: string; maxScore: number }) => (
+const SectionHeaderRow = ({
+  tt,
+  title,
+  maxScore,
+  svScore,
+  classScore,
+}: {
+  tt: string;
+  title: string;
+  maxScore: number;
+  svScore?: number;
+  classScore?: number;
+}) => (
   <tr className="bg-gray-100 border-t-2 border-b border-gray-300 font-black">
     <td className="px-3 py-3 text-base sm:text-lg font-black text-gray-900 align-middle border-r border-gray-300 text-center whitespace-nowrap">{tt}</td>
     <td className="px-3.5 py-3.5 text-sm sm:text-base font-black text-gray-950 uppercase tracking-wide align-middle border-r border-gray-300" colSpan={2}>{title}</td>
     <td className="px-3 py-3 text-sm sm:text-base font-black text-gray-900 align-middle border-r border-gray-300 text-center whitespace-nowrap">{maxScore.toFixed(2)}</td>
-    <td className="px-2 py-3 align-middle border-r border-gray-300" colSpan={2}></td>
-    <td className="px-2 py-3 align-middle" colSpan={2}></td>
+    <td className="px-2 py-3 text-center text-blue-700 text-xs sm:text-sm font-black align-middle border-r border-gray-300" colSpan={2}>
+      {typeof svScore === 'number' ? `${svScore.toFixed(2)} / ${maxScore.toFixed(2)}` : ''}
+    </td>
+    <td className="px-2 py-3 text-center text-[#D93A3C] text-xs sm:text-sm font-black align-middle" colSpan={2}>
+      {typeof classScore === 'number' ? `${classScore.toFixed(2)} / ${maxScore.toFixed(2)}` : ''}
+    </td>
   </tr>
 );
 
@@ -476,7 +495,7 @@ export const EvaluationTableGrid = () => {
       )}
 
       <div className="w-full overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full min-w-[1100px] border-collapse text-sm">
           <thead>
             <tr className="bg-gray-100 border-b border-gray-300 text-gray-700 text-center font-bold">
               <th rowSpan={2} className="px-2 py-3 border-r border-gray-300 w-10 align-middle">TT</th>
@@ -494,7 +513,7 @@ export const EvaluationTableGrid = () => {
           </thead>
           <tbody>
             {/* ═══ MỤC I ═══ */}
-            <SectionHeaderRow tt="I" title="Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện)" maxScore={20} />
+            <SectionHeaderRow tt="I" title="Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện)" maxScore={20} svScore={svScores.sec1} classScore={classScores.sec1} />
             <ViolationCheckRow label="[SV] Vi phạm thi cử nghiêm trọng (Hủy điểm Mục I)" checked={isSvViolationSec1} onChange={v => { if (isSvEditable) setIsSvViolationSec1(v); }} disabled={!isSvEditable} />
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm nghiêm trọng Mục I" checked={isClassViolationSec1} onChange={v => { if (isClassEditable) { markClassEdited(); setIsClassViolationSec1(v); } }} disabled={!isClassEditable} />
 
@@ -576,7 +595,7 @@ export const EvaluationTableGrid = () => {
             </tr>
 
             {/* ═══ MỤC II ═══ */}
-            <SectionHeaderRow tt="II" title="Đánh giá ý thức chấp hành nội quy, quy chế nhà trường" maxScore={25} />
+            <SectionHeaderRow tt="II" title="Đánh giá ý thức chấp hành nội quy, quy chế nhà trường" maxScore={25} svScore={svScores.sec2} classScore={classScores.sec2} />
             <ViolationCheckRow label="[SV] Vi phạm nghiêm trọng quy chế thi / kỷ luật (Hủy điểm Mục II)" checked={isSvViolationSec2} onChange={v => { if (isSvEditable) setIsSvViolationSec2(v); }} disabled={!isSvEditable} />
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm nghiêm trọng Mục II" checked={isClassViolationSec2} onChange={v => { if (isClassEditable) { markClassEdited(); setIsClassViolationSec2(v); } }} disabled={!isClassEditable} />
 
@@ -617,7 +636,7 @@ export const EvaluationTableGrid = () => {
             ))}
 
             {/* ═══ MỤC III ═══ */}
-            <SectionHeaderRow tt="III" title="Đánh giá về ý thức và kết quả tham gia các hoạt động chính trị, xã hội, văn hóa, văn nghệ, thể thao, phòng chống tệ nạn xã hội" maxScore={20} />
+            <SectionHeaderRow tt="III" title="Đánh giá về ý thức và kết quả tham gia các hoạt động chính trị, xã hội, văn hóa, văn nghệ, thể thao, phòng chống tệ nạn xã hội" maxScore={20} svScore={svScores.sec3} classScore={classScores.sec3} />
             <ViolationCheckRow label="[SV] Không tham gia (Hủy điểm Mục III)" checked={isSvViolationSec3} onChange={v => { if (isSvEditable) setIsSvViolationSec3(v); }} disabled={!isSvEditable} />
             <ViolationCheckRow label="[Lớp] Xác nhận không tham gia Mục III" checked={isClassViolationSec3} onChange={v => { if (isClassEditable) { markClassEdited(); setIsClassViolationSec3(v); } }} disabled={!isClassEditable} />
 
@@ -655,7 +674,7 @@ export const EvaluationTableGrid = () => {
             </tr>
 
             {/* ═══ MỤC IV ═══ */}
-            <SectionHeaderRow tt="IV" title="Đánh giá về ý thức công dân trong quan hệ cộng đồng" maxScore={25} />
+            <SectionHeaderRow tt="IV" title="Đánh giá về ý thức công dân trong quan hệ cộng đồng" maxScore={25} svScore={svScores.sec4} classScore={classScores.sec4} />
             <ViolationCheckRow label="[SV] Vi phạm nghiêm trọng quan hệ cộng đồng (Hủy điểm Mục IV)" checked={isSvViolationSec4} onChange={v => { if (isSvEditable) setIsSvViolationSec4(v); }} disabled={!isSvEditable} />
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm Mục IV" checked={isClassViolationSec4} onChange={v => { if (isClassEditable) { markClassEdited(); setIsClassViolationSec4(v); } }} disabled={!isClassEditable} />
 
@@ -686,7 +705,7 @@ export const EvaluationTableGrid = () => {
             ))}
 
             {/* ═══ MỤC V ═══ */}
-            <SectionHeaderRow tt="V" title="Đánh giá về ý thức và kết quả tham gia Ban cán sự lớp, BCH Đoàn, Ban chủ nhiệm các Ban, CLB, Đội, Hội, Nhóm được thành lập theo quy định." maxScore={10} />
+            <SectionHeaderRow tt="V" title="Đánh giá về ý thức và kết quả tham gia Ban cán sự lớp, BCH Đoàn, Ban chủ nhiệm các Ban, CLB, Đội, Hội, Nhóm được thành lập theo quy định." maxScore={10} svScore={svScores.sec5} classScore={classScores.sec5} />
             <ViolationCheckRow label="[SV] Không tham gia đoàn thể (Hủy điểm Mục V)" checked={isSvViolationSec5} onChange={v => { if (isSvEditable) setIsSvViolationSec5(v); }} disabled={!isSvEditable} />
             <ViolationCheckRow label="[Lớp] Xác nhận không tham gia Mục V" checked={isClassViolationSec5} onChange={v => { if (isClassEditable) { markClassEdited(); setIsClassViolationSec5(v); } }} disabled={!isClassEditable} />
 
@@ -1007,7 +1026,7 @@ export const EvaluationTableGrid = () => {
               <td className="px-2 py-3 text-center text-[#D93A3C] text-sm font-black" colSpan={2}>{f(classScores.total)} / 100</td>
             </tr>
             <tr className="bg-gray-50 text-gray-600 border-t border-gray-200 font-bold">
-              <td className="px-3 py-2.5 text-sm border-r border-gray-200" colSpan={3}>Tổng cộng (Điểm thực nhận tối đa)</td>
+              <td className="px-3 py-2.5 text-sm border-r border-gray-200" colSpan={3}>Tổng điểm tối đa của thang đánh giá</td>
               <td className="px-2 py-2.5 text-center border-r border-gray-200">100</td>
               <td className="px-2 py-2.5 text-center text-blue-600 border-r border-gray-200" colSpan={2}>100</td>
               <td className="px-2 py-2.5 text-center text-[#D93A3C]" colSpan={2}>100</td>

@@ -154,9 +154,22 @@ const ACADEMIC_RANK_SCORES: Record<string, number> = { EXCELLENT: 8, GOOD: 7, FA
 const ACTIVITY1_SCORES: Record<string, number> = { GOOD_PARTICIPATION: 5, ABSENT_ONCE: 3, ABSENT_TWICE: 2, ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED: 0, active: 5, full: 3, excused: 2, unexcused: 0 };
 const ACTIVITY2_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION: 5, EFFECTIVE_PARTICIPATION_FROM_HALF: 3, ENCOURAGED_OTHERS: 2, ABSENT_OVER_HALF: 1, NOT_PARTICIPATED: 0, many: 5, some: 3, active: 2, full: 1, none: 0 };
 const ACTIVITY3_SCORES: Record<string, number> = { FULL_EFFECTIVE_PARTICIPATION: 5, ACTIVE_ONE_OR_MORE: 3, ACTIVE_SUPPORTER: 2, ABSENT_OVER_HALF: 1, NOT_PARTICIPATED: 0, prize_or_org: 5, active: 3, some: 2, full: 1, none: 0 };
-const ACTIVITY4_SCORES: Record<string, number> = { MULTIPLE_ACTIVITIES_OR_REPORTING: 3, ONE_EFFECTIVE_ACTIVITY: 2, AWARENESS_OR_SUPPORT: 1, REMINDED_VIOLATION: 0, active: 3, full: 2, some: 1, none: 0 };
+const ACTIVITY4_SCORES: Record<string, number> = {
+  MULTIPLE_ACTIVITIES_OR_REPORTING: 3,
+  ONE_EFFECTIVE_ACTIVITY: 2,
+  AWARENESS_OR_SUPPORT: 1,
+  REMINDED_VIOLATION: 0,
+  ACTIVE: 3,
+  PARTICIPATED: 2,
+  POOR: 1,
+  NOT_PARTICIPATED: 0,
+  active: 3,
+  full: 2,
+  some: 1,
+  none: 0,
+};
 const POLICY_SCORES: Record<string, number> = { GOOD_WITH_REWARD: 10, GOOD: 8, AVERAGE: 5, VIOLATED: 0, excellent_propaganda: 10, good: 8, minor_violation: 5, none: 0 };
-const SOLIDARITY_SCORES: Record<string, number> = { ACTIVE_WITH_REWARD: 10, ACTIVE: 8, PARTICIPATED: 5, NOT_PARTICIPATED: 0, excellent_achievements: 10, regular: 8, some: 5, none: 0 };
+const SOLIDARITY_SCORES: Record<string, number> = { ACTIVE_WITH_REWARD: 10, ACTIVE: 8, PARTICIPATED: 5, DISUNITY: 0, NOT_PARTICIPATED: 0, excellent_achievements: 10, regular: 8, some: 5, none: 0 };
 const LOCALITY_SCORES: Record<string, number> = { GOOD: 5, ONE_WARNING: 1, TWO_WARNINGS: 0, good: 5, rewarded: 1, warned: 0, warned1: 1, warned2: 0 };
 
 const clamp = (v: number, max: number) => Math.min(max, Math.max(0, Number.isFinite(v) ? v : 0));
@@ -265,16 +278,16 @@ const DEFAULT_STATE: Omit<
   currentUserRole: 'class_leader',
   isReadOnly: false,
 
-  svStudyAttitude: 'none',
+  svStudyAttitude: 'FROM_1_TO_UNDER_4',
   svNckh: false,
   svOlympic: false,
   svCreative: false,
-  svAcademicRank: 'none',
-  classStudyAttitude: 'none',
+  svAcademicRank: 'WEAK_WARNING_FIRST',
+  classStudyAttitude: 'FROM_1_TO_UNDER_4',
   classNckh: false,
   classOlympic: false,
   classCreative: false,
-  classAcademicRank: 'none',
+  classAcademicRank: 'WEAK_WARNING_FIRST',
   isSvViolationSec1: false,
   isClassViolationSec1: false,
 
@@ -287,39 +300,39 @@ const DEFAULT_STATE: Omit<
   isClassViolationSec2: false,
 
   svActivity1: 'GOOD_PARTICIPATION',
-  svActivity2: 'none',
-  svActivity3: 'none',
-  svActivity4: 'none',
+  svActivity2: 'NOT_PARTICIPATED',
+  svActivity3: 'NOT_PARTICIPATED',
+  svActivity4: 'REMINDED_VIOLATION',
   svRewardPoints: 0,
   classActivity1: 'GOOD_PARTICIPATION',
-  classActivity2: 'none',
-  classActivity3: 'none',
-  classActivity4: 'none',
+  classActivity2: 'NOT_PARTICIPATED',
+  classActivity3: 'NOT_PARTICIPATED',
+  classActivity4: 'REMINDED_VIOLATION',
   classRewardPoints: 0,
   isSvViolationSec3: false,
   isClassViolationSec3: false,
 
   svPolicy: 'GOOD',
-  svSolidarity: 'none',
+  svSolidarity: 'NOT_PARTICIPATED',
   svLocality: 'GOOD',
   classPolicy: 'GOOD',
-  classSolidarity: 'none',
+  classSolidarity: 'NOT_PARTICIPATED',
   classLocality: 'GOOD',
   isSvViolationSec4: false,
   isClassViolationSec4: false,
 
   svRoleType: 'student',
-  svCadrePosition: 'a2',
-  svCadrePerformance: 'unsatisfactory',
-  svManagementLevel: 'none',
+  svCadrePosition: 'NONE',
+  svCadrePerformance: 'POOR',
+  svManagementLevel: '',
   svClassParticipation: 0,
-  svSpecialAchievement: 'none',
+  svSpecialAchievement: 'NONE',
   classRoleType: 'student',
-  classCadrePosition: 'a2',
-  classCadrePerformance: 'unsatisfactory',
-  classManagementLevel: 'none',
+  classCadrePosition: 'NONE',
+  classCadrePerformance: 'POOR',
+  classManagementLevel: '',
   classClassParticipation: 0,
-  classSpecialAchievement: 'none',
+  classSpecialAchievement: 'NONE',
   isSvViolationSec5: false,
   isClassViolationSec5: false,
 

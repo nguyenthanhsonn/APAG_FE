@@ -408,7 +408,7 @@ export const EvaluationFormQD4185 = () => {
   const [svCreative, setSvCreative] = useState(false);
   const [svAcademicRank, setSvAcademicRank] = useState<string>('');
 
-  const [svNoViolationScore, setSvNoViolationScore] = useState<number>(0);
+  const [svNoViolationScore, setSvNoViolationScore] = useState<number>(25);
   const [svDeductions, setSvDeductions] = useState<number[]>([0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
   const [svActivity1, setSvActivity1] = useState<string>('ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED');
@@ -853,7 +853,7 @@ export const EvaluationFormQD4185 = () => {
       classOlympic: false,
       classCreative: false,
       classAcademicRank: '',
-      classNoViolationScore: 0,
+      classNoViolationScore: 25,
       classDeductions: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       classActivity1: 'ABSENT_MORE_THAN_TWICE_OR_NOT_PARTICIPATED',
       classActivity2: 'NOT_PARTICIPATED',
@@ -949,9 +949,9 @@ export const EvaluationFormQD4185 = () => {
           dec[num] = Number(v.count) || 0;
         }
       });
-      const computedNoViolationScore = discData.baseScore !== undefined
+      const computedNoViolationScore = discData.baseScore !== undefined && discData.baseScore !== null
         ? Math.min(25, Math.max(0, Number(discData.baseScore) || 0))
-        : 0;
+        : 25;
 
       setSvNoViolationScore(computedNoViolationScore);
       setSvDeductions(dec);
