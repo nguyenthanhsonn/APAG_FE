@@ -256,9 +256,7 @@ export const AdminUsers = () => {
         });
         const created = res;
 
-        if (created.accountEmailQueued === true) {
-          toast.success('Tạo tài khoản thành công. Email đã được đưa vào hàng đợi.');
-        } else if (created.accountEmailSent === true) {
+        if (created.accountEmailSent === true) {
           toast.success('Tạo tài khoản và gửi email thành công.');
         } else if (created.accountEmailSent === false && created.accountEmailError) {
           toast.error(`Tạo tài khoản thành công nhưng chưa gửi được email: ${created.accountEmailError}`);

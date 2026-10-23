@@ -259,7 +259,7 @@ export const AdminImport = () => {
             {confirmed && (
               <div className="mt-4 space-y-2">
                 <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
-                  Đã import thành công. Email đã vào hàng đợi: {importResult.emailQueuedCount ?? 0}, chưa vào hàng đợi: {importResult.emailFailedCount ?? 0}.
+                  Đã import thành công. Email đã gửi: {importResult.emailSentCount ?? 0}, gửi thất bại: {importResult.emailFailedCount ?? 0}.
                 </div>
                 {importResult.emailErrors && importResult.emailErrors.length > 0 && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
