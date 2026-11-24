@@ -139,6 +139,33 @@ function formatFullDateTime(dateString?: string): string {
   });
 }
 
+function parseSemesterFromText(text: string): { semester?: string; year?: string } | null {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  let semester: string | undefined;
+  let year: string | undefined;
+
+  if (lower.includes('học kỳ 1') || lower.includes('hk1') || lower.includes('kỳ 1')) {
+    semester = 'HK1';
+  } else if (lower.includes('học kỳ 2') || lower.includes('hk2') || lower.includes('kỳ 2')) {
+    semester = 'HK2';
+  } else if (lower.includes('học kỳ hè') || lower.includes('hk hè') || lower.includes('kỳ hè') || lower.includes('summer')) {
+    semester = 'SUMMER';
+  }
+
+  const yearRangeMatch = text.match(/(\d{4}\s*-\s*\d{4})/);
+  if (yearRangeMatch) {
+    year = yearRangeMatch[1].replace(/\s+/g, '');
+  } else {
+    const singleYearMatch = text.match(/năm\s*học\s*(\d{4})/i) || text.match(/năm\s*(\d{4})/i);
+    if (singleYearMatch) {
+      year = singleYearMatch[1];
+    }
+  }
+
+  return { semester, year };
+}
+
 export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   notifications,
   unreadCount,
@@ -165,10 +192,32 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     setExpandedId((prev) => (prev === item.id ? null : item.id));
   };
 
-  const handleGoToEvaluation = (e: React.MouseEvent) => {
+  const handleGoToEvaluation = (e: React.MouseEvent, item?: NotificationItem) => {
     e.stopPropagation();
     onClose();
-    router.push('/student/evaluation');
+
+    const parsed = item ? parseSemesterFromText(`${item.title} ${item.description}`) : null;
+    const query = new URLSearchParams();
+    if (parsed?.semester) query.set('semester', parsed.semester);
+    if (parsed?.year) query.set('year', parsed.year);
+    query.set('autoStart', 'true');
+
+    const queryString = query.toString();
+    const targetUrl = `/student/evaluation${queryString ? `?${queryString}` : ''}`;
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('notification_go_to_evaluation', {
+          detail: {
+            semester: parsed?.semester,
+            year: parsed?.year,
+            autoStart: true,
+          },
+        }),
+      );
+    }
+
+    router.push(targetUrl);
   };
 
   const isEvaluationRelated = (title: string, desc: string) => {
@@ -333,7 +382,7 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                         {relatesToEvaluation && (
                           <button
                             type="button"
-                            onClick={handleGoToEvaluation}
+                            onClick={(e) => handleGoToEvaluation(e, item)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-primary text-white hover:bg-red-700 transition-all shadow-xs cursor-pointer active:scale-95"
                           >
                             <span>Đi tới Đánh giá rèn luyện</span>
@@ -365,7 +414,10 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       <div className="p-2.5 px-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs">
         <button
           type="button"
-          onClick={handleGoToEvaluation}
+          onClick={(e) => {
+            const evalItem = notifications.find((n) => isEvaluationRelated(n.title, n.description));
+            handleGoToEvaluation(e, evalItem);
+          }}
           className="inline-flex items-center gap-1.5 font-bold text-brand-primary hover:text-red-700 transition-colors py-1 cursor-pointer active:scale-95"
         >
           <span>Xem phiếu đánh giá</span>

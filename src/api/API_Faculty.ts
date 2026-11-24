@@ -1,5 +1,26 @@
 import { axiosInstance, buildQueryParams, get } from './api';
-import type { AdminEvaluationItem, AdminEvaluationListQuery } from '../types';
+import type { AdminEvaluationItem, AdminEvaluationListQuery, PaginatedResponse } from '../types';
+
+export interface FacultyClassEvaluation {
+  id: string;
+  evaluationId?: string;
+  studentId?: string;
+  code: string;
+  name: string;
+  status: string;
+  score: number | null;
+  rank: string | null;
+  submittedAt: string | null;
+}
+
+export interface FacultyClassEvaluationPage extends PaginatedResponse<FacultyClassEvaluation> {
+  page: number;
+  limit: number;
+  totalStudents: number;
+  submittedCount: number;
+  approvedCount: number;
+  canSubmitToTrainingDepartment: boolean;
+}
 
 export type FacultyReportExportFormat = 'excel' | 'word';
 
@@ -32,6 +53,14 @@ async function normalizeBlobError(error: any) {
  * API chuyên biệt cho vai trò Khoa / Trợ lý Khoa
  */
 export const API_Faculty = {
+  getClassStudentEvaluations: (
+    classId: string,
+    query: { page: number; limit: number; search?: string; status?: string },
+  ) =>
+    get<FacultyClassEvaluationPage>(`/classes/${classId}/student-evaluations`, {
+      params: buildQueryParams(query),
+    }),
+
   /** Khoa lấy danh sách phiếu trong phạm vi khoa được phân công */
   getFacultyEvaluations: (facultyId: string, query?: AdminEvaluationListQuery) => {
     return get<AdminEvaluationItem[]>(

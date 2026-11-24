@@ -19,7 +19,7 @@ export interface PaginatedResponse<T> {
 /** Thông tin tạo tài khoản. */
 export interface CreateUserPayload {
   username: string;
-  email: string;
+  email?: string;
   fullName: string;
   role: InternalUserRole;
   password: string;

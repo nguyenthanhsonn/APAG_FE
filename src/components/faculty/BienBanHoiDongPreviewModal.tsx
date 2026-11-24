@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X, Printer, FileText, FileSpreadsheet } from 'lucide-react';
+import { X, Printer, FileText } from 'lucide-react';
 import type { BienBanHoiDongFormData } from '@/utils/exportBienBan';
 import type { FacultyReportExportFormat } from '@/api/API_Faculty';
 
@@ -124,15 +124,6 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, onExport, e
               </button>
               <button
                 type="button"
-                onClick={() => onExport?.('excel')}
-                disabled={!onExport || exportingFormat !== null}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <FileSpreadsheet size={15} />
-                {exportingFormat === 'excel' ? 'Đang xuất...' : 'Xuất Excel (.xlsx)'}
-              </button>
-              <button
-                type="button"
                 onClick={onPrint}
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gray-700 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-gray-600 transition"
               >
@@ -237,7 +228,7 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, onExport, e
               <thead>
                 <tr style={{ backgroundColor: '#f0f0f0' }}>
                   {['STT', 'Mã số SV', 'Họ và Tên', 'Ngày sinh', 'ĐRL lớp đánh giá', 'ĐRL HĐ Khoa ĐG', 'Xếp loại', 'Ghi chú (kèm theo minh chứng đối với SV xếp loại XS, tốt, TB, yếu, kém)'].map((h) => (
-                    <th key={h} style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'center', fontWeight: 'bold', fontSize: '11px' }}>{h}</th>
+                    <th key={h} style={{ border: '1px solid #333', padding: '4px 5px', textAlign: 'center', fontWeight: 'bold', fontSize: '11px', whiteSpace: h === 'Mã số SV' ? 'nowrap' : 'normal' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -256,13 +247,13 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, onExport, e
                   data.students.map((s, i) => (
                     <tr key={i}>
                       <td style={{ border: '1px solid #ccc', padding: '3px 5px', textAlign: 'center' }}>{s.stt}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '3px 5px', textAlign: 'center' }}>{s.maSV}</td>
+                      <td style={{ border: '1px solid #ccc', padding: '3px 5px', textAlign: 'center', whiteSpace: 'nowrap' }}>{s.maSV}</td>
                       <td style={{ border: '1px solid #ccc', padding: '3px 5px' }}>{s.hoTen}</td>
                       <td style={{ border: '1px solid #ccc', padding: '3px 5px', textAlign: 'center' }}>{s.ngaySinh}</td>
                       <td style={{ border: '1px solid #ccc', padding: '3px 5px', textAlign: 'center' }}>{s.drlLop > 0 ? s.drlLop : ''}</td>
                       <td style={{ border: '1px solid #ccc', padding: '3px 5px', textAlign: 'center', fontWeight: 'bold' }}>{s.drlKhoa > 0 ? s.drlKhoa : ''}</td>
                       <td style={{ border: '1px solid #ccc', padding: '3px 5px', textAlign: 'center' }}>{s.xepLoai}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '3px 5px' }}>{s.ghiChu}</td>
+                      <td style={{ border: '1px solid #ccc', padding: '3px 5px' }}>{s.ghiChu && s.ghiChu !== '—' ? s.ghiChu : ''}</td>
                     </tr>
                   ))
                 )}
@@ -274,15 +265,70 @@ export function BienBanHoiDongPreviewModal({ data, onClose, onPrint, onExport, e
               Cuộc họp kết thúc vào hồi .... giờ .... phút ngày ... tháng   năm...........
             </div>
 
-            {/* Tổng kết */}
+            {/* Tổng kết & Bảng thống kê phân loại */}
             <div className="print-avoid-break" style={{ marginBottom: '24px' }}>
-              <div style={{ marginBottom: '3px', marginLeft: '30px' }}>- Tổng số: <strong>{data.students.length}</strong> sinh viên</div>
-              <div style={{ marginBottom: '1px', marginLeft: '50px' }}>Trong đó:</div>
-              <div style={{ marginLeft: '70px', marginBottom: '1px' }}>+ Xuất sắc: <strong>{counts.xuatSac}</strong> Sinh viên</div>
-              <div style={{ marginLeft: '70px', marginBottom: '1px' }}>+ Tốt:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{counts.tot}</strong> Sinh viên</div>
-              <div style={{ marginLeft: '70px', marginBottom: '1px' }}>+ Khá:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{counts.kha}</strong> Sinh viên</div>
-              <div style={{ marginLeft: '70px', marginBottom: '1px' }}>+ Trung bình: <strong>{counts.trungBinh}</strong> Sinh viên</div>
-              <div style={{ marginLeft: '70px', marginBottom: '12px' }}>+ Yếu:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{counts.yeu}</strong> Sinh viên</div>
+              <div style={{ marginBottom: '8px', fontSize: '13px' }}>
+                - Tổng số: <strong>{data.students.length}</strong> sinh viên. Thống kê kết quả phân loại rèn luyện cụ thể như sau:
+              </div>
+              <table style={{ width: '100%', maxWidth: '520px', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '16px', marginLeft: 'auto', marginRight: 'auto' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f3f4f6' }}>
+                    <th style={{ border: '1px solid #666', padding: '5px 8px', textAlign: 'center', width: '45px' }}>STT</th>
+                    <th style={{ border: '1px solid #666', padding: '5px 8px', textAlign: 'left' }}>Phân loại rèn luyện</th>
+                    <th style={{ border: '1px solid #666', padding: '5px 8px', textAlign: 'center', width: '110px' }}>Số lượng (SV)</th>
+                    <th style={{ border: '1px solid #666', padding: '5px 8px', textAlign: 'center', width: '90px' }}>Tỷ lệ (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center' }}>1</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px' }}>Xuất sắc (90 ÷ 100 điểm)</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>{counts.xuatSac}</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>
+                      {data.students.length > 0 ? `${((counts.xuatSac / data.students.length) * 100).toFixed(2)}%` : '0.00%'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center' }}>2</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px' }}>Tốt (80 ÷ 89 điểm)</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>{counts.tot}</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>
+                      {data.students.length > 0 ? `${((counts.tot / data.students.length) * 100).toFixed(2)}%` : '0.00%'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center' }}>3</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px' }}>Khá (65 ÷ 79 điểm)</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>{counts.kha}</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>
+                      {data.students.length > 0 ? `${((counts.kha / data.students.length) * 100).toFixed(2)}%` : '0.00%'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center' }}>4</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px' }}>Trung bình (50 ÷ 64 điểm)</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>{counts.trungBinh}</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>
+                      {data.students.length > 0 ? `${((counts.trungBinh / data.students.length) * 100).toFixed(2)}%` : '0.00%'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center' }}>5</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px' }}>Yếu (Dưới 50 điểm)</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>{counts.yeu}</td>
+                    <td style={{ border: '1px solid #999', padding: '4px 8px', textAlign: 'center', fontWeight: 'bold' }}>
+                      {data.students.length > 0 ? `${((counts.yeu / data.students.length) * 100).toFixed(2)}%` : '0.00%'}
+                    </td>
+                  </tr>
+                  <tr style={{ backgroundColor: '#f9fafb', fontWeight: 'bold' }}>
+                    <td style={{ border: '1px solid #666', padding: '5px 8px', textAlign: 'center' }} colSpan={2}>Tổng cộng</td>
+                    <td style={{ border: '1px solid #666', padding: '5px 8px', textAlign: 'center', fontWeight: 'bold' }}>{data.students.length}</td>
+                    <td style={{ border: '1px solid #666', padding: '5px 8px', textAlign: 'center', fontWeight: 'bold' }}>
+                      {data.students.length > 0 ? '100%' : '0%'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             {/* Chữ ký */}

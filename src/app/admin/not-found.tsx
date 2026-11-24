@@ -14,7 +14,6 @@ export default function AdminNotFound() {
         { label: 'Quản lý Ngành', href: '/admin/majors', icon: '🧭' },
         { label: 'Quản lý Lớp', href: '/admin/classes', icon: '🏫' },
         { label: 'Quản lý Học kỳ', href: '/admin/semesters', icon: '📅' },
-        { label: 'Duyệt đánh giá', href: '/admin/evaluations', icon: '📋' },
       ]}
     />
   );

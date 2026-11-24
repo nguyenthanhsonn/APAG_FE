@@ -255,12 +255,12 @@ export interface CouncilDeductionStepperProps {
   weight: number;
   noViolationScore: number;
   allDeductions: number[];
-  currentUserRole: 'student' | 'class_leader' | 'advisor';
+  currentUserRole: 'student' | 'class_leader' | 'advisor' | 'faculty' | 'training_department' | 'admin';
   isReadOnly: boolean;
 }
 
 export interface CouncilCriteriaReviewTableProps {
-  currentUserRole: 'student' | 'class_leader' | 'advisor';
+  currentUserRole: 'student' | 'class_leader' | 'advisor' | 'faculty' | 'training_department' | 'admin';
   setIsClassEdited: (v: boolean) => void;
   isReadOnly: boolean;
   svScores: { sec1: number; sec2: number; sec3: number; sec4: number; sec5: number; total: number };

@@ -5,7 +5,6 @@ import { Bell, ClipboardCheck, Eye, FileSearch, ChevronLeft, ChevronRight } from
 import { useAuthStore } from '@/store/authStore';
 import type { StudentReviewStatus, CouncilStudentReview } from '@/types/admin';
 import {
-  canEditReviewScores,
   canSelectForSubmitToAdvisor,
   canSelectForSubmitToFaculty,
   getCheckboxDisabledReason,
@@ -246,105 +245,181 @@ export default function StudentProgressTable({
             const tooltip = getDisabledTooltip(student);
 
             const isClassLeader = user?.role === 'class_leader';
-            const canScore = canEditReviewScores(user?.role, normWf);
 
             const isNotSubmitted = normWf === 'not_submitted' || normWf === 'draft' || student.status === 'not_submitted';
-            const isApproved = ['class_approved', 'class_leader_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+
+            const isSentToCVHT =
+              normWf === 'class_leader_approved' ||
+              ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+            const hasGraded = typeof student.classScore === 'number' || Boolean(student.classLeaderReviewedAt);
+            const isConfirmed =
+              Boolean(student.classReviewedAt || student.advisorReviewedAt || student.advisorConfirmedAt) ||
+              ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
 
             // Badge helper
             const renderBadge = () => {
-              const hasReviewerScore = typeof student.classScore === 'number';
+              if (isClassLeader) {
+                // 1. Sinh viên chưa gửi
+                if (isNotSubmitted) {
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                      Chưa gửi
+                    </span>
+                  );
+                }
 
-              if (normWf === 'not_submitted' || normWf === 'draft') {
+                // 4. Lớp trưởng đã gửi lên CVHT
+                if (isSentToCVHT) {
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                      Đã gửi
+                    </span>
+                  );
+                }
+
+                // 3. Lớp trưởng đã chấm điểm
+                if (hasGraded) {
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                      Đã chấm
+                    </span>
+                  );
+                }
+
+                // 2. Sinh viên vừa gửi xong, Lớp trưởng chưa chấm
+                return (
+                  <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                    Đã gửi
+                  </span>
+                );
+              }
+
+              // Logic cho Cố vấn học tập (CVHT)
+              if (isNotSubmitted) {
                 return (
                   <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
                     Chưa nộp
                   </span>
                 );
               }
-              if (normWf === 'rejected') {
+
+              if (normWf === 'submitted') {
                 return (
-                  <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">
-                    Bị trả về
-                  </span>
-                );
-              }
-              if (normWf === 'class_approved') {
-                return (
-                  <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-                    Đã gửi khoa
-                  </span>
-                );
-              }
-              if (normWf === 'faculty_approved') {
-                return (
-                  <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                    Đã gửi PĐT
-                  </span>
-                );
-              }
-              if (normWf === 'finalized') {
-                return (
-                  <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                    Đã hoàn tất
+                  <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                    Chờ lớp trưởng gửi
                   </span>
                 );
               }
 
-              if (isClassLeader) {
-                if (normWf === 'submitted') {
-                  const isCLConfirmed = Boolean(student.classLeaderReviewedAt || student.classLeaderConfirmedAt);
-                  return isCLConfirmed ? (
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                      Đã xác nhận
-                    </span>
-                  ) : hasReviewerScore ? (
-                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                      Đã chấm, chưa xác nhận
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                      Chưa chấm
-                    </span>
-                  );
-                }
-                if (normWf === 'class_leader_approved') {
-                  return (
-                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                      Đã gửi CVHT
-                    </span>
-                  );
-                }
-              } else {
-                if (normWf === 'submitted') {
-                  return (
-                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                      Chờ Lớp trưởng
-                    </span>
-                  );
-                }
-                if (normWf === 'class_leader_approved') {
-                  const isAdvConfirmed = Boolean(student.classReviewedAt || student.advisorReviewedAt || student.advisorConfirmedAt);
-                  return isAdvConfirmed ? (
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                      Đã xác nhận
-                    </span>
-                  ) : hasReviewerScore ? (
-                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                      Đã chấm, chưa xác nhận
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                      Chưa chấm
-                    </span>
-                  );
-                }
+              if (isConfirmed) {
+                return (
+                  <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                    Đã xác nhận
+                  </span>
+                );
               }
 
               return (
                 <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                  {student.statusLabel || 'Đã nộp'}
+                  Chờ xác nhận
                 </span>
+              );
+            };
+
+            // Action button helper
+            const renderActions = () => {
+              if (isClassLeader) {
+                // 1. Sinh viên trong lớp chưa gửi -> Chấm điểm không sáng
+                if (isNotSubmitted) {
+                  return (
+                    <button
+                      type="button"
+                      disabled
+                      title="Sinh viên chưa gửi phiếu"
+                      aria-label={`Chấm điểm sinh viên ${student.fullName} (chưa gửi)`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-400 cursor-not-allowed opacity-60"
+                    >
+                      <ClipboardCheck size={15} />
+                      Chấm điểm
+                    </button>
+                  );
+                }
+
+                // 4. Lớp trưởng đã gửi lên CVHT -> Xem chi tiết
+                if (isSentToCVHT) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => onReview(student.id)}
+                      aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
+                      title="Xem chi tiết phiếu đánh giá đã gửi CVHT"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 shadow-2xs"
+                    >
+                      <Eye size={15} />
+                      Xem chi tiết
+                    </button>
+                  );
+                }
+
+                // 3. Lớp trưởng đã chấm điểm rồi -> Xem chi tiết
+                if (hasGraded) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => onReview(student.id)}
+                      aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
+                      title="Xem chi tiết phiếu đánh giá đã chấm"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 shadow-2xs"
+                    >
+                      <Eye size={15} />
+                      Xem chi tiết
+                    </button>
+                  );
+                }
+
+                // 2. Sinh viên vừa gửi xong, Lớp trưởng chưa chấm -> Chấm điểm sáng lên
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onReview(student.id)}
+                    aria-label={`Chấm điểm sinh viên ${student.fullName}`}
+                    title="Chấm điểm phiếu đánh giá"
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                  >
+                    <ClipboardCheck size={15} />
+                    Chấm điểm
+                  </button>
+                );
+              }
+
+              // Logic cho Cố vấn học tập (CVHT)
+              if (isConfirmed || normWf !== 'class_leader_approved') {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onReview(student.id)}
+                    aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
+                    title={isConfirmed ? "Xem chi tiết phiếu đánh giá đã xác nhận" : "Xem chi tiết phiếu đánh giá"}
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 shadow-2xs"
+                  >
+                    <Eye size={15} />
+                    Xem chi tiết
+                  </button>
+                );
+              }
+
+              // Chờ xác nhận -> Chấm điểm
+              return (
+                <button
+                  type="button"
+                  onClick={() => onReview(student.id)}
+                  aria-label={`Chấm điểm sinh viên ${student.fullName}`}
+                  title="Chấm điểm phiếu đánh giá"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                >
+                  <ClipboardCheck size={15} />
+                  Chấm điểm
+                </button>
               );
             };
 
@@ -380,52 +455,17 @@ export default function StudentProgressTable({
                 <td className="px-4 py-3.5">{renderBadge()}</td>
                 <td className="px-4 py-3.5 text-right">
                   <div className="inline-flex items-center gap-1.5 justify-end">
-                    {canScore ? (
+                    {renderActions()}
+                    {!isClassLeader && isNotSubmitted && onRemind && (
                       <button
                         type="button"
-                        onClick={() => onReview(student.id)}
-                        aria-label={`Chấm điểm sinh viên ${student.fullName}`}
-                        title="Chấm điểm phiếu đánh giá"
-                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                        onClick={() => onRemind(student.id)}
+                        aria-label={`Nhắc nộp phiếu sinh viên ${student.fullName}`}
+                        title="Nhắc sinh viên nộp phiếu"
+                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600 transition hover:bg-amber-100 hover:text-amber-700"
                       >
-                        <ClipboardCheck size={15} />
-                        {isApproved ? 'Chỉnh sửa' : 'Chấm điểm'}
+                        <Bell size={15} />
                       </button>
-                    ) : !isNotSubmitted ? (
-                      <button
-                        type="button"
-                        onClick={() => onReview(student.id)}
-                        aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
-                        title="Xem chi tiết phiếu đánh giá"
-                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 shadow-2xs"
-                      >
-                        <Eye size={15} />
-                        Xem chi tiết
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => onReview(student.id)}
-                          aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
-                          title="Xem chi tiết phiếu đánh giá"
-                          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 shadow-2xs"
-                        >
-                          <Eye size={15} />
-                          Xem chi tiết
-                        </button>
-                        {onRemind && (
-                          <button
-                            type="button"
-                            onClick={() => onRemind(student.id)}
-                            aria-label={`Nhắc nộp phiếu sinh viên ${student.fullName}`}
-                            title="Nhắc sinh viên nộp phiếu"
-                            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600 transition hover:bg-amber-100 hover:text-amber-700"
-                          >
-                            <Bell size={15} />
-                          </button>
-                        )}
-                      </>
                     )}
                   </div>
                 </td>
@@ -455,15 +495,75 @@ export default function StudentProgressTable({
                   {student.fullName}
                 </h3>
               </div>
-              {student.status === 'submitted' ? (
-                <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                  Đã nộp
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
-                  Chưa nộp
-                </span>
-              )}
+              {(() => {
+                const normWf = String(student.workflowStatus || student.status || '').toLowerCase();
+                const isNotSubmitted = normWf === 'not_submitted' || normWf === 'draft' || student.status === 'not_submitted';
+                const isSentToCVHT =
+                  normWf === 'class_leader_approved' ||
+                  ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+                const hasGraded = typeof student.classScore === 'number' || Boolean(student.classLeaderReviewedAt);
+
+                if (user?.role === 'class_leader') {
+                  if (isNotSubmitted) {
+                    return (
+                      <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+                        Chưa gửi
+                      </span>
+                    );
+                  }
+                  if (isSentToCVHT) {
+                    return (
+                      <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                        Đã gửi
+                      </span>
+                    );
+                  }
+                  if (hasGraded) {
+                    return (
+                      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        Đã chấm
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                      Đã gửi
+                    </span>
+                  );
+                }
+
+                // Cố vấn học tập
+                if (isNotSubmitted) {
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+                      Chưa nộp
+                    </span>
+                  );
+                }
+                const isConfirmed =
+                  Boolean(student.classReviewedAt || student.advisorReviewedAt || student.advisorConfirmedAt) ||
+                  ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+                if (normWf === 'submitted') {
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                      Chờ lớp trưởng gửi
+                    </span>
+                  );
+                }
+
+                if (isConfirmed) {
+                  return (
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                      Đã xác nhận
+                    </span>
+                  );
+                }
+                return (
+                  <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                    Chờ xác nhận
+                  </span>
+                );
+              })()}
             </div>
 
             <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
@@ -480,22 +580,98 @@ export default function StudentProgressTable({
             </div>
 
             <div className="mt-3 flex items-center justify-end gap-2 border-t border-gray-100 pt-2.5">
-              <button
-                type="button"
-                onClick={() => onReview(student.id)}
-                aria-label={`Xem hoặc chấm điểm sinh viên ${student.fullName}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
-              >
-                {student.status === 'submitted' ? (
-                  <>
-                    <ClipboardCheck size={14} /> Chấm điểm
-                  </>
-                ) : (
-                  <>
-                    <Eye size={14} /> Xem chi tiết
-                  </>
-                )}
-              </button>
+              {(() => {
+                const normWf = String(student.workflowStatus || student.status || '').toLowerCase();
+                const isNotSubmitted = normWf === 'not_submitted' || normWf === 'draft' || student.status === 'not_submitted';
+                const isSentToCVHT =
+                  normWf === 'class_leader_approved' ||
+                  ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+                const hasGraded = typeof student.classScore === 'number' || Boolean(student.classLeaderReviewedAt);
+
+                if (user?.role === 'class_leader') {
+                  if (isNotSubmitted) {
+                    return (
+                      <button
+                        type="button"
+                        disabled
+                        aria-label={`Chấm điểm sinh viên ${student.fullName} (chưa gửi)`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-400 cursor-not-allowed opacity-60"
+                      >
+                        <ClipboardCheck size={14} />
+                        Chấm điểm
+                      </button>
+                    );
+                  }
+                  if (isSentToCVHT) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => onReview(student.id)}
+                        aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 shadow-2xs"
+                      >
+                        <Eye size={14} />
+                        Xem chi tiết
+                      </button>
+                    );
+                  }
+                  if (hasGraded) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => onReview(student.id)}
+                        aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 shadow-2xs"
+                      >
+                        <Eye size={14} />
+                        Xem chi tiết
+                      </button>
+                    );
+                  }
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => onReview(student.id)}
+                      aria-label={`Chấm điểm sinh viên ${student.fullName}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                    >
+                      <ClipboardCheck size={14} />
+                      Chấm điểm
+                    </button>
+                  );
+                }
+
+                // Cố vấn học tập (CVHT)
+                const isConfirmed =
+                  Boolean(student.classReviewedAt || student.advisorReviewedAt || student.advisorConfirmedAt) ||
+                  ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+
+                if (isConfirmed || normWf !== 'class_leader_approved') {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => onReview(student.id)}
+                      aria-label={`Xem chi tiết sinh viên ${student.fullName}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 shadow-2xs"
+                    >
+                      <Eye size={14} />
+                      Xem chi tiết
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onReview(student.id)}
+                    aria-label={`Chấm điểm sinh viên ${student.fullName}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                  >
+                    <ClipboardCheck size={14} />
+                    Chấm điểm
+                  </button>
+                );
+              })()}
             </div>
           </div>
         );
