@@ -18,6 +18,7 @@ import type {
   ConfirmImportPayload,
   CreateStudentPayload,
   CreateUserPayload,
+  EvaluationWorkflowStep,
   FinalizeEvaluationPayload,
   FinalizeEvaluationsByFilterPayload,
   FacultyPayload,
@@ -45,6 +46,28 @@ import type {
   UpdateUserPayload,
   UserListQuery,
 } from "../types";
+
+export type TrainingDepartmentFacultyStat = {
+  id: string;
+  name: string;
+  totalClasses: number;
+  pendingCount: number;
+  completedCount: number;
+  excellentGoodCount: number;
+};
+
+type EvaluationDetail = AdminEvaluationItem & {
+  totalScore: number;
+  note: string | null;
+  sectionScores: {
+    studyScore: number;
+    disciplineScore: number;
+    activityScore: number;
+    communityScore: number;
+    roleScore: number;
+  };
+  review: { steps: EvaluationWorkflowStep[] };
+};
 
 /** Tạo tài khoản người dùng. */
 export function createAdminApi(
@@ -154,7 +177,7 @@ export function createAdminApi(
 
   /** Lấy chi tiết phiếu đánh giá bằng route chung cho các vai trò. */
   async function getEvaluationDetail(id: string) {
-    return get<AdminEvaluationItem>(`/training-evaluations/${id}`);
+    return get<EvaluationDetail>(`/training-evaluations/${id}`);
   }
 
   /** Lấy danh sách học kỳ. */
@@ -472,11 +495,17 @@ export function createAdminApi(
     );
   }
 
-  /** Phòng Đào tạo lấy danh sách phiếu toàn trường đang chờ duyệt cuối. */
+  async function getTrainingDepartmentOverview() {
+    return get<{ faculties: TrainingDepartmentFacultyStat[] }>(
+      "/training-department/evaluations/overview",
+    );
+  }
+
+  /** Phòng Đào tạo lấy danh sách phiếu theo trạng thái duyệt cuối. */
   async function getTrainingDepartmentEvaluations(
     query?: AdminEvaluationListQuery,
   ) {
-    return get<PaginatedResponse<AdminEvaluationItem> | AdminEvaluationItem[]>(
+    return get<PaginatedResponse<AdminEvaluationItem>>(
       "/training-department/evaluations",
       { params: buildQueryParams(query) },
     );
@@ -723,6 +752,7 @@ export function createAdminApi(
     submitClassToFaculty,
     submitFacultyToTrainingDepartment,
     getTrainingDepartmentEvaluations,
+    getTrainingDepartmentOverview,
     approveTrainingDepartmentEvaluation,
     getClassStudents,
     addStudentToClass,

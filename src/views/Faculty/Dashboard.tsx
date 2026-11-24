@@ -161,7 +161,7 @@ export function FacultyDashboard() {
           <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-brand-secondary">
             <Building2 size={16} /> {managedFacultyName}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Ban/Khoa Xét Duyệt Đánh Giá Rèn Luyện</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Khoa Xét Duyệt Đánh Giá Rèn Luyện</h1>
           <p className="text-sm text-gray-500 mt-1">Dữ liệu được lấy trực tiếp từ hệ thống theo tài khoản đang đăng nhập.</p>
         </div>
         <button

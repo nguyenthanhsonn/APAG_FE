@@ -15,6 +15,26 @@ const failure = statusCode => Object.assign(new Error('test error'), { statusCod
 const storage = () => { const map = new Map(); return { getItem: key => map.get(key) ?? null, setItem: (key, value) => map.set(key, value), removeItem: key => map.delete(key) }; };
 const load = (transport, id = form, version = 0) => transport.run({ url: `/training-evaluations/${id}`, method: 'GET' }, async () => ({ id, version }));
 
+test('CVHT can confirm only after the class leader sends the form', () => {
+  const { canConfirmReview, canEditReviewScores, canSelectForSubmitToAdvisor } =
+    require('../src/utils/permissionHelpers.ts');
+
+  for (const status of ['submitted', 'class_approved']) {
+    assert.equal(canEditReviewScores('advisor', status), false);
+    assert.equal(canConfirmReview('advisor', { status }), false);
+  }
+  assert.equal(canConfirmReview('advisor', { status: 'class_leader_approved' }), true);
+  assert.equal(canConfirmReview('advisor', { status: 'class_leader_approved', isLocked: true }), false);
+
+  const form = { status: 'submitted', classScore: 80 };
+  assert.equal(canConfirmReview('class_leader', form), true);
+  assert.equal(canSelectForSubmitToAdvisor('class_leader', form), false);
+  assert.equal(canSelectForSubmitToAdvisor('class_leader', {
+    ...form,
+    classLeaderReviewedAt: '2026-11-23T00:00:00Z',
+  }), true);
+});
+
 test('same-form autosaves are serialized and use the preceding response version', async () => {
   const api = new EvaluationTransport(); await load(api);
   const seen = []; let active = 0; let max = 0;

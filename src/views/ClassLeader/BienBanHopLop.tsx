@@ -613,7 +613,7 @@ export function BienBanHopLop() {
                   <thead>
                     <tr className="border-b border-gray-300 bg-gray-50 text-xs font-bold text-gray-800 text-center">
                       <th className="py-2 px-2 border-r border-gray-300 w-10">STT</th>
-                      <th className="py-2 px-2 border-r border-gray-300 w-24">Mã số SV</th>
+                      <th className="py-2 px-2 border-r border-gray-300 whitespace-nowrap min-w-[130px]">Mã số SV</th>
                       <th className="py-2 px-2 border-r border-gray-300 text-left">Họ và Tên</th>
                       <th className="py-2 px-2 border-r border-gray-300 w-24">Ngày sinh</th>
                       <th className="py-2 px-2 border-r border-gray-300 w-20">ĐRL SV<br/>tự đánh giá</th>
@@ -629,7 +629,7 @@ export function BienBanHopLop() {
                       return (
                         <tr key={itemId} className="hover:bg-gray-50/80 transition-colors">
                           <td className="py-2 px-2 border-r border-gray-200 text-center font-medium text-gray-600">{s.stt}</td>
-                          <td className="py-2 px-2 border-r border-gray-200 text-center font-mono font-semibold text-gray-800">{s.maSV}</td>
+                          <td className="py-2 px-2 border-r border-gray-200 text-center font-mono font-semibold text-gray-800 whitespace-nowrap">{s.maSV}</td>
                           <td className="py-2 px-2 border-r border-gray-200 font-medium text-gray-900">{s.hoTen}</td>
                           <td className="py-2 px-2 border-r border-gray-200 text-center text-xs text-gray-600">{s.ngaySinh}</td>
                           <td className="py-2 px-2 border-r border-gray-200 text-center font-bold text-blue-600">{s.drlSV > 0 ? s.drlSV : '—'}</td>

@@ -212,7 +212,7 @@ export const AdminUsers = () => {
       if (editingStudent && editingUserId) {
         const payload: UpdateUserPayload = {
           username: values.username.trim(),
-          email: values.email.trim(),
+          email: values.email?.trim() || undefined,
           fullName: values.fullName.trim(),
           role: values.role,
           phone: values.phone.trim() || undefined,
@@ -244,12 +244,12 @@ export const AdminUsers = () => {
         toast.success('Cập nhật người dùng thành công.');
       } else {
         const res = await API_Admin.createUser({
-          username: values.username,
-          email: values.email,
-          fullName: values.fullName,
+          username: values.username.trim(),
+          email: values.email?.trim() || undefined,
+          fullName: values.fullName.trim(),
           password: values.password,
           role: values.role,
-          phone: values.phone || undefined,
+          phone: values.phone.trim() || undefined,
           dateOfBirth: values.dateOfBirth || undefined,
           facultyId: values.role === 'faculty' ? values.facultyId : undefined,
           classId: values.role === 'advisor' || values.role === 'class_leader' ? values.classId : undefined,

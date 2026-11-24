@@ -41,7 +41,7 @@ const buildValidationSchema = (isEdit: boolean) => Yup.object({
         .min(8, 'Tối thiểu 8 ký tự')
         .max(50, 'Tối đa 50 ký tự')
         .required('Vui lòng nhập mật khẩu'),
-  email: Yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
+  email: Yup.string().email('Email không hợp lệ').optional(),
   phone: Yup.string()
     .matches(/^[0-9]{9,11}$/, 'Số điện thoại không hợp lệ')
     .optional(),
@@ -282,11 +282,11 @@ export default function ModalCreateStudent({
 
               {/* Email */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Email" icon={Mail} required error={formik.errors.email}>
+                <Field label="Email" icon={Mail} error={formik.errors.email}>
                   <input
                     type="email"
                     className={inputCls('email')}
-                    placeholder="Nhập email"
+                    placeholder="Nhập email (không bắt buộc)"
                     {...formik.getFieldProps('email')}
                   />
                 </Field>

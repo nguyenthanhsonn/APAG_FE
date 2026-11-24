@@ -14,7 +14,6 @@ import {
   X,
   Compass,
   CalendarDays,
-  ClipboardCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import type { SidebarProps } from '@/types/common';
@@ -33,7 +32,6 @@ const adminMenuItems = [
   { path: '/admin/majors', icon: Compass, label: 'Quản lý Ngành' },
   { path: '/admin/classes', icon: GraduationCap, label: 'Quản lý Lớp' },
   { path: '/admin/semesters', icon: CalendarDays, label: 'Quản lý Học kỳ' },
-  { path: '/admin/evaluations', icon: ClipboardCheck, label: 'Duyệt đánh giá rèn luyện' },
 ];
 
 const advisorMenuItems = [

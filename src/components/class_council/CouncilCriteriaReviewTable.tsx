@@ -1,10 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Plus, Minus, Lock, Upload, X, ChevronDown } from 'lucide-react';
 import type { CouncilDeductionStepperProps as DeductionStepperProps } from '@/types/admin';
 import { useShallow } from 'zustand/react/shallow';
-import { useCouncilReviewStore, computeCouncilScores, type CouncilReviewState } from '@/store/councilReviewStore';
+import {
+  useCouncilReviewStore,
+  computeCouncilScores,
+  getClassLeaderReviewedSections,
+  type CouncilReviewState,
+  type ReviewSectionCode,
+} from '@/store/councilReviewStore';
 
 import { canEditReviewScores } from '@/utils/permissionHelpers';
 import {
@@ -54,7 +60,7 @@ const DeductionStepper = ({ isSv, index, value, onChange, disabled, weight, noVi
   const currentCount = isInvalidInput ? (isNaN(parsedVal) ? 0 : Math.max(0, parsedVal)) : value;
   const deductedPoints = Math.min(baseScore, currentCount * weight);
 
-  const isReviewerRole = currentUserRole === 'class_leader' || currentUserRole === 'advisor';
+  const isReviewerRole = currentUserRole !== 'student';
   const isRoleLocked = disabled && !isReadOnly && ((currentUserRole === 'student' && !isSv) || (isReviewerRole && isSv));
   if (isRoleLocked) return (
     <div className="relative inline-flex items-center gap-1 bg-gray-100 border border-gray-200 rounded-md px-2 py-1">
@@ -177,7 +183,7 @@ const SectionHeaderRow = ({
   title: string;
   maxScore: number;
   svScore?: number;
-  classScore?: number;
+  classScore?: ReactNode;
 }) => (
   <tr className="bg-gray-100 border-t-2 border-b border-gray-300 font-extrabold">
     <td className="px-2 py-3 text-xs font-black text-gray-900 align-middle border-r border-gray-300 text-center whitespace-nowrap">{tt}</td>
@@ -187,7 +193,7 @@ const SectionHeaderRow = ({
       {typeof svScore === 'number' ? `${svScore.toFixed(2)} / ${maxScore.toFixed(2)}` : ''}
     </td>
     <td className="px-2 py-3 text-center text-[#D93A3C] text-xs font-black align-middle" colSpan={2}>
-      {typeof classScore === 'number' ? `${classScore.toFixed(2)} / ${maxScore.toFixed(2)}` : ''}
+      {typeof classScore === 'number' ? `${classScore.toFixed(2)} / ${maxScore.toFixed(2)}` : classScore}
     </td>
   </tr>
 );
@@ -199,14 +205,20 @@ export const CouncilCriteriaReviewTable = () => {
   const currentUserRole = useCouncilReviewStore(s => s.currentUserRole);
   const isReadOnly = useCouncilReviewStore(s => s.isReadOnly);
   const svScores = useCouncilReviewStore(useShallow((s: CouncilReviewState) => computeCouncilScores(s, true)));
-  const classScores = useCouncilReviewStore(useShallow((s: CouncilReviewState) => computeCouncilScores(s, false)));
+  const classLeaderSectionScores = useCouncilReviewStore(useShallow((s: CouncilReviewState) =>
+    getClassLeaderReviewedSections(s).map((section) => section.classScore),
+  ));
   const workflowStatus = useCouncilReviewStore(s => (s as any).workflowStatus || 'submitted');
+  const savedStudentTotal = useCouncilReviewStore(s => s.dbStudentTotalScore);
+  const savedClassTotal = useCouncilReviewStore(s => s.dbClassTotalScore);
 
   const isSvEditable = false;
-  const isClassEditable = canEditReviewScores(currentUserRole, workflowStatus);
+  const canEditScores = !isReadOnly && canEditReviewScores(currentUserRole, workflowStatus);
+  const isClassEditable = canEditScores;
 
-  const displaySvTotal = svScores.total;
-  const displayClassTotal = classScores.total;
+  const displaySvTotal = savedStudentTotal ?? svScores.total;
+  const calculatedClassTotal = classLeaderSectionScores.reduce((total, score) => total + score, 0);
+  const displayClassTotal = calculatedClassTotal > 0 ? calculatedClassTotal : (savedClassTotal ?? calculatedClassTotal);
 
   // Sec 1
   const svStudyAttitude = useCouncilReviewStore(s => s.svStudyAttitude);
@@ -282,6 +294,10 @@ export const CouncilCriteriaReviewTable = () => {
   const handleDeductionChange = useCouncilReviewStore(s => s.handleDeductionChange);
   const setIsClassEdited = useCouncilReviewStore(s => s.setIsClassEdited);
 
+  const displaySectionScore = (_code: ReviewSectionCode, calculatedScore: number) => {
+    return calculatedScore;
+  };
+
   // Convenience setters derived from setField
   const setSvStudyAttitude = (v: string) => setField('svStudyAttitude', v);
   const setSvNckh = (v: boolean) => setField('svNckh', v);
@@ -356,17 +372,7 @@ export const CouncilCriteriaReviewTable = () => {
   const setNote = (key: string, v: string) => setNotes(prev => ({...prev,[key]:v}));
 
 
-  const editHint = (() => {
-    if (isReadOnly) return 'Đã chốt điểm đánh giá, không được phép chỉnh sửa lại.';
-    if (isClassEditable) {
-      return currentUserRole === 'advisor'
-        ? 'CVHT đang ở bước xử lý, có thể chỉnh sửa cột Điểm lớp đánh giá.'
-        : 'Lớp trưởng đang ở bước xử lý, có thể chỉnh sửa cột Điểm lớp đánh giá.';
-    }
-    if (currentUserRole === 'advisor') return 'CVHT chỉ chỉnh sửa khi phiếu ở trạng thái lớp trưởng đã gửi lên CVHT.';
-    if (currentUserRole === 'class_leader') return 'Lớp trưởng chỉ chỉnh sửa khi sinh viên đã nộp phiếu và chưa gửi lên CVHT.';
-    return 'Cột Sinh viên tự đánh giá chỉ xem trong màn duyệt.';
-  })();
+
   const markClassEdited = () => { setIsClassEdited(true); };
   const f = (s: number) => s.toFixed(2);
   const tdBase = 'px-2 py-3 align-top border-b border-gray-200 text-xs';
@@ -407,16 +413,6 @@ export const CouncilCriteriaReviewTable = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      {isReadOnly || !isClassEditable ? (
-        <div className="text-center py-2.5 text-red-600 font-semibold border-b border-gray-200 bg-white text-sm">
-          {editHint}
-        </div>
-      ) : (
-        <div className="text-center py-2.5 text-amber-700 font-semibold border-b border-gray-200 bg-amber-50/50 text-sm">
-          {editHint}
-        </div>
-      )}
-
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[1100px] border-collapse text-sm">
           <thead>
@@ -425,7 +421,13 @@ export const CouncilCriteriaReviewTable = () => {
               <th rowSpan={2} className="px-3 py-3 border-r border-gray-300 text-left align-middle" colSpan={2}>NỘI DUNG ĐÁNH GIÁ</th>
               <th rowSpan={2} className="px-2 py-3 border-r border-gray-300 w-24 align-middle">THANG ĐIỂM</th>
               <th colSpan={2} className="px-2 py-2 border-r border-gray-300">ĐIỂM SV TỰ ĐÁNH GIÁ</th>
-              <th colSpan={2} className="px-2 py-2 border-gray-300">ĐIỂM LỚP ĐÁNH GIÁ</th>
+              <th colSpan={2} className="px-2 py-2 border-gray-300">
+                {currentUserRole === 'training_department' || currentUserRole === 'admin'
+                  ? 'ĐIỂM ĐÁNH GIÁ (LỚP / KHOA / PĐT)'
+                  : currentUserRole === 'faculty'
+                    ? 'ĐIỂM LỚP / KHOA ĐÁNH GIÁ'
+                    : 'ĐIỂM LỚP ĐÁNH GIÁ'}
+              </th>
             </tr>
             <tr className="bg-gray-50 border-b border-gray-300 text-xs font-bold text-gray-600 text-center uppercase">
               <th className="px-2 py-1.5 border-r border-gray-300 w-36">GHI CHÚ / MINH CHỨNG</th>
@@ -436,7 +438,7 @@ export const CouncilCriteriaReviewTable = () => {
           </thead>
           <tbody>
             {/* ═══ MỤC I ═══ */}
-            <SectionHeaderRow tt="I" title="Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện)" maxScore={20} svScore={svScores.sec1} classScore={classScores.sec1}/>
+            <SectionHeaderRow tt="I" title="Ý thức tham gia học tập (căn cứ vào số tín chỉ trong 01 học kỳ ≥ số tín chỉ tối thiểu theo quy định của Học viện)" maxScore={20} svScore={svScores.sec1} classScore={displaySectionScore('TC1', classLeaderSectionScores[0])}/>
             <ViolationCheckRow label="[SV] Vi phạm thi cử nghiêm trọng (Hủy điểm Mục I)" checked={isSvViolationSec1} onChange={v=>{if(isSvEditable)setIsSvViolationSec1(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm nghiêm trọng Mục I" checked={isClassViolationSec1} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec1(v);}}} disabled={!isClassEditable}/>
 
@@ -447,8 +449,8 @@ export const CouncilCriteriaReviewTable = () => {
               <td className={`${tdR} text-center font-bold text-gray-600`}>6.00</td>
               <td className={tdR}><NoteArea value={notes['sv_i1']||''} onChange={v=>setNote('sv_i1',v)} disabled={!isSvEditable||isSvViolationSec1}/></td>
               <td className={tdR}>{isSvViolationSec1?<LockedScore/>:<ScoreSelect options={studyAttitudeOpts} value={svStudyAttitude} onChange={v=>{if(isSvEditable)setSvStudyAttitude(v);}} disabled={!isSvEditable||isSvViolationSec1}/>}</td>
-              <td className={tdR}><NoteArea value={notes['cl_i1']||''} onChange={v=>setNote('cl_i1',v)} disabled={!isClassEditable||isClassViolationSec1}/></td>
-              <td className={tdBase}>{isClassViolationSec1?<LockedScore/>:<ScoreSelect options={studyAttitudeOpts} value={classStudyAttitude} onChange={v=>{if(isClassEditable){markClassEdited();setClassStudyAttitude(v);}}} disabled={!isClassEditable||isClassViolationSec1}/>}</td>
+              <td data-class-detail className={tdR}><NoteArea value={notes['cl_i1']||''} onChange={v=>setNote('cl_i1',v)} disabled={!isClassEditable||isClassViolationSec1}/></td>
+              <td data-class-detail className={tdBase}>{isClassViolationSec1?<LockedScore/>:<ScoreSelect options={studyAttitudeOpts} value={classStudyAttitude} onChange={v=>{if(isClassEditable){markClassEdited();setClassStudyAttitude(v);}}} disabled={!isClassEditable||isClassViolationSec1}/>}</td>
             </tr>
 
             {/* I.2 */}
@@ -492,8 +494,8 @@ export const CouncilCriteriaReviewTable = () => {
                   </label>
                 ))}
               </div>}</td>
-              <td className={tdR}><NoteArea value={notes['cl_i2']||''} onChange={v=>setNote('cl_i2',v)} disabled={!isClassEditable||isClassViolationSec1}/></td>
-              <td className={`${tdBase} align-top pt-2`}>{isClassViolationSec1?<LockedScore/>:<div className="space-y-2">
+              <td data-class-detail className={tdR}><NoteArea value={notes['cl_i2']||''} onChange={v=>setNote('cl_i2',v)} disabled={!isClassEditable||isClassViolationSec1}/></td>
+              <td data-class-detail className={`${tdBase} align-top pt-2`}>{isClassViolationSec1?<LockedScore/>:<div className="space-y-2">
                 {[{k:'clNckh',lbl:'a) Tham gia đầy đủ hoạt động NCKH, học thuật (+2đ)',val:classNckh,set:setClassNckh},
                   {k:'clOly',lbl:'b) Có công bố KH hoặc dự thi Olympic (+2đ)',val:classOlympic,set:setClassOlympic},
                   {k:'clCre',lbl:'c) Đạt giải trong các cuộc thi NCKH, Olympic (+2đ)',val:classCreative,set:setClassCreative}].map(item=>(
@@ -512,12 +514,12 @@ export const CouncilCriteriaReviewTable = () => {
               <td className={`${tdR} text-center font-bold text-gray-600`}>8.00</td>
               <td className={tdR}><NoteArea value={notes['sv_i3']||''} onChange={v=>setNote('sv_i3',v)} disabled={!isSvEditable||isSvViolationSec1}/></td>
               <td className={tdR}>{isSvViolationSec1?<LockedScore/>:<ScoreSelect options={academicRankOpts} value={svAcademicRank} onChange={v=>{if(isSvEditable)setSvAcademicRank(v);}} disabled={!isSvEditable||isSvViolationSec1}/>}</td>
-              <td className={tdR}><NoteArea value={notes['cl_i3']||''} onChange={v=>setNote('cl_i3',v)} disabled={!isClassEditable||isClassViolationSec1}/></td>
-              <td className={tdBase}>{isClassViolationSec1?<LockedScore/>:<ScoreSelect options={academicRankOpts} value={classAcademicRank} onChange={v=>{if(isClassEditable){markClassEdited();setClassAcademicRank(v);}}} disabled={!isClassEditable||isClassViolationSec1}/>}</td>
+              <td data-class-detail className={tdR}><NoteArea value={notes['cl_i3']||''} onChange={v=>setNote('cl_i3',v)} disabled={!isClassEditable||isClassViolationSec1}/></td>
+              <td data-class-detail className={tdBase}>{isClassViolationSec1?<LockedScore/>:<ScoreSelect options={academicRankOpts} value={classAcademicRank} onChange={v=>{if(isClassEditable){markClassEdited();setClassAcademicRank(v);}}} disabled={!isClassEditable||isClassViolationSec1}/>}</td>
             </tr>
 
             {/* ═══ MỤC II ═══ */}
-            <SectionHeaderRow tt="II" title="Đánh giá ý thức chấp hành nội quy, quy chế nhà trường" maxScore={25} svScore={svScores.sec2} classScore={classScores.sec2}/>
+            <SectionHeaderRow tt="II" title="Đánh giá ý thức chấp hành nội quy, quy chế nhà trường" maxScore={25} svScore={svScores.sec2} classScore={displaySectionScore('TC2', classLeaderSectionScores[1])}/>
             <ViolationCheckRow label="[SV] Vi phạm nghiêm trọng quy chế thi / kỷ luật (Hủy điểm Mục II)" checked={isSvViolationSec2} onChange={v=>{if(isSvEditable)setIsSvViolationSec2(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm nghiêm trọng Mục II" checked={isClassViolationSec2} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec2(v);}}} disabled={!isClassEditable}/>
 
@@ -534,8 +536,8 @@ export const CouncilCriteriaReviewTable = () => {
               <td className={`${tdR} text-center font-bold text-gray-600`}>25.00</td>
               <td className={tdR}><NoteArea value={notes['sv_ii1']||''} onChange={v=>setNote('sv_ii1',v)} disabled={!isSvEditable||isSvViolationSec2}/></td>
               <td className={tdR}>{isSvViolationSec2?<LockedScore/>:<input type="number" min={0} max={25} value={svNoViolationScore ?? 0} onChange={e=>{if(isSvEditable)setSvNoViolationScore(Math.min(25,Math.max(0,parseInt(e.target.value)||0)));}} disabled={!isSvEditable} className="w-16 h-7 px-1.5 text-center text-xs border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-blue-400 disabled:bg-gray-100"/>}</td>
-              <td className={tdR}><NoteArea value={notes['cl_ii1']||''} onChange={v=>setNote('cl_ii1',v)} disabled={!isClassEditable||isClassViolationSec2}/></td>
-              <td className={tdBase}>{isClassViolationSec2?<LockedScore/>:<input type="number" min={0} max={25} value={classNoViolationScore ?? 0} onChange={e=>{if(isClassEditable){markClassEdited();setClassNoViolationScore(Math.min(25,Math.max(0,parseInt(e.target.value)||0)));} }} disabled={!isClassEditable} className="w-16 h-7 px-1.5 text-center text-xs border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-100"/>}</td>
+              <td data-class-detail className={tdR}><NoteArea value={notes['cl_ii1']||''} onChange={v=>setNote('cl_ii1',v)} disabled={!isClassEditable||isClassViolationSec2}/></td>
+              <td data-class-detail className={tdBase}>{isClassViolationSec2?<LockedScore/>:<input type="number" min={0} max={25} value={classNoViolationScore ?? 0} onChange={e=>{if(isClassEditable){markClassEdited();setClassNoViolationScore(Math.min(25,Math.max(0,parseInt(e.target.value)||0)));} }} disabled={!isClassEditable} className="w-16 h-7 px-1.5 text-center text-xs border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-100"/>}</td>
             </tr>
 
             {/* II.2 header */}
@@ -552,13 +554,13 @@ export const CouncilCriteriaReviewTable = () => {
                 <td className={`${tdR} text-center text-red-600 text-[11px] font-bold`}>−{DEDUCTION_WEIGHTS[idx]}đ/lần</td>
                 <td className={tdR}><NoteArea value={notes[`sv_ii2_${idx}`]||''} onChange={v=>setNote(`sv_ii2_${idx}`,v)} disabled={!isSvEditable||isSvViolationSec2}/></td>
                 <td className={tdR}>{isSvViolationSec2?<LockedScore/>:<DeductionStepper isSv={true} index={idx} value={svDeductions[idx]} onChange={val=>handleDeductionChange(true,idx,val)} disabled={!isSvEditable||isSvViolationSec2} weight={DEDUCTION_WEIGHTS[idx]} noViolationScore={svNoViolationScore} allDeductions={svDeductions} currentUserRole={currentUserRole} isReadOnly={isReadOnly}/>}</td>
-                <td className={tdR}><NoteArea value={notes[`cl_ii2_${idx}`]||''} onChange={v=>setNote(`cl_ii2_${idx}`,v)} disabled={!isClassEditable||isClassViolationSec2}/></td>
-                <td className={tdBase}>{isClassViolationSec2?<LockedScore/>:<DeductionStepper isSv={false} index={idx} value={classDeductions[idx]} onChange={val=>{markClassEdited();handleDeductionChange(false,idx,val);}} disabled={!isClassEditable||isClassViolationSec2} weight={DEDUCTION_WEIGHTS[idx]} noViolationScore={classNoViolationScore} allDeductions={classDeductions} currentUserRole={currentUserRole} isReadOnly={isReadOnly}/>}</td>
+                <td data-class-detail className={tdR}><NoteArea value={notes[`cl_ii2_${idx}`]||''} onChange={v=>setNote(`cl_ii2_${idx}`,v)} disabled={!isClassEditable||isClassViolationSec2}/></td>
+                <td data-class-detail className={tdBase}>{isClassViolationSec2?<LockedScore/>:<DeductionStepper isSv={false} index={idx} value={classDeductions[idx]} onChange={val=>{markClassEdited();handleDeductionChange(false,idx,val);}} disabled={!isClassEditable||isClassViolationSec2} weight={DEDUCTION_WEIGHTS[idx]} noViolationScore={classNoViolationScore} allDeductions={classDeductions} currentUserRole={currentUserRole} isReadOnly={isReadOnly}/>}</td>
               </tr>
             ))}
 
             {/* ═══ MỤC III ═══ */}
-            <SectionHeaderRow tt="III" title="Đánh giá về ý thức và kết quả tham gia các hoạt động chính trị, xã hội, văn hóa, văn nghệ, thể thao, phòng chống tệ nạn xã hội" maxScore={20} svScore={svScores.sec3} classScore={classScores.sec3}/>
+            <SectionHeaderRow tt="III" title="Đánh giá về ý thức và kết quả tham gia các hoạt động chính trị, xã hội, văn hóa, văn nghệ, thể thao, phòng chống tệ nạn xã hội" maxScore={20} svScore={svScores.sec3} classScore={displaySectionScore('TC3', classLeaderSectionScores[2])}/>
             <ViolationCheckRow label="[SV] Không tham gia (Hủy điểm Mục III)" checked={isSvViolationSec3} onChange={v=>{if(isSvEditable)setIsSvViolationSec3(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận không tham gia Mục III" checked={isClassViolationSec3} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec3(v);}}} disabled={!isClassEditable}/>
 
@@ -569,8 +571,8 @@ export const CouncilCriteriaReviewTable = () => {
                 <td className={`${tdR} text-center font-bold text-gray-600`}>{row.max}.00</td>
                 <td className={tdR}><NoteArea value={notes[`sv_${row.key}`]||''} onChange={v=>setNote(`sv_${row.key}`,v)} disabled={!isSvEditable||isSvViolationSec3}/></td>
                 <td className={tdR}>{isSvViolationSec3?<LockedScore/>:<ScoreSelect options={row.opts} value={row.svVal} onChange={v=>{if(isSvEditable)row.svSet(v);}} disabled={!isSvEditable||isSvViolationSec3}/>}</td>
-                <td className={tdR}><NoteArea value={notes[`cl_${row.key}`]||''} onChange={v=>setNote(`cl_${row.key}`,v)} disabled={!isClassEditable||isClassViolationSec3}/></td>
-                <td className={tdBase}>{isClassViolationSec3?<LockedScore/>:<ScoreSelect options={row.opts} value={row.clVal} onChange={v=>{if(isClassEditable){markClassEdited();row.clSet(v);}}} disabled={!isClassEditable||isClassViolationSec3}/>}</td>
+                <td data-class-detail className={tdR}><NoteArea value={notes[`cl_${row.key}`]||''} onChange={v=>setNote(`cl_${row.key}`,v)} disabled={!isClassEditable||isClassViolationSec3}/></td>
+                <td data-class-detail className={tdBase}>{isClassViolationSec3?<LockedScore/>:<ScoreSelect options={row.opts} value={row.clVal} onChange={v=>{if(isClassEditable){markClassEdited();row.clSet(v);}}} disabled={!isClassEditable||isClassViolationSec3}/>}</td>
               </tr>
             ))}
 
@@ -590,12 +592,12 @@ export const CouncilCriteriaReviewTable = () => {
                 )}
               </td>
               <td className={tdR}>{isSvViolationSec3?<LockedScore/>:<input type="number" min={0} max={2} value={svRewardPoints ?? 0} onChange={e=>{if(isSvEditable)setSvRewardPoints(Math.min(2,Math.max(0,parseFloat(e.target.value)||0)));}} disabled={!isSvEditable} className="w-16 h-7 px-1.5 text-center text-xs border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-blue-400 disabled:bg-gray-100"/>}</td>
-              <td className={tdR}><NoteArea value={notes['cl_iii5']||''} onChange={v=>setNote('cl_iii5',v)} disabled={!isClassEditable||isClassViolationSec3}/></td>
-              <td className={tdBase}>{isClassViolationSec3?<LockedScore/>:<input type="number" min={0} max={2} value={classRewardPoints ?? 0} onChange={e=>{if(isClassEditable){markClassEdited();setClassRewardPoints(Math.min(2,Math.max(0,parseFloat(e.target.value)||0)));} }} disabled={!isClassEditable} className="w-16 h-7 px-1.5 text-center text-xs border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-100"/>}</td>
+              <td data-class-detail className={tdR}><NoteArea value={notes['cl_iii5']||''} onChange={v=>setNote('cl_iii5',v)} disabled={!isClassEditable||isClassViolationSec3}/></td>
+              <td data-class-detail className={tdBase}>{isClassViolationSec3?<LockedScore/>:<input type="number" min={0} max={2} value={classRewardPoints ?? 0} onChange={e=>{if(isClassEditable){markClassEdited();setClassRewardPoints(Math.min(2,Math.max(0,parseFloat(e.target.value)||0)));} }} disabled={!isClassEditable} className="w-16 h-7 px-1.5 text-center text-xs border border-gray-300 rounded bg-white font-bold outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-100"/>}</td>
             </tr>
 
             {/* ═══ MỤC IV ═══ */}
-            <SectionHeaderRow tt="IV" title="Đánh giá về ý thức công dân trong quan hệ cộng đồng" maxScore={25} svScore={svScores.sec4} classScore={classScores.sec4}/>
+            <SectionHeaderRow tt="IV" title="Đánh giá về ý thức công dân trong quan hệ cộng đồng" maxScore={25} svScore={svScores.sec4} classScore={displaySectionScore('TC4', classLeaderSectionScores[3])}/>
             <ViolationCheckRow label="[SV] Vi phạm nghiêm trọng quan hệ cộng đồng (Hủy điểm Mục IV)" checked={isSvViolationSec4} onChange={v=>{if(isSvEditable)setIsSvViolationSec4(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận vi phạm Mục IV" checked={isClassViolationSec4} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec4(v);}}} disabled={!isClassEditable}/>
             {sec4Rows.map(row=>(
@@ -619,13 +621,13 @@ export const CouncilCriteriaReviewTable = () => {
                   )}
                 </td>
                 <td className={tdR}>{isSvViolationSec4?<LockedScore/>:<ScoreSelect options={row.opts} value={row.svVal} onChange={v=>{if(isSvEditable)row.svSet(v);}} disabled={!isSvEditable||isSvViolationSec4}/>}</td>
-                <td className={tdR}><NoteArea value={notes[`cl_${row.key}`]||''} onChange={v=>setNote(`cl_${row.key}`,v)} disabled={!isClassEditable||isClassViolationSec4}/></td>
-                <td className={tdBase}>{isClassViolationSec4?<LockedScore/>:<ScoreSelect options={row.opts} value={row.clVal} onChange={v=>{if(isClassEditable){markClassEdited();row.clSet(v);}}} disabled={!isClassEditable||isClassViolationSec4}/>}</td>
+                <td data-class-detail className={tdR}><NoteArea value={notes[`cl_${row.key}`]||''} onChange={v=>setNote(`cl_${row.key}`,v)} disabled={!isClassEditable||isClassViolationSec4}/></td>
+                <td data-class-detail className={tdBase}>{isClassViolationSec4?<LockedScore/>:<ScoreSelect options={row.opts} value={row.clVal} onChange={v=>{if(isClassEditable){markClassEdited();row.clSet(v);}}} disabled={!isClassEditable||isClassViolationSec4}/>}</td>
               </tr>
             ))}
 
             {/* ═══ MỤC V ═══ */}
-            <SectionHeaderRow tt="V" title="Đánh giá về ý thức và kết quả tham gia Ban cán sự lớp, BCH Đoàn, Ban chủ nhiệm các Ban, CLB, Đội, Hội, Nhóm được thành lập theo quy định." maxScore={10} svScore={svScores.sec5} classScore={classScores.sec5}/>
+            <SectionHeaderRow tt="V" title="Đánh giá về ý thức và kết quả tham gia Ban cán sự lớp, BCH Đoàn, Ban chủ nhiệm các Ban, CLB, Đội, Hội, Nhóm được thành lập theo quy định." maxScore={10} svScore={svScores.sec5} classScore={displaySectionScore('TC5', classLeaderSectionScores[4])}/>
             <ViolationCheckRow label="[SV] Không tham gia đoàn thể (Hủy điểm Mục V)" checked={isSvViolationSec5} onChange={v=>{if(isSvEditable)setIsSvViolationSec5(v);}} disabled={!isSvEditable}/>
             <ViolationCheckRow label="[Lớp] Xác nhận không tham gia Mục V" checked={isClassViolationSec5} onChange={v=>{if(isClassEditable){markClassEdited();setIsClassViolationSec5(v);}}} disabled={!isClassEditable}/>
 
@@ -660,7 +662,7 @@ export const CouncilCriteriaReviewTable = () => {
                   ))}
                 </div>
               </td>
-              <td className={tdBase} colSpan={2}>
+              <td data-class-detail className={tdBase} colSpan={2}>
                 <div className="flex flex-col gap-2">
                   {[
                     { v: 'cadre', lbl: '1. Cán bộ (BCS lớp, BCH Đảng, Đoàn, Hội, CLB...)' },
@@ -728,7 +730,7 @@ export const CouncilCriteriaReviewTable = () => {
                     ))}
                   </div>
                 </td>
-                <td className={tdBase} colSpan={2}>
+                <td data-class-detail className={tdBase} colSpan={2}>
                   <div className="flex flex-col gap-2">
                     {[
                       {
@@ -792,8 +794,8 @@ export const CouncilCriteriaReviewTable = () => {
                     />
                   )}
                 </td>
-                <td className={tdR}><NoteArea value={notes['cl_va2'] || ''} onChange={v => setNote('cl_va2', v)} disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5} /></td>
-                <td className={tdBase}>
+                <td data-class-detail className={tdR}><NoteArea value={notes['cl_va2'] || ''} onChange={v => setNote('cl_va2', v)} disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5} /></td>
+                <td data-class-detail className={tdBase}>
                   {isClassViolationSec5 ? <LockedScore /> : (
                     <ScoreSelect
                       options={classCadrePosition === 'LEADER_GROUP' || classCadrePosition === 'a1' ? a1PerfOpts : a2PerfOpts}
@@ -822,8 +824,8 @@ export const CouncilCriteriaReviewTable = () => {
                     />
                   )}
                 </td>
-                <td className={tdR}><NoteArea value={notes['cl_va3'] || ''} onChange={v => setNote('cl_va3', v)} disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5} /></td>
-                <td className={tdBase}>
+                <td data-class-detail className={tdR}><NoteArea value={notes['cl_va3'] || ''} onChange={v => setNote('cl_va3', v)} disabled={!isClassEditable || !isClassOfficer || isClassViolationSec5} /></td>
+                <td data-class-detail className={tdBase}>
                   {isClassViolationSec5 ? <LockedScore /> : (
                     <ScoreSelect
                       options={mgmtOpts}
@@ -868,8 +870,8 @@ export const CouncilCriteriaReviewTable = () => {
                     </select>
                   )}
                 </td>
-                <td className={tdR}><NoteArea value={notes['cl_vb1'] || ''} onChange={v => setNote('cl_vb1', v)} disabled={!isClassEditable || isClassViolationSec5} /></td>
-                <td className={tdBase}>
+                <td data-class-detail className={tdR}><NoteArea value={notes['cl_vb1'] || ''} onChange={v => setNote('cl_vb1', v)} disabled={!isClassEditable || isClassViolationSec5} /></td>
+                <td data-class-detail className={tdBase}>
                   {isClassViolationSec5 ? <LockedScore /> : (
                     <select
                       value={classClassParticipation ?? 0}
@@ -912,8 +914,8 @@ export const CouncilCriteriaReviewTable = () => {
                     />
                   )}
                 </td>
-                <td className={tdR}><NoteArea value={notes['cl_vb2'] || ''} onChange={v => setNote('cl_vb2', v)} disabled={!isClassEditable || !isClassStudent || isClassViolationSec5} /></td>
-                <td className={tdBase}>
+                <td data-class-detail className={tdR}><NoteArea value={notes['cl_vb2'] || ''} onChange={v => setNote('cl_vb2', v)} disabled={!isClassEditable || !isClassStudent || isClassViolationSec5} /></td>
+                <td data-class-detail className={tdBase}>
                   {isClassViolationSec5 ? <LockedScore /> : (
                     <ScoreSelect
                       options={SPECIAL_ACHIEVEMENT_LEVEL_OPTIONS}
@@ -931,7 +933,9 @@ export const CouncilCriteriaReviewTable = () => {
               <td className="px-3 py-3 border-r border-indigo-100 text-sm" colSpan={3}>Tổng cộng (Điểm chấm)</td>
               <td className="px-2 py-3 text-center border-r border-indigo-100 font-black">100</td>
               <td className="px-2 py-3 text-center border-r border-indigo-100 text-blue-700 text-sm font-black" colSpan={2}>{f(displaySvTotal)} / 100</td>
-              <td className="px-2 py-3 text-center text-[#D93A3C] text-sm font-black" colSpan={2}>{f(displayClassTotal)} / 100</td>
+              <td className="px-2 py-3 text-center text-[#D93A3C] text-sm font-black" colSpan={2}>
+                {typeof displayClassTotal === 'number' ? `${f(displayClassTotal)} / 100` : '—'}
+              </td>
             </tr>
             <tr className="bg-gray-50 text-gray-600 border-t border-gray-200 font-bold">
               <td className="px-3 py-2.5 text-xs border-r border-gray-200" colSpan={3}>Tổng điểm tối đa của thang đánh giá</td>

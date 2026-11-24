@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 export interface StudentReviewHeaderProps {
   classId: string;
@@ -29,19 +31,41 @@ export function StudentReviewHeader({
   studentCode,
   rawStudentId,
 }: StudentReviewHeaderProps) {
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
   const initials = getInitials(studentName);
   const showCode = isValidStudentCode(studentCode, rawStudentId);
+
+  const backHref = user?.role === 'training_department'
+    ? '/training_department'
+    : user?.role === 'faculty'
+      ? `/faculty/${classId}`
+      : user?.role === 'class_leader'
+        ? '/class_leader'
+        : `/advisor/${classId}`;
+
+  const handleBackClick = (e: React.MouseEvent) => {
+    if (user?.role === 'training_department' || user?.role === 'faculty') {
+      e.preventDefault();
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        router.back();
+      } else {
+        router.push(backHref);
+      }
+    }
+  };
 
   return (
     <header className="space-y-4">
       {/* Breadcrumb / Back button */}
       <nav aria-label="Breadcrumb">
         <Link
-          href={`/advisor/${classId}`}
+          href={backHref}
+          onClick={handleBackClick}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
         >
           <ArrowLeft size={14} />
-          Quay lại danh sách sinh viên
+          Quay lại danh sách
         </Link>
       </nav>
 
