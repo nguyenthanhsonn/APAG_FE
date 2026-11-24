@@ -9,10 +9,13 @@ import { Loader2, Search, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { createAdminApi } from '@/api/API_Admin';
 import { createSharedApi } from '@/api/API_Shared';
+import { createStudentApi } from '@/api/API_Student';
+import type { Semester } from '@/types/student';
 import CustomSelect from '@/components/common/CustomSelect';
 import { useToast } from '@/components/common/ToastProvider';
 import { useAuthStore } from '@/store/authStore';
 import { getUserFriendlyError } from '@/utils/errorHelper';
+import { canSelectForSubmitToAdvisor, canSelectForSubmitToFaculty } from '@/utils/permissionHelpers';
 import ClassDetailHeader from './ClassDetailHeader';
 import StudentProgressTable from './StudentProgressTable';
 import type { CouncilStudentReview, StudentReviewStatus } from './StudentProgressTable';
@@ -55,35 +58,15 @@ function toReviewStatus(status?: string): StudentReviewStatus {
   return 'not_submitted';
 }
 
-function normalizeKey(value: unknown) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function getStudentIdentityKeys(student: any) {
-  return [
-    student.studentId, student.id, student.userId, student.user?.id, student.student?.id,
-    student.email, student.user?.email, student.studentCode, student.code, student.user?.studentCode, student.username, student.user?.username,
-    student.fullName, student.name, student.user?.fullName,
-  ].map(normalizeKey).filter(Boolean);
-}
-
-function getEvaluationIdentityKeys(evaluation: any) {
-  return [
-    evaluation.studentId, evaluation.student?.id, evaluation.student?.userId, evaluation.student?.user?.id,
-    evaluation.userId, evaluation.user?.id, evaluation.id,
-    evaluation.student?.email, evaluation.email, evaluation.user?.email,
-    evaluation.studentCode, evaluation.student?.studentCode, evaluation.student?.code, evaluation.student?.user?.studentCode, evaluation.student?.username, evaluation.username, evaluation.code,
-    evaluation.studentName, evaluation.student?.fullName, evaluation.student?.name, evaluation.fullName, evaluation.user?.fullName,
-  ].map(normalizeKey).filter(Boolean);
-}
-
 /* ── Filter status options ── */
-type ReviewStatusFilter = 'all' | StudentReviewStatus;
-const statusOptions = [
-  { id: 'all', name: 'Tất cả trạng thái' },
-  { id: 'submitted', name: 'Đã nộp' },
-  { id: 'not_submitted', name: 'Chưa nộp' },
-];
+type ReviewStatusFilter =
+  | 'all'
+  | 'pending'
+  | 'confirmed'
+  | 'not_sent'
+  | 'sent'
+  | 'graded'
+  | StudentReviewStatus;
 
 interface ClassMetadata {
   code?: string;
@@ -93,18 +76,12 @@ interface ClassMetadata {
   enrollmentYear?: string | number;
 }
 
-// In-memory module cache to eliminate loading flicker on navigation back
-const classDataCache = new Map<string, {
-  className: string;
-  classDetail: ClassMetadata | null;
-  students: CouncilStudentReview[];
-}>();
-
 /* ── Main Component ── */
 export default function AdvisorClassDetailPage() {
   const [versionContext] = useState(() => createEvaluationTransport('class-review'));
   const [API_Admin] = useState(() => createAdminApi(versionContext));
   const [API_Shared] = useState(() => createSharedApi(versionContext));
+  const [API_Student] = useState(() => createStudentApi(versionContext));
   const router = useRouter();
   const params = useParams();
   const toast = useToast();
@@ -126,12 +103,10 @@ export default function AdvisorClassDetailPage() {
   const assignedClassFacultyName = assignedClass?.faculty?.name || assignedClass?.facultyName;
   const assignedClassEnrollmentYear = assignedClass?.enrollmentYear;
 
-  const cachedData = classId ? classDataCache.get(classId) : null;
-
-  const [loading, setLoading] = useState(!cachedData);
-  const [className, setClassName] = useState(cachedData?.className || assignedClassName);
+  const [loading, setLoading] = useState(true);
+  const [className, setClassName] = useState(assignedClassName);
   const [classDetail, setClassDetail] = useState<ClassMetadata | null>(
-    cachedData?.classDetail || (assignedClass
+    (assignedClass
       ? {
           code: assignedClassCode,
           name: assignedClassName,
@@ -141,9 +116,9 @@ export default function AdvisorClassDetailPage() {
         }
       : null)
   );
-  const [students, setStudents] = useState<CouncilStudentReview[]>(cachedData?.students || []);
+  const [students, setStudents] = useState<CouncilStudentReview[]>([]);
   const [submittingClass, setSubmittingClass] = useState(false);
-  const [semester, setSemester] = useState('all');
+  const [activeSemester, setActiveSemester] = useState<Semester | null>(null);
   const [status, setStatus] = useState<ReviewStatusFilter>('all');
   const [keyword, setKeyword] = useState('');
 
@@ -171,7 +146,6 @@ export default function AdvisorClassDetailPage() {
 
         let detailResult: any = null;
         let studentsResult: any = null;
-        let evaluationsResult: any = [];
 
         try {
           detailResult = await API_Shared.getClassDetails(classId);
@@ -206,26 +180,23 @@ export default function AdvisorClassDetailPage() {
 
         const classStudents = toArray<any>(unwrapData<any>(studentsResult));
 
-        try {
-          evaluationsResult = await API_Shared.getTrainingEvaluations({
-            classId,
-            page: 1,
-            limit: 100,
-          });
-        } catch (error: unknown) {
-          if ([401, 403].includes(Number((error as { statusCode?: number }).statusCode))) throw error;
-          evaluationsResult = [];
+        const currentSemester = unwrapData<Semester>(await API_Student.getCurrentSemester());
+        if (!currentSemester?.id || !currentSemester.semester || !currentSemester.academicYear) {
+          throw new Error('Không tìm thấy học kỳ đánh giá');
         }
-
+        const evaluationsResult = await API_Shared.getTrainingEvaluations({
+          classId,
+          semester: currentSemester.semester,
+          academicYear: currentSemester.academicYear,
+          page: 1,
+          limit: 1000,
+        });
         if (!mounted) return;
 
-        const evaluations = toArray<any>(unwrapData<any>(evaluationsResult));
-        const evaluationsByKey = new Map<string, any>();
-        evaluations.forEach((evaluation) => {
-          getEvaluationIdentityKeys(evaluation).forEach((key) => {
-            evaluationsByKey.set(key, evaluation);
-          });
-        });
+        const evaluations = toArray<any>(unwrapData(evaluationsResult));
+        const evaluationsByStudentId = new Map(
+          evaluations.map((evaluation) => [evaluation.studentId || evaluation.student?.id || evaluation.user?.id, evaluation]),
+        );
 
         const sourceList =
           classStudents.length > 0
@@ -243,18 +214,9 @@ export default function AdvisorClassDetailPage() {
                 ...e.student,
               }));
 
-        const mappedStudents = sourceList.map((student, idx) => {
-          const studentId = student.studentId || student.id || student.userId || '';
-          let evaluation = getStudentIdentityKeys(student)
-            .map((key) => evaluationsByKey.get(key))
-            .find(Boolean);
-
-          if (!evaluation && evaluations[idx]) {
-            const ev = evaluations[idx];
-            if (evaluations.length === sourceList.length || ev.studentId === studentId || ev.student?.id === studentId) {
-              evaluation = ev;
-            }
-          }
+        const mappedStudents = sourceList.map((student) => {
+          const studentId = student.studentId || student.userId || student.id || '';
+          const evaluation = evaluationsByStudentId.get(studentId);
 
           const totalScore = evaluation?.studentScore ?? evaluation?.selfScore ?? evaluation?.totalScore ?? null;
           const review = evaluation?.review || {};
@@ -264,35 +226,9 @@ export default function AdvisorClassDetailPage() {
               : typeof review.classScore === 'number'
                 ? review.classScore
                 : null;
-          const roleKey = user?.role === 'advisor' ? 'advisor' : 'class_leader';
-          const storedConfirmedAt =
-            typeof window !== 'undefined' && evaluation?.id
-              ? window.sessionStorage.getItem(`evaluation_review_confirmed:${roleKey}:${evaluation.id}`)
-              : null;
-
           const rawStatus = normalizeWorkflowStatus(evaluation?.status);
-          const isCLConfirmed = Boolean(
-            review.classLeaderReviewedAt ||
-            evaluation?.classLeaderReviewedAt ||
-            evaluation?.classLeaderConfirmedAt ||
-            evaluation?.reviewedAt ||
-            (roleKey === 'class_leader' && storedConfirmedAt) ||
-            evaluation?.isConfirmed ||
-            ['class_leader_approved', 'class_approved', 'faculty_approved', 'finalized'].includes(rawStatus)
-          );
-
-          const isAdvConfirmed = Boolean(
-            review.classReviewedAt ||
-            evaluation?.classReviewedAt ||
-            evaluation?.advisorReviewedAt ||
-            evaluation?.advisorConfirmedAt ||
-            (roleKey === 'advisor' && storedConfirmedAt) ||
-            evaluation?.isConfirmed ||
-            ['class_approved', 'faculty_approved', 'finalized'].includes(rawStatus)
-          );
-
-          const rawCLDate = review.classLeaderReviewedAt || evaluation?.classLeaderReviewedAt || evaluation?.classLeaderConfirmedAt || evaluation?.reviewedAt || storedConfirmedAt;
-          const rawAdvDate = review.classReviewedAt || evaluation?.classReviewedAt || evaluation?.advisorReviewedAt || storedConfirmedAt;
+          const rawCLDate = review.classLeaderReviewedAt || evaluation?.classLeaderReviewedAt || evaluation?.classLeaderConfirmedAt;
+          const rawAdvDate = review.classReviewedAt || evaluation?.classReviewedAt || evaluation?.advisorReviewedAt || evaluation?.advisorConfirmedAt;
           const workflowStatus = rawStatus;
 
           return {
@@ -305,28 +241,17 @@ export default function AdvisorClassDetailPage() {
             status: evaluation ? toReviewStatus(workflowStatus) : 'not_submitted',
             workflowStatus,
             statusLabel: evaluation?.statusLabel,
-            classLeaderReviewedAt: isCLConfirmed ? (rawCLDate || new Date().toISOString()) : null,
-            classReviewedAt: isAdvConfirmed ? (rawAdvDate || new Date().toISOString()) : null,
+            classLeaderReviewedAt: rawCLDate || null,
+            classReviewedAt: rawAdvDate || null,
           } satisfies CouncilStudentReview;
         });
 
-        if (classId) {
-          classDataCache.set(classId, {
-            className: assignedClassName,
-            classDetail: {
-              code: assignedClassCode,
-              name: assignedClassName,
-              majorName: assignedClassMajorName,
-              facultyName: assignedClassFacultyName,
-              enrollmentYear: assignedClassEnrollmentYear,
-            },
-            students: mappedStudents,
-          });
-        }
+        setActiveSemester(currentSemester);
         setStudents(mappedStudents);
       } catch (error: any) {
         if (!mounted) return;
         setStudents([]);
+        setActiveSemester(null);
         const status = error?.response?.status || error?.statusCode || error?.status;
         if (status !== 403 && status !== 404) {
           toast.error(getUserFriendlyError(error, 'Không tải được danh sách sinh viên của lớp.'));
@@ -336,7 +261,7 @@ export default function AdvisorClassDetailPage() {
       }
     };
 
-    loadData(Boolean(cachedData));
+    loadData();
 
     const handleRefresh = () => {
       loadData(true);
@@ -352,7 +277,7 @@ export default function AdvisorClassDetailPage() {
         window.removeEventListener('evaluation_confirmed', handleRefresh);
       }
     };
-  }, [classId, user?.role, API_Shared]);
+  }, [classId, user?.role, API_Shared, API_Student]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -360,14 +285,10 @@ export default function AdvisorClassDetailPage() {
   const isClassLeader = user?.role === 'class_leader';
   const selectableStudents = useMemo(
     () =>
-      students.filter((s) => {
-        const normWf = String(s.workflowStatus || s.status || '').toLowerCase();
-        if (isClassLeader) {
-          return normWf === 'submitted' && Boolean(s.classLeaderReviewedAt);
-        }
-        return normWf === 'class_leader_approved' && Boolean(s.classReviewedAt);
-      }),
-    [students, isClassLeader],
+      students.filter((student) => isClassLeader
+        ? canSelectForSubmitToAdvisor(user?.role, student)
+        : canSelectForSubmitToFaculty(user?.role, student)),
+    [students, isClassLeader, user?.role],
   );
 
   const handleToggleSelect = useCallback((studentId: string) => {
@@ -395,23 +316,73 @@ export default function AdvisorClassDetailPage() {
     }
   }, [classDetail, className, classId]);
 
+  const statusOptions = useMemo(() => {
+    if (user?.role === 'class_leader') {
+      return [
+        { id: 'all', name: 'Tất cả trạng thái' },
+        { id: 'not_sent', name: 'Chưa gửi' },
+        { id: 'sent', name: 'Đã gửi' },
+        { id: 'graded', name: 'Đã chấm' },
+      ];
+    }
+    return [
+      { id: 'all', name: 'Tất cả trạng thái' },
+      { id: 'pending', name: 'Chờ xác nhận' },
+      { id: 'confirmed', name: 'Đã xác nhận' },
+    ];
+  }, [user?.role]);
+
   /* ── Filter Logic ── */
   const filteredStudents = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
+    const isCL = user?.role === 'class_leader';
+
     return students.filter((student) => {
-      const matchStatus = status === 'all' || student.status === status;
+      const normWf = String(student.workflowStatus || student.status || '').toLowerCase();
+      const isNotSubmitted = normWf === 'not_submitted' || normWf === 'draft' || student.status === 'not_submitted';
+      const hasGraded = typeof student.classScore === 'number' || Boolean(student.classLeaderReviewedAt);
+      const isSentToCVHT =
+        normWf === 'class_leader_approved' ||
+        ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+
+      let matchStatus = true;
+      if (status !== 'all') {
+        if (isCL) {
+          if (status === 'not_sent') {
+            matchStatus = isNotSubmitted;
+          } else if (status === 'graded') {
+            matchStatus = !isNotSubmitted && !isSentToCVHT && hasGraded;
+          } else if (status === 'sent') {
+            matchStatus = (!isNotSubmitted && !hasGraded && !isSentToCVHT) || isSentToCVHT;
+          } else {
+            matchStatus = student.status === status;
+          }
+        } else {
+          const isConfirmed =
+            Boolean(student.classReviewedAt) ||
+            ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(normWf);
+
+          if (status === 'confirmed') {
+            matchStatus = isConfirmed;
+          } else if (status === 'pending') {
+            matchStatus = !isConfirmed && normWf === 'class_leader_approved';
+          } else {
+            matchStatus = student.status === status;
+          }
+        }
+      }
+
       const matchKeyword =
         !normalizedKeyword ||
         student.fullName.toLowerCase().includes(normalizedKeyword) ||
         student.code.toLowerCase().includes(normalizedKeyword);
       return matchStatus && matchKeyword;
     });
-  }, [students, status, keyword]);
+  }, [students, status, keyword, user?.role]);
 
-  const hasActiveFilter = semester !== 'all' || status !== 'all' || keyword.trim() !== '';
+  const hasActiveFilter = status !== 'all' || keyword.trim() !== '';
 
   const clearFilters = useCallback(() => {
-    setSemester('all');
     setStatus('all');
     setKeyword('');
   }, []);
@@ -427,38 +398,38 @@ export default function AdvisorClassDetailPage() {
   const submitLock = useActionRef(false);
   const handleSubmitClass = useCallback(async () => {
     if (submitLock.current) return;
-    if (!classId || submittingClass || selectedIds.length === 0) {
+    if (!classId || !activeSemester || submittingClass || selectedIds.length === 0) {
+      return;
+    }
+    const selectableIds = new Set(selectableStudents.map((student) => student.id));
+    if (selectedIds.some((id) => !selectableIds.has(id))) {
+      setSelectedIds([]);
+      setConfirmModalOpen(false);
+      toast.error('Danh sách đã thay đổi. Vui lòng chọn lại các phiếu đã xác nhận ở bước hiện tại.');
       return;
     }
 
     try {
       submitLock.current = true;
       setSubmittingClass(true);
-      const payload = { evaluationIds: selectedIds };
+      const payload = { evaluationIds: selectedIds, semesterId: activeSemester.id };
       const result =
         user?.role === 'class_leader'
           ? await API_Admin.submitClassToAdvisor(classId, payload)
           : await API_Admin.submitClassToFaculty(classId, payload);
       const data = (result as any)?.data || result;
-      toast.success(data?.message || `Đã gửi ${selectedIds.length} phiếu đánh giá thành công.`);
+      toast.success(data?.message || `Đã gửi ${data.submittedCount} phiếu đánh giá thành công.`);
       setSelectedIds([]);
       setConfirmModalOpen(false);
 
-      // Refresh list
-      setStudents((prev) =>
-        prev.map((s) => {
-          if (!selectedIds.includes(s.id)) return s;
-          const nextWf = user?.role === 'class_leader' ? 'class_leader_approved' : 'class_approved';
-          return { ...s, workflowStatus: nextWf, status: toReviewStatus(nextWf) };
-        }),
-      );
+      window.dispatchEvent(new Event('evaluation_confirmed'));
     } catch (error: any) {
       toast.error(getUserFriendlyError(error, 'Không gửi được danh sách phiếu đánh giá.'));
     } finally {
       submitLock.current = false;
       setSubmittingClass(false);
     }
-  }, [classId, selectedIds, submittingClass, toast, user, submitLock, API_Admin]);
+  }, [classId, activeSemester, selectedIds, selectableStudents, submittingClass, toast, user, submitLock, API_Admin]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -492,12 +463,12 @@ export default function AdvisorClassDetailPage() {
       {/* Sticky Filter Bar on Scroll */}
       <div className="sticky top-0 z-20 rounded-xl border border-gray-200 bg-white/95 backdrop-blur-xs p-4 shadow-xs transition-shadow">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[220px_220px_1fr]">
-          <CustomSelect
-            label="Học kỳ"
-            value={semester}
-            onChange={setSemester}
-            options={[{ id: 'all', name: 'Tất cả học kỳ' }]}
-          />
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase text-gray-600">Học kỳ</p>
+            <p className="py-2.5 text-sm font-medium text-gray-900">
+              {activeSemester?.name || (loading ? 'Đang tải…' : 'Chưa có học kỳ đánh giá')}
+            </p>
+          </div>
           <CustomSelect
             label="Trạng thái"
             value={status}

@@ -163,7 +163,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     : user?.role === 'class_leader'
     ? 'Lớp trưởng'
     : user?.role === 'faculty'
-    ? 'Ban/Khoa'
+    ? 'Khoa'
     : user?.role === 'training_department'
     ? 'Phòng Đào Tạo'
     : 'Sinh viên';

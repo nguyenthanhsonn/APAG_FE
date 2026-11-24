@@ -6,11 +6,17 @@ import {
   Eye,
   Printer,
   RefreshCw,
+  ArrowLeft,
+  Building2,
+  Users,
+  CheckCircle2,
+  Search,
   FileSpreadsheet,
+  Clock,
+  Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { API_Shared } from '@/api/API_Shared';
-import { API_Admin } from '@/api/API_Admin';
 import { API_Faculty, type FacultyReportExportFormat } from '@/api/API_Faculty';
 import { getUserFriendlyError } from '@/utils/errorHelper';
 import {
@@ -25,17 +31,6 @@ import {
 import { useToast } from '@/components/common/ToastProvider';
 
 /* ─── helpers ─────────────────────────────────────────────── */
-function getBirthDate(raw: any): string {
-  if (!raw) return '';
-  try {
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return String(raw);
-    return d.toLocaleDateString('vi-VN');
-  } catch {
-    return String(raw);
-  }
-}
-
 function getFileNameFromDisposition(disposition?: string, fallback = 'bien-ban-hop-khoa') {
   const utf8FileName = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
   if (utf8FileName) {
@@ -68,22 +63,53 @@ export function calcXepLoai(score: number): string {
   return 'Yếu';
 }
 
+export function cleanNote(note?: string | null): string {
+  if (!note) return '';
+  const trimmed = note.trim();
+  if (
+    trimmed === '—' ||
+    trimmed === '-' ||
+    trimmed === '--' ||
+    trimmed.startsWith('[KIỂM THỬ]') ||
+    trimmed.toLowerCase().includes('dữ liệu mẫu') ||
+    trimmed.toLowerCase().includes('mô phỏng')
+  ) {
+    return '';
+  }
+  return trimmed;
+}
+
+interface ClassItem {
+  id: string;
+  className: string;
+  classCode: string;
+  approvedCount: number;
+  submittedCount: number;
+  totalStudents: number;
+}
+
 export function BienBanHoiDongView() {
   const user = useAuthStore((state) => state.user);
   const toast = useToast();
   const facultyId = resolveFacultyId(user);
 
-  /* ─── Dropdown Classes State ─── */
-  const [classes, setClasses] = useState<Array<{ id: string; className: string }>>([]);
+  /* ─── Classes State ─── */
+  const [classes, setClasses] = useState<ClassItem[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   /* ─── Loading / Error ─── */
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [error, setError] = useState('');
 
+  /* ─── Direct Export State (từ bảng danh sách) ─── */
+  const [exportingClassId, setExportingClassId] = useState<string | null>(null);
+  const [exportingClassFormat, setExportingClassFormat] = useState<FacultyReportExportFormat | null>(null);
+
   /* ─── Form Data & Row State ─── */
-  const [classStudents, setClassStudents] = useState<any[]>([]); // holds class students list
+  const [report, setReport] = useState<Awaited<ReturnType<typeof API_Shared.getFacultyCouncilReview>> | null>(null);
+  const [reportRefresh, setReportRefresh] = useState(0);
   const [formData, setFormData] = useState({
     qdSo: '',
     qdNgay: '',
@@ -139,7 +165,7 @@ export function BienBanHoiDongView() {
     }));
   }, [user]);
 
-  /* ─── Load dropdown list of classes ─── */
+  /* ─── Load list of classes ─── */
   const loadClasses = useCallback(async () => {
     if (!facultyId) return;
     setLoadingClasses(true);
@@ -160,20 +186,18 @@ export function BienBanHoiDongView() {
         items = classesByMajor.flatMap((result) => toArray<any>(result));
       }
 
-      const cleanClasses = items
+      const cleanClasses: ClassItem[] = items
         .map((c) => ({
           id: String(c.id || c.classId || c._id || c.code || ''),
           className: c.className || c.name || c.classCode || c.code || 'Lớp chưa xác định',
+          classCode: c.classCode || c.code || '',
+          approvedCount: Number(c.approvedCount) || 0,
+          submittedCount: Number(c.submittedCount) || 0,
+          totalStudents: Number(c.totalStudents ?? c.studentCount) || 0,
         }))
         .filter((c) => Boolean(c.id));
 
       setClasses(cleanClasses);
-      if (cleanClasses.length > 0) {
-        setSelectedClassId((prev) => {
-          const exists = cleanClasses.some((c) => c.id === prev);
-          return exists ? prev : cleanClasses[0].id;
-        });
-      }
     } catch (err: any) {
       setError(getUserFriendlyError(err, 'Không tải được danh sách lớp.'));
     } finally {
@@ -185,176 +209,53 @@ export function BienBanHoiDongView() {
     void loadClasses();
   }, [loadClasses]);
 
-  /* ─── Load students of selected class ─── */
-  const loadClassDetail = useCallback(async () => {
-    if (!selectedClassId || !facultyId) return;
-    setLoadingStudents(true);
-    setError('');
-    try {
-      let items: any[] = [];
-      let detectedSemester = '';
-      let detectedAcademicYear = '';
-
-      // 1. Thử lấy từ endpoint Council Review
-      try {
-        const res = await API_Shared.getFacultyCouncilReview(facultyId, selectedClassId);
-        const resItems = toArray<any>(res);
-        if (resItems.length > 0) {
-          items = resItems;
-        }
-      } catch (e) {
-        console.warn('getFacultyCouncilReview failed, using fallback APIs:', e);
-      }
-
-      // 2. Nếu chưa có items, lấy qua evaluations và danh sách lớp
-      if (items.length === 0) {
-        const [evalsRes, adminEvalsRes, studentsRes] = await Promise.all([
-          API_Admin.getFacultyEvaluations(facultyId, { classId: selectedClassId, limit: 100 }).catch(() => []),
-          API_Admin.getAdminEvaluationList({ classId: selectedClassId, limit: 100 }).catch(() => []),
-          API_Shared.getClassStudents(selectedClassId).catch(() => []),
-        ]);
-
-        const evalsList = toArray<any>(evalsRes);
-        const adminEvalsList = toArray<any>(adminEvalsRes);
-        const classStudentsList = toArray<any>(studentsRes);
-        const allEvals = evalsList.length > 0 ? evalsList : adminEvalsList;
-
-        if (allEvals.length > 0) {
-          const first = allEvals[0];
-          const sem = typeof first.semester === 'object'
-            ? first.semester?.semester || first.semester?.name || first.semester?.code
-            : first.semester;
-          if (sem) detectedSemester = String(sem);
-          if (first.academicYear) detectedAcademicYear = String(first.academicYear);
-        }
-
-        const evaluationsByKey = new Map<string, any>();
-        allEvals.forEach((evaluation: any) => {
-          const keys = [
-            evaluation.studentId,
-            evaluation.student?.id,
-            evaluation.student?.userId,
-            evaluation.userId,
-            evaluation.student?.email,
-            evaluation.email,
-            evaluation.studentCode,
-            evaluation.student?.studentCode,
-            evaluation.studentName,
-            evaluation.student?.fullName,
-            evaluation.id,
-          ]
-            .map((k) => String(k || '').trim().toLowerCase())
-            .filter(Boolean);
-
-          keys.forEach((k) => evaluationsByKey.set(k, evaluation));
-        });
-
-        if (classStudentsList.length > 0) {
-          items = classStudentsList.map((st: any, idx: number) => {
-            const stKeys = [
-              st.studentId,
-              st.userId,
-              st.id,
-              st.email,
-              st.studentCode,
-              st.code,
-              st.fullName,
-              st.name,
-            ]
-              .map((k) => String(k || '').trim().toLowerCase())
-              .filter(Boolean);
-
-            const ev = stKeys.map((k) => evaluationsByKey.get(k)).find(Boolean);
-
-            const drlLop = Number(ev?.classScore ?? ev?.studentScore ?? 0);
-            const drlKhoa = Number(ev?.finalScore ?? ev?.classScore ?? drlLop);
-            const birthDateRaw = st.dateOfBirth || st.student?.dateOfBirth || ev?.dateOfBirth || ev?.student?.dateOfBirth || '';
-            const birthDate = birthDateRaw ? getBirthDate(birthDateRaw) : '';
-            const xepLoai = ev?.classification || ev?.rank || (drlKhoa > 0 ? calcXepLoai(drlKhoa) : '—');
-            const ghiChu = ev?.note || '';
-
-            return {
-              stt: idx + 1,
-              studentId: st.studentId || st.userId || st.id,
-              studentCode: st.studentCode || st.code || ev?.studentCode || ev?.student?.studentCode || '—',
-              fullName: st.fullName || st.name || ev?.studentName || ev?.student?.fullName || 'Sinh viên',
-              dateOfBirth: birthDate,
-              evaluationId: ev?.id || null,
-              status: ev?.status || 'draft',
-              classScore: drlLop,
-              facultyScore: drlKhoa,
-              classification: xepLoai,
-              note: ghiChu,
-            };
-          });
-        } else if (allEvals.length > 0) {
-          items = allEvals.map((ev: any, idx: number) => {
-            const drlLop = Number(ev.classScore ?? ev.studentScore ?? 0);
-            const drlKhoa = Number(ev.finalScore ?? ev.classScore ?? drlLop);
-            const birthDateRaw = ev.dateOfBirth || ev.student?.dateOfBirth || '';
-            const birthDate = birthDateRaw ? getBirthDate(birthDateRaw) : '';
-            const xepLoai = ev.classification || ev.rank || (drlKhoa > 0 ? calcXepLoai(drlKhoa) : '—');
-
-            return {
-              stt: idx + 1,
-              studentId: ev.studentId || ev.student?.id || ev.id,
-              studentCode: ev.studentCode || ev.student?.studentCode || ev.student?.code || '—',
-              fullName: ev.studentName || ev.student?.fullName || ev.student?.name || 'Sinh viên',
-              dateOfBirth: birthDate,
-              evaluationId: ev.id,
-              status: ev.status || 'draft',
-              classScore: drlLop,
-              facultyScore: drlKhoa,
-              classification: xepLoai,
-              note: ev.note || '',
-            };
-          });
-        }
-      }
-
-      setClassStudents(items);
-      setFormData((p) => ({
-        ...p,
-        hocKy: p.hocKy || detectedSemester || '1',
-        namHoc: p.namHoc || detectedAcademicYear || `${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
-        tongSoHoiDong: p.tongSoHoiDong || '5',
-        duHopHoiDong: p.duHopHoiDong || '5',
-        vangHoiDong: p.vangHoiDong || '0',
-        lyDoVangHoiDong: p.lyDoVangHoiDong || 'Không có',
-      }));
-    } catch (err: any) {
-      setError(getUserFriendlyError(err, 'Không tải được sinh viên lớp được chọn.'));
-    } finally {
-      setLoadingStudents(false);
-    }
-  }, [selectedClassId, facultyId]);
-
+  /* ─── Load detail student review when a class is selected ─── */
   useEffect(() => {
-    void loadClassDetail();
-  }, [loadClassDetail]);
+    if (!selectedClassId || !facultyId) return;
+    let ignore = false;
+    setLoadingStudents(true);
+    setReport(null);
+    setError('');
 
-  /* ─── Map students to minutes student rows ─── */
+    API_Shared.getFacultyCouncilReview(facultyId, selectedClassId)
+      .then((result) => {
+        if (ignore) return;
+        setReport(result);
+        setFormData((previous) => ({
+          ...previous,
+          hocKy: { HK1: '1', HK2: '2', SUMMER: 'Hè' }[result.semester.code] || '1',
+          namHoc: result.semester.academicYear,
+          tongSoHoiDong: previous.tongSoHoiDong || '5',
+          duHopHoiDong: previous.duHopHoiDong || '5',
+          vangHoiDong: previous.vangHoiDong || '0',
+          lyDoVangHoiDong: previous.lyDoVangHoiDong || 'Không có',
+        }));
+      })
+      .catch((err) => {
+        if (!ignore) setError(getUserFriendlyError(err, 'Không tải được dữ liệu biên bản của lớp.'));
+      })
+      .finally(() => {
+        if (!ignore) setLoadingStudents(false);
+      });
+
+    return () => { ignore = true; };
+  }, [selectedClassId, facultyId, reportRefresh]);
+
   const studentRows = useMemo<BienBanHoiDongStudentRow[]>(() => {
-    return classStudents.map((student, idx) => {
-      const drlLop = Number(student.classScore ?? 0);
-      const drlKhoa = Number(student.facultyScore ?? student.classScore ?? 0);
-      const birthDateRaw = student.dateOfBirth || '';
-      const birthDate = birthDateRaw ? getBirthDate(birthDateRaw) : '';
-      const xepLoai = student.classification || (drlKhoa > 0 ? calcXepLoai(drlKhoa) : '—');
-      const ghiChu = student.note || '';
+    if (report?.classId !== selectedClassId) return [];
+    return report.items.map((student) => ({
+      stt: student.stt,
+      maSV: (student.studentCode || '').trim(),
+      hoTen: student.fullName,
+      ngaySinh: student.dateOfBirth,
+      drlLop: student.classScore ?? 0,
+      drlKhoa: student.facultyScore ?? 0,
+      xepLoai: student.classification,
+      ghiChu: cleanNote(student.note),
+    }));
+  }, [report, selectedClassId]);
 
-      return {
-        stt: student.stt || idx + 1,
-        maSV: student.studentCode || student.code || '—',
-        hoTen: student.fullName || student.name || 'Sinh viên chưa xác định',
-        ngaySinh: birthDate,
-        drlLop,
-        drlKhoa,
-        xepLoai,
-        ghiChu,
-      };
-    });
-  }, [classStudents]);
+  const canUseReport = !loadingStudents && studentRows.length > 0;
 
   /* ─── Counts ─── */
   const counts = useMemo(() => ({
@@ -406,27 +307,36 @@ export function BienBanHoiDongView() {
     dean: formData.truongKhoa,
     councilChairman: formData.chuTichHoiDong,
     signerSecretary: formData.tenThuKy,
-    students: studentRows.map((student) => ({
-      ...student,
-      studentCode: student.maSV,
-      fullName: student.hoTen,
-      dateOfBirth: student.ngaySinh,
-      classScore: student.drlLop,
-      facultyScore: student.drlKhoa,
-      classification: student.xepLoai,
-      note: student.ghiChu,
-    })),
+    students: studentRows.map((student) => {
+      const drlLop = Math.round(Number(student.drlLop) || 0);
+      const drlKhoa = Math.round(Number(student.drlKhoa) || 0);
+      const score = drlKhoa > 0 ? drlKhoa : (drlLop > 0 ? drlLop : 0);
+      const validRanks = ['Xuất sắc', 'Tốt', 'Khá', 'Trung bình', 'Yếu'];
+      const xepLoai = validRanks.includes(student.xepLoai)
+        ? student.xepLoai
+        : (score > 0 ? calcXepLoai(score) : 'Yếu');
+
+      return {
+        stt: Number(student.stt) || 1,
+        maSV: String(student.maSV || '').trim(),
+        hoTen: String(student.hoTen || ''),
+        ngaySinh: String(student.ngaySinh || '—'),
+        drlLop,
+        drlKhoa,
+        xepLoai,
+        ghiChu: cleanNote(student.ghiChu),
+      };
+    }),
   }), [bienBanData, facultyId, formData, managedFacultyName, selectedClassId, selectedClassName, studentRows]);
 
   /* ─── Handlers ─── */
   const handleField = (key: string, val: string) => setFormData((p) => ({ ...p, [key]: val }));
   const handlePrint = () => {
-    setAutoPrint(true);
-    setShowPreview(true);
+    window.print();
   };
 
   const handleExport = async (format: FacultyReportExportFormat) => {
-    if (!selectedClassId) return;
+    if (!canUseReport) return;
 
     setExportingFormat(format);
     setError('');
@@ -446,6 +356,98 @@ export function BienBanHoiDongView() {
     }
   };
 
+  /* ─── Direct Export cho từng lớp từ Bảng danh sách ─── */
+  const handleDirectExportClass = async (classItem: ClassItem, format: FacultyReportExportFormat) => {
+    if (!facultyId) return;
+    setExportingClassId(classItem.id);
+    setExportingClassFormat(format);
+    try {
+      const reviewData = await API_Shared.getFacultyCouncilReview(facultyId, classItem.id);
+      const rows = reviewData.items.map((student) => {
+        const drlLop = Math.round(Number(student.classScore) || 0);
+        const drlKhoa = Math.round(Number(student.facultyScore) || 0);
+        const score = drlKhoa > 0 ? drlKhoa : (drlLop > 0 ? drlLop : 0);
+        const validRanks = ['Xuất sắc', 'Tốt', 'Khá', 'Trung bình', 'Yếu'];
+        const xepLoai = validRanks.includes(student.classification)
+          ? student.classification
+          : (score > 0 ? calcXepLoai(score) : 'Yếu');
+
+        return {
+          stt: Number(student.stt) || 1,
+          maSV: String(student.studentCode || '').trim(),
+          hoTen: String(student.fullName || ''),
+          ngaySinh: String(student.dateOfBirth || '—'),
+          drlLop,
+          drlKhoa,
+          xepLoai,
+          ghiChu: cleanNote(student.note),
+        };
+      });
+
+      const payload = {
+        facultyId,
+        classId: classItem.id,
+        facultyName: managedFacultyName,
+        className: classItem.className,
+        semester: { HK1: '1', HK2: '2', SUMMER: 'Hè' }[reviewData.semester.code] || '1',
+        academicYear: reviewData.semester.academicYear || formData.namHoc,
+        decisionNo: formData.qdSo,
+        decisionDay: formData.qdNgay,
+        decisionMonth: formData.qdThang,
+        decisionYear: formData.qdNam,
+        councilTotal: formData.tongSoHoiDong || '5',
+        councilPresent: formData.duHopHoiDong || '5',
+        councilAbsent: formData.vangHoiDong || '0',
+        absentReason: formData.lyDoVangHoiDong || 'Không có',
+        invited: formData.moiDu,
+        chairperson: formData.chuToa,
+        secretary: formData.thuKy,
+        meetingDay: formData.ngayHop,
+        meetingMonth: formData.thangHop,
+        meetingYear: formData.namHop,
+        startTime: formData.gioBatDau,
+        location: formData.diaDiem,
+        dean: formData.truongKhoa,
+        councilChairman: formData.chuTichHoiDong,
+        signerSecretary: formData.tenThuKy,
+        students: rows,
+      };
+
+      const res = await API_Faculty.exportBienBanHopKhoa(format, payload);
+      const ext = format === 'word' ? 'docx' : 'xlsx';
+      const fallback = `bien-ban-hop-khoa-${classItem.className}.${ext}`;
+      const fileName = getFileNameFromDisposition(res.headers['content-disposition'], fallback);
+      downloadBlob(res.data, fileName);
+      toast.success(`Đã xuất file ${format === 'word' ? 'Word' : 'Excel'} lớp ${classItem.className}.`);
+    } catch (err: any) {
+      const message = getUserFriendlyError(err, `Không thể xuất file ${format === 'word' ? 'Word' : 'Excel'} cho lớp ${classItem.className}.`);
+      toast.error(message);
+    } finally {
+      setExportingClassId(null);
+      setExportingClassFormat(null);
+    }
+  };
+
+  /* ─── Lọc danh sách lớp ─── */
+  const filteredClasses = useMemo(() => {
+    return classes.filter((c) => {
+      const term = searchTerm.toLowerCase().trim();
+      if (!term) return true;
+      return (
+        c.className.toLowerCase().includes(term) ||
+        c.classCode.toLowerCase().includes(term)
+      );
+    });
+  }, [classes, searchTerm]);
+
+  /* ─── Thống kê tổng quan ─── */
+  const summaryStats = useMemo(() => {
+    const totalClasses = classes.length;
+    const totalStudents = classes.reduce((acc, c) => acc + c.totalStudents, 0);
+    const totalApproved = classes.reduce((acc, c) => acc + c.approvedCount, 0);
+    return { totalClasses, totalStudents, totalApproved };
+  }, [classes]);
+
   if (!facultyId) {
     return (
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center gap-6 p-6">
@@ -455,85 +457,309 @@ export function BienBanHoiDongView() {
     );
   }
 
+  /* ═══════════════════════════════════════════════════════════════════
+   * VIEW 1: DANH SÁCH TẤT CẢ CÁC LỚP THUỘC KHOA (PHƯƠNG ÁN 1)
+   * ═══════════════════════════════════════════════════════════════════ */
+  if (!selectedClassId) {
+    return (
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
+              <FileText size={22} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Biên bản họp Hội đồng khoa</h1>
+              <p className="text-xs sm:text-sm text-gray-500">
+                Khoa <strong>{managedFacultyName}</strong> — Danh sách biên bản rèn luyện theo từng lớp
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void loadClasses()}
+            disabled={loadingClasses}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={loadingClasses ? 'animate-spin text-brand-primary' : ''} />
+            Làm mới danh sách
+          </button>
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{error}</div>
+        )}
+
+        {/* Thẻ thống kê tổng quan */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <Building2 size={24} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tổng số lớp</p>
+              <p className="text-2xl font-black text-gray-900">{summaryStats.totalClasses} <span className="text-sm font-normal text-gray-500">lớp</span></p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+              <Users size={24} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tổng số sinh viên</p>
+              <p className="text-2xl font-black text-gray-900">{summaryStats.totalStudents} <span className="text-sm font-normal text-gray-500">sinh viên</span></p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-600">
+              <CheckCircle2 size={24} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Đã hoàn thành ĐRL</p>
+              <p className="text-2xl font-black text-green-600">{summaryStats.totalApproved} <span className="text-sm font-normal text-gray-500">sinh viên</span></p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bảng danh sách các lớp */}
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          {/* Thanh công cụ tìm kiếm */}
+          <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50/50">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm theo tên lớp, mã lớp..."
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
+              />
+            </div>
+            <p className="text-xs text-gray-500 font-medium">
+              Hiển thị <strong>{filteredClasses.length}</strong> / {classes.length} lớp
+            </p>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-100/80 border-b border-gray-200 text-xs font-bold uppercase tracking-wider text-gray-700">
+                  <th className="p-3.5 text-center w-12">STT</th>
+                  <th className="p-3.5 w-36">Mã lớp</th>
+                  <th className="p-3.5">Tên lớp</th>
+                  <th className="p-3.5 text-center w-28">Sĩ số</th>
+                  <th className="p-3.5 text-center w-36">Đã duyệt (Khoa)</th>
+                  <th className="p-3.5 text-center w-44">Trạng thái biên bản</th>
+                  <th className="p-3.5 text-center w-80">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loadingClasses ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-gray-500">
+                      <div className="flex items-center justify-center gap-2">
+                        <RefreshCw size={18} className="animate-spin text-brand-primary" />
+                        <span>Đang tải danh sách các lớp thuộc Khoa...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredClasses.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-gray-400">
+                      {classes.length === 0 ? 'Khoa chưa có lớp nào được phân công.' : 'Không tìm thấy lớp phù hợp.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredClasses.map((item, index) => {
+                    const isExportingWord = exportingClassId === item.id && exportingClassFormat === 'word';
+                    const isExportingExcel = exportingClassId === item.id && exportingClassFormat === 'excel';
+                    const hasData = item.approvedCount > 0 || item.totalStudents > 0;
+
+                    return (
+                      <tr key={item.id} className="hover:bg-blue-50/40 transition">
+                        <td className="p-3.5 text-center text-gray-500 font-semibold">{index + 1}</td>
+                        <td className="p-3.5 font-mono font-bold text-gray-800">{item.classCode || '—'}</td>
+                        <td className="p-3.5">
+                          <span className="font-bold text-gray-900 block">{item.className}</span>
+                        </td>
+                        <td className="p-3.5 text-center font-bold text-gray-700">
+                          {item.totalStudents} SV
+                        </td>
+                        <td className="p-3.5 text-center">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                            {item.approvedCount} / {item.totalStudents} SV
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-center">
+                          {hasData ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                              <CheckCircle2 size={12} className="text-blue-500" />
+                              Sẵn sàng biên bản
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-500 border border-gray-200">
+                              <Clock size={12} />
+                              Chờ nộp dữ liệu
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3.5 text-center">
+                          <div className="flex items-center justify-center gap-2 flex-wrap">
+                            {/* Nút Xem biên bản */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedClassId(item.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-primary text-white hover:bg-brand-primary/90 transition shadow-sm cursor-pointer"
+                              title={`Xem biên bản họp khoa của lớp ${item.className}`}
+                            >
+                              <Eye size={13} />
+                              Xem biên bản
+                            </button>
+
+                            {/* Nút Xuất Word */}
+                            <button
+                              type="button"
+                              onClick={() => void handleDirectExportClass(item, 'word')}
+                              disabled={isExportingWord || isExportingExcel}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition cursor-pointer disabled:opacity-50"
+                              title="Tải file Word biên bản của lớp này"
+                            >
+                              {isExportingWord ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : (
+                                <FileText size={13} />
+                              )}
+                              Word
+                            </button>
+
+                            {/* Nút Xuất Excel */}
+                            <button
+                              type="button"
+                              onClick={() => void handleDirectExportClass(item, 'excel')}
+                              disabled={isExportingWord || isExportingExcel}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer disabled:opacity-50"
+                              title="Tải file Excel biên bản của lớp này"
+                            >
+                              {isExportingExcel ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : (
+                                <FileSpreadsheet size={13} />
+                              )}
+                              Excel
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+   * VIEW 2: CHI TIẾT BIÊN BẢN HỌP KHOA CỦA LỚP ĐƯỢC CHỌN
+   * ═══════════════════════════════════════════════════════════════════ */
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-4 sm:p-6">
-      {/* ── Page Header ── */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      {/* ── Top Bar với nút Quay lại danh sách lớp & công cụ xuất ── */}
+      <div className="flex items-center justify-between gap-4 flex-wrap bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-primary/10">
-            <FileText className="text-brand-primary" size={20} />
-          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedClassId('')}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100 transition"
+          >
+            <ArrowLeft size={16} />
+            Quay lại danh sách lớp
+          </button>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Biên bản họp Hội đồng khoa</h1>
-            <p className="text-xs text-gray-500">Kết quả rèn luyện cấp Khoa theo lớp</p>
+            <h1 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+              <span>Biên bản lớp:</span>
+              <span className="text-brand-primary">{selectedClassName}</span>
+            </h1>
+            <p className="text-xs text-gray-500">Khoa: {managedFacultyName}</p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Class Selector Dropdown */}
+          {/* Dropdown chuyển nhanh lớp */}
           <div className="flex items-center gap-2 mr-2">
-            <span className="text-sm font-semibold text-gray-600">Chọn lớp:</span>
+            <span className="text-xs font-semibold text-gray-500">Đổi lớp:</span>
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
               disabled={loadingClasses || classes.length === 0}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold focus:border-brand-primary focus:outline-none"
+              className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold focus:border-brand-primary focus:outline-none"
             >
-              {classes.length === 0 ? (
-                <option value="">Đang tải lớp...</option>
-              ) : (
-                classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.className}
-                  </option>
-                ))
-              )}
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.classCode ? `${c.classCode} – ${c.className}` : c.className}
+                </option>
+              ))}
             </select>
           </div>
 
           <button
             type="button"
-            onClick={() => void loadClassDetail()}
+            onClick={() => setReportRefresh((current) => current + 1)}
             disabled={loadingStudents || !selectedClassId}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
           >
-            <RefreshCw size={14} className={loadingStudents ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={loadingStudents ? 'animate-spin text-brand-primary' : ''} />
             Tải lại
           </button>
+
+          {/* Xuất Word */}
           <button
             type="button"
             onClick={() => void handleExport('word')}
-            disabled={loadingStudents || exportingFormat !== null || !selectedClassId}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50"
+            disabled={!canUseReport || exportingFormat !== null}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition disabled:opacity-50"
           >
-            <FileText size={15} />
-            {exportingFormat === 'word' ? 'Đang xuất...' : 'Xuất Word'}
+            <FileText size={14} />
+            {exportingFormat === 'word' ? 'Đang xuất Word...' : 'Xuất Word'}
           </button>
+
+          {/* Xuất Excel */}
           <button
             type="button"
             onClick={() => void handleExport('excel')}
-            disabled={loadingStudents || exportingFormat !== null || !selectedClassId}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:opacity-50"
+            disabled={!canUseReport || exportingFormat !== null}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition disabled:opacity-50"
           >
-            <FileSpreadsheet size={15} />
-            {exportingFormat === 'excel' ? 'Đang xuất...' : 'Xuất Excel'}
+            <FileSpreadsheet size={14} />
+            {exportingFormat === 'excel' ? 'Đang xuất Excel...' : 'Xuất Excel'}
           </button>
+
+          {/* Xem trước */}
           <button
             type="button"
             onClick={() => setShowPreview(true)}
-            disabled={loadingStudents || !selectedClassId}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 transition disabled:opacity-50"
+            disabled={!canUseReport}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-800 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-gray-700 transition disabled:opacity-50"
           >
-            <Eye size={15} />
+            <Eye size={14} />
             Xem trước
           </button>
+
+          {/* In */}
           <button
             type="button"
             onClick={handlePrint}
-            disabled={loadingStudents || !selectedClassId}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-700 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-600 transition disabled:opacity-50"
+            disabled={!canUseReport}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-700 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-gray-600 transition disabled:opacity-50"
           >
-            <Printer size={15} />
+            <Printer size={14} />
             In biên bản
           </button>
         </div>
@@ -543,8 +769,43 @@ export function BienBanHoiDongView() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{error}</div>
       )}
 
-      {/* ── SECTION: Form input layout giống ClassLeader ── */}
-      <div className="mx-auto w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-md sm:p-10 text-gray-800 font-sans leading-relaxed">
+      {/* Scoped Print Stylesheet */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #bien-ban-hoi-dong-paper,
+          #bien-ban-hoi-dong-paper * {
+            visibility: visible !important;
+          }
+          #bien-ban-hoi-dong-paper {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 10mm 15mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
+            z-index: 9999 !important;
+          }
+          #bien-ban-hoi-dong-paper input {
+            border: none !important;
+            background: transparent !important;
+            outline: none !important;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+        }
+      `}} />
+
+      {/* ── SECTION: Form Tờ A4 Biên bản họp Hội đồng ── */}
+      <div id="bien-ban-hoi-dong-paper" className="mx-auto w-full max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-md sm:p-10 text-gray-800 font-sans leading-relaxed">
         {/* Tiêu đề & Quốc hiệu */}
         <div className="border-b border-gray-100 pb-6 mb-6">
           <div className="flex flex-col gap-8 sm:flex-row sm:justify-between sm:items-start">
@@ -596,9 +857,9 @@ export function BienBanHoiDongView() {
           </div>
           <div className="flex flex-wrap justify-center items-center gap-1.5 italic text-gray-600 text-sm">
             <span>Học kỳ:</span>
-            <input type="text" value={formData.hocKy} onChange={(e) => handleField('hocKy', e.target.value)} className="w-12 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
+            <input type="text" value={report?.classId === selectedClassId ? formData.hocKy : ''} readOnly className="w-12 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
             <span>Năm học:</span>
-            <input type="text" value={formData.namHoc} onChange={(e) => handleField('namHoc', e.target.value)} className="w-24 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
+            <input type="text" value={report?.classId === selectedClassId ? formData.namHoc : ''} readOnly className="w-24 bg-transparent border-b border-dashed border-gray-400 outline-none text-center font-semibold text-gray-900 focus:border-brand-primary" />
           </div>
           <div className="w-32 border-b border-dashed border-gray-300 mx-auto mt-2"></div>
         </div>
@@ -692,7 +953,7 @@ export function BienBanHoiDongView() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 font-bold text-gray-800 text-center">
                 <th className="p-2 border-r border-gray-200 w-10">STT</th>
-                <th className="p-2 border-r border-gray-200 w-24">Mã số SV</th>
+                <th className="p-2 border-r border-gray-200 whitespace-nowrap min-w-[130px]">Mã số SV</th>
                 <th className="p-2 border-r border-gray-200">Họ và Tên</th>
                 <th className="p-2 border-r border-gray-200 w-24">Ngày sinh</th>
                 <th className="p-2 border-r border-gray-200 w-24">ĐRL lớp ĐG</th>
@@ -708,19 +969,19 @@ export function BienBanHoiDongView() {
                 </tr>
               ) : studentRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-4 text-center text-gray-400">Không có dữ liệu sinh viên.</td>
+                  <td colSpan={8} className="p-4 text-center text-gray-400">{report ? 'Lớp được chọn chưa có danh sách sinh viên trong biên bản.' : 'Chưa tải được dữ liệu biên bản.'}</td>
                 </tr>
               ) : (
                 studentRows.map((s) => (
                   <tr key={s.stt} className="border-b border-gray-200 text-center">
                     <td className="p-2 border-r border-gray-200">{s.stt}</td>
-                    <td className="p-2 border-r border-gray-200 font-mono font-medium">{s.maSV}</td>
+                    <td className="p-2 border-r border-gray-200 font-mono font-medium whitespace-nowrap">{s.maSV}</td>
                     <td className="p-2 border-r border-gray-200 text-left font-medium text-gray-900">{s.hoTen}</td>
                     <td className="p-2 border-r border-gray-200 font-mono">{s.ngaySinh || '—'}</td>
                     <td className="p-2 border-r border-gray-200">{s.drlLop > 0 ? s.drlLop : '—'}</td>
                     <td className="p-2 border-r border-gray-200 font-bold text-brand-primary">{s.drlKhoa > 0 ? s.drlKhoa : '—'}</td>
                     <td className="p-2 border-r border-gray-200 font-semibold">{s.xepLoai || '—'}</td>
-                    <td className="p-2 text-left italic text-gray-500">{s.ghiChu || '—'}</td>
+                    <td className="p-2 text-left italic text-gray-500">{s.ghiChu}</td>
                   </tr>
                 ))
               )}
@@ -728,15 +989,73 @@ export function BienBanHoiDongView() {
           </table>
         </div>
 
-        {/* Tổng kết */}
-        <div className="text-sm space-y-1 my-6 border-b border-gray-100 pb-6 pl-4 text-gray-700">
-          <div>- Tổng số: <strong>{studentRows.length}</strong> sinh viên</div>
-          <div className="pl-4">Trong đó:</div>
-          <div className="pl-8">+ Xuất sắc: <strong>{counts.xuatSac}</strong> Sinh viên</div>
-          <div className="pl-8">+ Tốt:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{counts.tot}</strong> Sinh viên</div>
-          <div className="pl-8">+ Khá:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{counts.kha}</strong> Sinh viên</div>
-          <div className="pl-8">+ Trung bình: <strong>{counts.trungBinh}</strong> Sinh viên</div>
-          <div className="pl-8">+ Yếu:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{counts.yeu}</strong> Sinh viên</div>
+        {/* Tổng kết & Bảng thống kê phân loại */}
+        <div className="my-6 border-b border-gray-100 pb-6 text-sm text-gray-800">
+          <p className="font-semibold mb-2">
+            - Tổng số: <strong>{studentRows.length}</strong> sinh viên. Thống kê kết quả phân loại rèn luyện cụ thể như sau:
+          </p>
+
+          <div className="overflow-x-auto max-w-xl my-3">
+            <table className="w-full border-collapse border border-gray-300 text-xs sm:text-sm">
+              <thead>
+                <tr className="bg-gray-100 font-bold text-gray-800 text-center">
+                  <th className="border border-gray-300 p-2 w-12">STT</th>
+                  <th className="border border-gray-300 p-2 text-left">Phân loại rèn luyện</th>
+                  <th className="border border-gray-300 p-2 w-32 text-center">Số lượng (SV)</th>
+                  <th className="border border-gray-300 p-2 w-28 text-center">Tỷ lệ (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-gray-300 p-2 text-center">1</td>
+                  <td className="border border-gray-300 p-2 font-medium">Xuất sắc (90 ÷ 100 điểm)</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold">{counts.xuatSac}</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold text-brand-primary">
+                    {studentRows.length > 0 ? `${((counts.xuatSac / studentRows.length) * 100).toFixed(2)}%` : '0.00%'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-300 p-2 text-center">2</td>
+                  <td className="border border-gray-300 p-2 font-medium">Tốt (80 ÷ 89 điểm)</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold">{counts.tot}</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold text-brand-primary">
+                    {studentRows.length > 0 ? `${((counts.tot / studentRows.length) * 100).toFixed(2)}%` : '0.00%'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-300 p-2 text-center">3</td>
+                  <td className="border border-gray-300 p-2 font-medium">Khá (65 ÷ 79 điểm)</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold">{counts.kha}</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold text-brand-primary">
+                    {studentRows.length > 0 ? `${((counts.kha / studentRows.length) * 100).toFixed(2)}%` : '0.00%'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-300 p-2 text-center">4</td>
+                  <td className="border border-gray-300 p-2 font-medium">Trung bình (50 ÷ 64 điểm)</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold">{counts.trungBinh}</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold text-brand-primary">
+                    {studentRows.length > 0 ? `${((counts.trungBinh / studentRows.length) * 100).toFixed(2)}%` : '0.00%'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-300 p-2 text-center">5</td>
+                  <td className="border border-gray-300 p-2 font-medium">Yếu (Dưới 50 điểm)</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold">{counts.yeu}</td>
+                  <td className="border border-gray-300 p-2 text-center font-bold text-brand-primary">
+                    {studentRows.length > 0 ? `${((counts.yeu / studentRows.length) * 100).toFixed(2)}%` : '0.00%'}
+                  </td>
+                </tr>
+                <tr className="bg-gray-50/80 font-bold">
+                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>Tổng cộng</td>
+                  <td className="border border-gray-300 p-2 text-center font-black text-gray-900">{studentRows.length}</td>
+                  <td className="border border-gray-300 p-2 text-center font-black text-gray-900">
+                    {studentRows.length > 0 ? '100%' : '0%'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Chữ ký */}
@@ -796,3 +1115,5 @@ export function BienBanHoiDongView() {
     </div>
   );
 }
+
+export default BienBanHoiDongView;

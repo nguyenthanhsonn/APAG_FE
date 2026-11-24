@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
+import { flushSync } from 'react-dom';
 import { Printer } from 'lucide-react';
+import { getUserFriendlyError } from '@/utils/errorHelper';
 
 export interface ColumnDef<T> {
   header: string;
@@ -20,6 +22,8 @@ export interface PrintButtonProps<T> {
   subtitle?: string;
   columns: ColumnDef<T>[];
   data: T[];
+  loadData?: () => Promise<T[]>;
+  disabled?: boolean;
   label?: string;
   signatures?: { leftLabel: string; rightLabel: string };
   summaryStats?: SummaryStatItem[];
@@ -30,18 +34,46 @@ export function PrintButton<T>({
   subtitle,
   columns,
   data,
+  loadData,
+  disabled,
   label = 'In danh sách',
   signatures = { leftLabel: 'Cố vấn học tập (CVHT)', rightLabel: 'Lớp trưởng' },
   summaryStats,
 }: PrintButtonProps<T>) {
+  const [printData, setPrintData] = React.useState<T[] | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [printError, setPrintError] = React.useState('');
+  const rows = printData ?? data;
+  React.useEffect(() => {
+    if (!loadData) return;
+    const clearPrintData = () => setPrintData(null);
+    window.addEventListener('afterprint', clearPrintData);
+    return () => window.removeEventListener('afterprint', clearPrintData);
+  }, [loadData]);
   const currentDate = new Date().toLocaleDateString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   });
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!loadData) {
+      window.print();
+      return;
+    }
+
+    setLoading(true);
+    setPrintError('');
+    try {
+      const rows = await loadData();
+      flushSync(() => setPrintData(rows));
+      window.print();
+    } catch (error) {
+      setPrintData(null);
+      setPrintError(getUserFriendlyError(error, 'Không tải được danh sách để in.'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getAlignClass = (align?: 'left' | 'center' | 'right') => {
@@ -62,11 +94,13 @@ export function PrintButton<T>({
       <button
         type="button"
         onClick={handlePrint}
-        className="no-print inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-[0.98]"
+        disabled={disabled || loading}
+        className="no-print inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-[0.98] disabled:opacity-50"
       >
         <Printer size={16} />
         <span>{label}</span>
       </button>
+      {printError && <p role="alert" className="no-print mt-2 text-sm text-rose-700">{printError}</p>}
 
       {/* Giao diện xem trước & khi in (Chỉ hiển thị khi in hoặc trong Print Mode) */}
       <div className="print-only hidden">
@@ -135,14 +169,14 @@ export function PrintButton<T>({
               </tr>
             </thead>
             <tbody>
-              {data.length === 0 ? (
+              {rows.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length + 1} className="border border-gray-400 p-4 text-center text-gray-500">
                     Không có dữ liệu
                   </td>
                 </tr>
               ) : (
-                data.map((item, rowIdx) => (
+                rows.map((item, rowIdx) => (
                   <tr key={rowIdx} className="border-b border-gray-300">
                     <td className="border border-gray-400 p-2 text-center">{rowIdx + 1}</td>
                     {columns.map((col, colIdx) => (

@@ -5,7 +5,7 @@ import { createEvaluationTransport } from '@/api/api';
 import { useRef } from 'react';
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { CheckCircle2, FileText, Loader2, Paperclip, RefreshCw, RotateCcw, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, Loader2, Paperclip, RefreshCw, RotateCcw, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { createAdminApi } from '@/api/API_Admin';
 import { createSharedApi } from '@/api/API_Shared';
@@ -20,8 +20,18 @@ import type { ReviewStudent } from '@/types/admin';
 import {
   createCouncilReviewStore,
   CouncilReviewStoreContext,
+  getClassLeaderReviewData,
+  getClassLeaderReviewedSections,
+  getClassLeaderReviewRecordForSave,
+  hasCompleteClassLeaderReviewRecord,
+  readClassLeaderReviewRecord,
+  REVIEW_SECTIONS,
 } from '@/store/councilReviewStore';
-import type { CouncilReviewStore } from '@/store/councilReviewStore';
+import type {
+  CouncilReviewStore,
+  ReviewSectionCode,
+  ReviewSectionScores,
+} from '@/store/councilReviewStore';
 
 const getParam = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value ?? '');
 
@@ -188,6 +198,7 @@ export function StudentDetailReviewView() {
   const params = useParams();
   const toast = useToast();
   const actionLock = useRef(false);
+  const originalClassScores = useRef<ReviewSectionScores>({});
   const user = useAuthStore((state) => state.user);
   const classId = getParam(params.classId);
   const evaluationId = getParam(params.studentId);
@@ -201,11 +212,13 @@ export function StudentDetailReviewView() {
 
   const [hasEvaluation, setHasEvaluation] = useState(false);
   const [student, setStudent] = useState<ReviewStudent | null>(null);
+  const [actualEvaluationId, setActualEvaluationId] = useState<string>('');
   const [evidences, setEvidences] = useState<ReviewEvidence[]>([]);
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [workflowStatus, setWorkflowStatus] = useState<string>('submitted');
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [hasLegacyClassScores, setHasLegacyClassScores] = useState(false);
 
 
   const deductionWeights = useMemo(() => [10, 3, 5, 5, 5, 5, 5, 10, 20], []);
@@ -226,6 +239,8 @@ export function StudentDetailReviewView() {
       const detailResult = await API_Admin.getEvaluationDetail(evaluationId);
 
       const detail = unwrapData<any>(detailResult);
+      const actualId = String(detail?.id || evaluationId);
+      setActualEvaluationId(actualId);
       const studentInfo = detail.student || {};
       const extractedCode =
         detail.studentCode ||
@@ -303,22 +318,23 @@ export function StudentDetailReviewView() {
       const userRole = String(user?.role || '').toLowerCase();
       const isCL = userRole === 'class_leader';
       const isAdv = userRole === 'advisor';
-      const isStudentUser = userRole === 'student';
+      const isFaculty = userRole === 'faculty';
+      const isTrainingDept = userRole === 'training_department' || userRole === 'admin';
 
       const review = detail.review || {};
       const confirmed = isCL
         ? Boolean(review.classLeaderReviewedAt || detail.classLeaderReviewedAt || detail.classLeaderConfirmedAt)
         : isAdv
           ? Boolean(review.classReviewedAt || detail.classReviewedAt || detail.advisorReviewedAt || detail.advisorConfirmedAt)
-          : false;
+          : isFaculty
+            ? wfStatus === 'faculty_approved' || wfStatus === 'finalized'
+            : isTrainingDept
+              ? wfStatus === 'finalized'
+              : false;
       setIsConfirmed(confirmed);
 
       // Determine store role so council review columns follow the current workflow step.
-      const storeRole = isAdv
-        ? 'advisor'
-        : isStudentUser
-          ? 'student'
-          : 'class_leader';
+      const storeRole = (userRole as any) || 'class_leader';
 
       // Push all loaded values into the Zustand store at once so
       // CouncilCriteriaReviewTable can read from store without props
@@ -345,13 +361,57 @@ export function StudentDetailReviewView() {
         ? reverseMapSpecialAchievement(role.classSpecialAchievementLevel ?? role.specialAchievementLevel)
         : svAch;
 
-      const dbStudentTotalScore = typeof detail.studentScore === 'number' ? detail.studentScore : (typeof detail.selfScore === 'number' ? detail.selfScore : null);
+      const dbStudentTotalScore = [detail.studentScore, detail.selfScore, detail.totalScore].find(
+        (score): score is number => typeof score === 'number',
+      ) ?? null;
       const dbClassTotalScore = typeof detail.classScore === 'number' ? detail.classScore : (typeof detail.finalScore === 'number' ? detail.finalScore : null);
+
+      const classSectionScores: ReviewSectionScores = {};
+      if (Array.isArray(detail.classCriteriaScores)) {
+        for (const { criteriaCode, classScore } of detail.classCriteriaScores) {
+          if (Object.prototype.hasOwnProperty.call(REVIEW_SECTIONS, criteriaCode) && typeof classScore === 'number') {
+            classSectionScores[criteriaCode as ReviewSectionCode] = classScore;
+          }
+        }
+      }
+      originalClassScores.current = classSectionScores;
+      const isCLAlreadyConfirmed = isCL && (
+        confirmed ||
+        Boolean(detail.classLeaderReviewedAt) ||
+        ['class_leader_approved', 'class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(wfStatus)
+      );
+      const isAdvAlreadyConfirmed = isAdv && (
+        confirmed ||
+        Boolean(detail.advisorReviewedAt || detail.advisorConfirmedAt || detail.classReviewedAt) ||
+        ['class_approved', 'advisor_approved', 'faculty_approved', 'finalized'].includes(wfStatus)
+      );
+      const isFacultyAlreadyConfirmed = isFaculty && (
+        ['faculty_approved', 'finalized'].includes(wfStatus)
+      );
+      const isTDAlreadyConfirmed = isTrainingDept && (
+        ['finalized'].includes(wfStatus)
+      );
+      const alreadyConfirmed = isCL
+        ? isCLAlreadyConfirmed
+        : isAdv
+          ? isAdvAlreadyConfirmed
+          : isFaculty
+            ? isFacultyAlreadyConfirmed
+            : isTrainingDept
+              ? isTDAlreadyConfirmed
+              : Boolean(confirmed);
+      setIsConfirmed(alreadyConfirmed);
+
+      const isReadOnlyMode =
+        Boolean(detail.isLocked) ||
+        alreadyConfirmed ||
+        !canEditReviewScores(userRole, wfStatus);
 
       store.getState().batchSet({
         currentUserRole: storeRole as any,
         workflowStatus: wfStatus,
-        isReadOnly: confirmed,
+        isReadOnly: isReadOnlyMode,
+        classSectionScores,
         dbStudentTotalScore,
         dbClassTotalScore,
         svStudyAttitude: svStudyAtStr,
@@ -379,6 +439,15 @@ export function StudentDetailReviewView() {
         svClassParticipation: svPart, classClassParticipation: classPart,
         svSpecialAchievement: svAch, classSpecialAchievement: classAch,
       } as any);
+      if (isCL || isAdv || isFaculty || isTrainingDept) {
+        const state = store.getState();
+        const record = readClassLeaderReviewRecord(state, detail.classLeaderReviewData);
+        const details = getClassLeaderReviewData(state, record);
+        state.batchSet({ ...details, classLeaderReviewBaseline: details, classLeaderReviewRecord: record });
+        setHasLegacyClassScores(dbClassTotalScore != null && !hasCompleteClassLeaderReviewRecord(record));
+      } else {
+        setHasLegacyClassScores(false);
+      }
 
     } catch (error: any) {
       setStudent(null);
@@ -403,11 +472,12 @@ export function StudentDetailReviewView() {
     );
   };
 
-  const canConfirm = canConfirmReview(user?.role, { status: workflowStatus, classScore: 1 });
+  const canConfirm = canConfirmReview(user?.role, { status: workflowStatus, isLocked: store.getState().isReadOnly });
 
   const handleConfirmReview = async () => {
     if (actionLock.current) return;
-    if (!evaluationId) {
+    const targetEvaluationId = actualEvaluationId || evaluationId;
+    if (!targetEvaluationId) {
       toast.error('Không tìm thấy phiếu đánh giá.');
       return;
     }
@@ -415,46 +485,66 @@ export function StudentDetailReviewView() {
     try {
       actionLock.current = true;
       setConfirming(true);
-      const { computeCouncilScores } = await import('@/store/councilReviewStore');
       const storeState = store.getState();
-      const scoresResult = computeCouncilScores(storeState, false);
+      if (storeState.isReadOnly || !canEditReviewScores(user?.role, workflowStatus)) return;
+      const isClassLeader = storeState.currentUserRole === 'class_leader';
+      const classLeaderReviewData = isClassLeader ? getClassLeaderReviewRecordForSave(storeState) : undefined;
+      const scoresPayload = getClassLeaderReviewedSections(storeState);
 
-      const scoresPayload = [
-        { criteriaCode: 'TC1', classScore: Math.min(20, Math.max(0, Math.round(scoresResult.sec1))) },
-        { criteriaCode: 'TC2', classScore: Math.min(25, Math.max(0, Math.round(scoresResult.sec2))) },
-        { criteriaCode: 'TC3', classScore: Math.min(20, Math.max(0, Math.round(scoresResult.sec3))) },
-        { criteriaCode: 'TC4', classScore: Math.min(25, Math.max(0, Math.round(scoresResult.sec4))) },
-        { criteriaCode: 'TC5', classScore: Math.min(10, Math.max(0, Math.round(scoresResult.sec5))) },
-      ];
-
-      // Send scores directly inside confirm-review request (Atomic confirm & save)
-      const result = await API_Shared.confirmReview(evaluationId, { scores: scoresPayload });
+      const result = await API_Shared.confirmReview(targetEvaluationId, { scores: scoresPayload, classLeaderReviewData });
       const responseData = unwrapData<any>(result);
+
+      let isFinalized = false;
+      if (user?.role === 'training_department' || user?.role === 'admin') {
+        try {
+          await API_Admin.finalizeEvaluation(targetEvaluationId, {});
+          isFinalized = true;
+        } catch (finalizeErr) {
+          console.warn('Finalize after confirm:', finalizeErr);
+        }
+      }
+
       const confirmedEvaluation = responseData?.evaluation || responseData?.form || responseData;
       const review = responseData?.review || confirmedEvaluation?.review || {};
-      const nextStatus = confirmedEvaluation?.status ? String(confirmedEvaluation.status).toLowerCase() : workflowStatus;
+      const nextStatus = isFinalized
+        ? 'finalized'
+        : confirmedEvaluation?.status ? String(confirmedEvaluation.status).toLowerCase() : workflowStatus;
       const userRole = String(user?.role || '').toLowerCase();
       const hasReviewConfirmation = userRole === 'class_leader'
         ? Boolean(review.classLeaderReviewedAt || confirmedEvaluation?.classLeaderReviewedAt || confirmedEvaluation?.classLeaderConfirmedAt)
         : userRole === 'advisor'
           ? Boolean(review.classReviewedAt || confirmedEvaluation?.classReviewedAt || confirmedEvaluation?.advisorReviewedAt || confirmedEvaluation?.advisorConfirmedAt)
-          : Boolean(review.classLeaderReviewedAt || review.classReviewedAt || confirmedEvaluation?.isConfirmed);
+          : Boolean(review.classLeaderReviewedAt || review.classReviewedAt || confirmedEvaluation?.isConfirmed || isFinalized);
 
       setWorkflowStatus(nextStatus);
-      store.getState().batchSet({ workflowStatus: nextStatus } as any);
-      setIsConfirmed(hasReviewConfirmation || Boolean(responseData));
+      const savedScores = Object.fromEntries(
+        scoresPayload.map(({ criteriaCode, classScore }) => [criteriaCode, classScore]),
+      );
+      originalClassScores.current = savedScores;
+      store.getState().batchSet({
+        workflowStatus: nextStatus,
+        isReadOnly: isFinalized || storeState.isReadOnly,
+        dbClassTotalScore: confirmedEvaluation?.classScore ?? storeState.dbClassTotalScore,
+        classSectionScores: savedScores,
+        ...(classLeaderReviewData && {
+          classLeaderReviewBaseline: getClassLeaderReviewData(storeState),
+          classLeaderReviewRecord: classLeaderReviewData,
+        }),
+      } as any);
+      if (classLeaderReviewData) {
+        setHasLegacyClassScores(!hasCompleteClassLeaderReviewRecord(classLeaderReviewData));
+      }
+      setIsConfirmed(hasReviewConfirmation || Boolean(responseData) || isFinalized);
       if (typeof window !== 'undefined') {
-        const roleKey = userRole === 'advisor' ? 'advisor' : 'class_leader';
-        window.sessionStorage.setItem(`evaluation_review_confirmed:${roleKey}:${evaluationId}`, new Date().toISOString());
         window.dispatchEvent(new CustomEvent('evaluation_confirmed', {
           detail: {
-            evaluationId,
+            evaluationId: targetEvaluationId,
             status: nextStatus,
             review,
           },
         }));
       }
-      toast.success('Xác nhận đánh giá thành công.');
+      toast.success(isFinalized ? 'Phê duyệt phiếu đánh giá thành công.' : 'Xác nhận đánh giá thành công.');
     } catch (error: any) {
       toast.error(getUserFriendlyError(error, 'Không xác nhận được đánh giá.'));
     } finally {
@@ -492,7 +582,8 @@ export function StudentDetailReviewView() {
     if (actionLock.current) return;
     const reason = returnReason.trim();
 
-    if (!evaluationId) {
+    const targetEvaluationId = actualEvaluationId || evaluationId;
+    if (!targetEvaluationId) {
       toast.error('Không tìm thấy phiếu đánh giá.');
       return;
     }
@@ -505,7 +596,7 @@ export function StudentDetailReviewView() {
     try {
       actionLock.current = true;
       setReturning(true);
-      await API_Admin.returnEvaluationToStudent(evaluationId, { reason });
+      await API_Admin.returnEvaluationToStudent(targetEvaluationId, { reason });
       toast.success('Đã gửi lại phiếu cho sinh viên.');
       setReturnModalOpen(false);
       setReturnReason('');
@@ -549,7 +640,13 @@ export function StudentDetailReviewView() {
                 {renderHeaderBadge()}
               </div>
               <p className="text-xs text-gray-500">
-                Cột Điểm SV tự đánh giá hiển thị điểm của sinh viên; Cán bộ chấm điểm chỉnh sửa cột Điểm Lớp đánh giá.
+                {user?.role === 'training_department' || user?.role === 'admin'
+                  ? 'Phòng Đào tạo kiểm tra điểm của sinh viên, lớp và khoa; có thể điều chỉnh điểm rèn luyện trước khi phê duyệt chính thức.'
+                  : user?.role === 'faculty'
+                    ? 'Khoa kiểm tra điểm của sinh viên và lớp đánh giá; có thể điều chỉnh điểm rèn luyện trước khi gửi Phòng Đào tạo.'
+                    : user?.role === 'advisor'
+                      ? 'Cột Điểm lớp đánh giá hiển thị điểm đã lưu theo từng mục. Điểm sinh viên tự đánh giá chỉ để đối chiếu.'
+                      : 'Cột Điểm SV tự đánh giá hiển thị điểm của sinh viên. Lớp trưởng chỉnh sửa cột Điểm lớp đánh giá.'}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -578,41 +675,72 @@ export function StudentDetailReviewView() {
 
           {/* ── CouncilCriteriaReviewTable: all state sourced from Zustand store ── */}
           <CouncilReviewStoreContext.Provider value={store}>
+            {hasLegacyClassScores && canEditReviewScores(user?.role, workflowStatus) && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                Phiếu cũ có mục chưa lưu lựa chọn chấm chi tiết. Các ô của những mục này được điền gợi ý từ phiếu sinh viên.
+                Khi chỉnh một dòng, hệ thống tính lại điểm của mục đó.
+              </p>
+            )}
             <CouncilCriteriaReviewTable />
           </CouncilReviewStoreContext.Provider>
 
           <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
-            {user?.role === 'advisor' && (
-              <button
-                type="button"
-                onClick={() => setReturnModalOpen(true)}
-                disabled={returning || confirming}
-                className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-6 py-2.5 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {returning ? <Loader2 className="animate-spin" size={15} /> : <RotateCcw size={15} />}
-                Gửi lại cho sinh viên
-              </button>
-            )}
-            {(canConfirm || canEditReviewScores(user?.role, workflowStatus)) && (
-              <button
-                type="button"
-                onClick={handleConfirmReview}
-                disabled={confirming || returning}
-                className={`inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition ${
-                  isConfirmed ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700'
-                } disabled:cursor-not-allowed disabled:opacity-60`}
-              >
-                {confirming ? (
-                  <Loader2 className="animate-spin" size={15} />
-                ) : (
-                  <CheckCircle2 size={15} />
+            {isConfirmed ? (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-2xs">
+                <div className="flex items-center gap-2.5 text-emerald-800 text-sm font-semibold">
+                  <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
+                  <span>
+                    {workflowStatus === 'finalized'
+                      ? 'Phiếu đánh giá đã được phê duyệt và hoàn tất chính thức.'
+                      : 'Phiếu đánh giá đã được xác nhận thành công.'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="inline-flex cursor-pointer items-center gap-1.5 px-4 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-2xs transition active:scale-95 whitespace-nowrap"
+                >
+                  <ArrowLeft size={14} /> Quay lại danh sách
+                </button>
+              </div>
+            ) : (
+              <>
+                {user?.role === 'advisor' && workflowStatus === 'submitted' && (
+                  <p className="text-sm text-amber-800">Phiếu đang chờ lớp trưởng gửi lên CVHT.</p>
                 )}
-                {confirming
-                  ? 'Đang lưu...'
-                  : isConfirmed
-                    ? 'Đã đánh giá'
-                    : 'Xác nhận đánh giá'}
-              </button>
+                {user?.role === 'advisor' && canConfirm && (
+                  <button
+                    type="button"
+                    onClick={() => setReturnModalOpen(true)}
+                    disabled={returning || confirming}
+                    className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-6 py-2.5 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {returning ? <Loader2 className="animate-spin" size={15} /> : <RotateCcw size={15} />}
+                    Gửi lại cho sinh viên
+                  </button>
+                )}
+                {canConfirm && (
+                  <button
+                    type="button"
+                    onClick={handleConfirmReview}
+                    disabled={confirming || returning || store.getState().isReadOnly}
+                    className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {confirming ? (
+                      <Loader2 className="animate-spin" size={15} />
+                    ) : (
+                      <CheckCircle2 size={15} />
+                    )}
+                    {confirming
+                      ? 'Đang lưu...'
+                      : user?.role === 'training_department' || user?.role === 'admin'
+                        ? 'Xác nhận điểm (PĐT)'
+                        : user?.role === 'faculty'
+                          ? 'Xác nhận đánh giá (Khoa)'
+                          : 'Xác nhận đánh giá'}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </>

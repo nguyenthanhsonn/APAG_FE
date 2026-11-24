@@ -1,8 +1,6 @@
 'use client';
 
-import { useRef as useActionRef } from 'react';
-
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -12,33 +10,32 @@ import {
   Search,
   Filter,
   Check,
+  ChevronLeft,
+  ChevronRight,
   FileCheck,
+  Eye,
 } from 'lucide-react';
 import { PrintButton } from '@/components/common/PrintButton';
 import { API_Admin } from '@/api/API_Admin';
+import { API_Faculty, type FacultyClassEvaluation, type FacultyClassEvaluationPage } from '@/api/API_Faculty';
 import { API_Shared } from '@/api/API_Shared';
 import { useAuthStore } from '@/store/authStore';
-import type { AdminEvaluationItem } from '@/types';
-import {
-  FacultyClassRecord,
-  FacultyStudentRecord,
-  mapEvaluationToFacultyStudent,
-  resolveFacultyId,
-  toArray,
-} from '@/utils/facultyEvaluationData';
+import type { AdminClass } from '@/types';
+import { resolveFacultyId } from '@/utils/facultyEvaluationData';
 import { getUserFriendlyError } from '@/utils/errorHelper';
 
 interface Props {
   classId: string;
 }
 
+const STUDENTS_PER_PAGE = 10;
+const PRINT_PAGE_SIZE = 100;
 
-
-function normalizeKey(value: unknown) {
-  return String(value || '').trim().toLowerCase();
+function formatSubmissionDate(submittedAt: string | null) {
+  return submittedAt ? new Date(submittedAt).toLocaleDateString('vi-VN') : '-';
 }
 
-function getRawStatusLabel(rawStatus: string, status: string): string {
+function getRawStatusLabel(rawStatus: string): string {
   const norm = String(rawStatus || '').trim().toLowerCase();
   switch (norm) {
     case 'submitted':
@@ -55,11 +52,11 @@ function getRawStatusLabel(rawStatus: string, status: string): string {
       return 'Trả về';
     case 'draft':
     default:
-      return status === 'APPROVED' ? 'Đã gửi PĐT' : 'Chưa nộp';
+      return 'Chưa nộp';
   }
 }
 
-function renderStatusBadge(rawStatus: string, status: string) {
+function renderStatusBadge(rawStatus: string) {
   const norm = String(rawStatus || '').trim().toLowerCase();
 
   switch (norm) {
@@ -101,13 +98,6 @@ function renderStatusBadge(rawStatus: string, status: string) {
       );
     case 'draft':
     default:
-      if (status === 'APPROVED') {
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">
-            <Check size={12} /> Đã gửi PĐT
-          </span>
-        );
-      }
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-500 bg-gray-100 rounded-full">
           Chưa nộp
@@ -116,178 +106,114 @@ function renderStatusBadge(rawStatus: string, status: string) {
   }
 }
 
-function getStudentIdentityKeys(student: any) {
-  return [
-    student.studentId,
-    student.id,
-    student.userId,
-    student.email,
-    student.studentCode,
-    student.code,
-    student.fullName,
-    student.name,
-  ]
-    .map(normalizeKey)
-    .filter(Boolean);
-}
-
-function getEvaluationIdentityKeys(evaluation: any) {
-  return [
-    evaluation.studentId,
-    evaluation.student?.id,
-    evaluation.student?.userId,
-    evaluation.userId,
-    evaluation.student?.email,
-    evaluation.email,
-    evaluation.studentCode,
-    evaluation.student?.studentCode,
-    evaluation.studentName,
-    evaluation.student?.fullName,
-  ]
-    .map(normalizeKey)
-    .filter(Boolean);
-}
-
 export function FacultyClassDetailView({ classId }: Props) {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const facultyId = resolveFacultyId(user);
-  const [classInfo, setClassInfo] = useState<FacultyClassRecord | null>(null);
-  const [students, setStudents] = useState<FacultyStudentRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [classInfo, setClassInfo] = useState<AdminClass | null>(null);
+  const [classLoading, setClassLoading] = useState(true);
+  const [classError, setClassError] = useState('');
+  const [result, setResult] = useState<FacultyClassEvaluationPage | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-
-  const loadClassDetail = useCallback(async () => {
-    if (!facultyId) {
-      setClassInfo(null);
-      setStudents([]);
-      return;
-    }
-
-    setLoading(true);
-    setErrorMessage('');
-    try {
-      const [classDetailResult, studentsResult, evaluationsResult] = await Promise.all([
-        API_Shared.getClassDetails(classId),
-        API_Shared.getClassStudents(classId),
-        API_Admin.getFacultyEvaluations(facultyId, { classId, limit: 100 }),
-      ]);
-
-      const classDetail = classDetailResult as any;
-      const classStudents = toArray<any>(studentsResult);
-      const evaluations = toArray<AdminEvaluationItem>(evaluationsResult);
-      const evaluationsByKey = new Map<string, AdminEvaluationItem>();
-
-      evaluations.forEach((evaluation) => {
-        getEvaluationIdentityKeys(evaluation).forEach((key) => {
-          evaluationsByKey.set(key, evaluation);
-        });
-      });
-
-      const mappedStudents = classStudents.map((student): FacultyStudentRecord => {
-        const evaluation = getStudentIdentityKeys(student)
-          .map((key) => evaluationsByKey.get(key))
-          .find(Boolean);
-
-        if (evaluation) {
-          return mapEvaluationToFacultyStudent(evaluation);
-        }
-
-        const studentId = student.studentId || student.userId || student.id || '';
-        return {
-          id: studentId,
-          evaluationId: '',
-          code: student.studentCode || student.code || '—',
-          name: student.fullName || student.name || 'Sinh viên chưa xác định',
-          score: 0,
-          rank: '-',
-          status: 'NOT_SUBMITTED',
-          rawStatus: 'not_submitted',
-          date: '-',
-        };
-      });
-
-      const approvedCount = mappedStudents.filter((item) => item.status === 'APPROVED').length;
-      const pendingCount = mappedStudents.filter((item) =>
-        ['advisor_approved', 'faculty_rejected'].includes(item.rawStatus),
-      ).length;
-      const totalStudents = classDetail.studentCount ?? mappedStudents.length;
-      const selectedClass: FacultyClassRecord = {
-        id: classDetail.id || classId,
-        className: classDetail.name || classDetail.code || 'Lớp chưa xác định',
-        leader: classDetail.classLeaders?.map((item: any) => item.fullName || item.username).filter(Boolean).join(', ') || '—',
-        totalStudents,
-        submittedCount: mappedStudents.filter((item) => item.status !== 'NOT_SUBMITTED').length,
-        approvedCount,
-        status:
-          pendingCount > 0
-            ? 'PENDING_FACULTY'
-            : totalStudents > 0 && approvedCount === totalStudents
-              ? 'FACULTY_APPROVED'
-              : 'IN_PROGRESS',
-        date: '-',
-        evaluations: mappedStudents,
-      };
-
-      setClassInfo(selectedClass);
-      setStudents(mappedStudents);
-    } catch (err: any) {
-      setClassInfo(null);
-      setStudents([]);
-      setErrorMessage(getUserFriendlyError(err, 'Không tải được dữ liệu lớp.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [facultyId, classId]);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [refresh, setRefresh] = useState(0);
+  const actionLock = useRef(false);
 
   useEffect(() => {
-    void loadClassDetail();
-  }, [loadClassDetail]);
+    if (!facultyId) return;
+    let ignore = false;
+    setClassLoading(true);
+    setClassInfo(null);
+    setClassError('');
+    API_Shared.getClassDetails(classId)
+      .then((detail) => {
+        if (!ignore) setClassInfo(detail);
+      })
+      .catch((error) => {
+        if (!ignore) setClassError(getUserFriendlyError(error, 'Không tải được thông tin lớp.'));
+      })
+      .finally(() => {
+        if (!ignore) setClassLoading(false);
+      });
+    return () => { ignore = true; };
+  }, [classId, facultyId]);
 
-  const filteredStudents = useMemo(() => students.filter((s) => {
-    const matchesSearch =
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const rawLower = String(s.rawStatus || '').toLowerCase();
-    const filterLower = statusFilter.toLowerCase();
-    const matchesStatus =
-      statusFilter === 'ALL' ||
-      s.status === statusFilter ||
-      rawLower === filterLower ||
-      (filterLower === 'faculty_approved' && s.status === 'APPROVED') ||
-      (filterLower === 'draft' && s.status === 'NOT_SUBMITTED');
-    return matchesSearch && matchesStatus;
-  }), [students, searchTerm, statusFilter]);
+  useEffect(() => {
+    if (!facultyId) return;
+    let ignore = false;
+    setPageLoading(true);
+    setErrorMessage('');
+    API_Faculty.getClassStudentEvaluations(classId, {
+      page,
+      limit: STUDENTS_PER_PAGE,
+      search: searchTerm.trim(),
+      status: statusFilter || undefined,
+    })
+      .then((response) => {
+        if (ignore) return;
+        const lastPage = Math.max(1, Math.ceil(response.total / response.limit));
+        if (page > lastPage) setPage(lastPage);
+        else setResult(response);
+      })
+      .catch((error) => {
+        if (ignore) return;
+        setResult(null);
+        setErrorMessage(getUserFriendlyError(error, 'Không tải được danh sách sinh viên.'));
+      })
+      .finally(() => {
+        if (!ignore) setPageLoading(false);
+      });
+    return () => { ignore = true; };
+  }, [classId, facultyId, page, refresh, searchTerm, statusFilter]);
 
-  const totalCount = students.length;
-  const classStatus = classInfo?.status ?? 'IN_PROGRESS';
+  const loading = classLoading || pageLoading || submitting;
+  const students = result?.items ?? [];
+  const total = result?.total ?? 0;
+  const currentPage = result?.page ?? page;
+  const limit = result?.limit ?? STUDENTS_PER_PAGE;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const firstStudentIndex = (currentPage - 1) * limit;
+  const totalStudents = result?.totalStudents ?? classInfo?.studentCount ?? 0;
+  const approved = Boolean(result && totalStudents > 0 && result.approvedCount === totalStudents);
+  const leader = classInfo?.classLeaders?.map((item) => item.fullName || item.username).filter(Boolean).join(', ');
+
+  async function loadPrintData(): Promise<FacultyClassEvaluation[]> {
+    const query = { limit: PRINT_PAGE_SIZE, search: searchTerm.trim(), status: statusFilter || undefined };
+    const first = await API_Faculty.getClassStudentEvaluations(classId, { ...query, page: 1 });
+    const pageCount = Math.ceil(first.total / first.limit);
+    const remaining = await Promise.all(
+      Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) =>
+        API_Faculty.getClassStudentEvaluations(classId, { ...query, page: index + 2 }),
+      ),
+    );
+    return [...first.items, ...remaining.flatMap((response) => response.items)];
+  }
+
   const managedFaculty =
     (user as any)?.managedFaculty ||
     (user as any)?.managedFaculties?.[0] ||
     (user as any)?.faculty;
   const managedFacultyName = managedFaculty?.facultyName || managedFaculty?.name || 'Khoa được phân công';
 
-  const actionLock = useActionRef(false);
   const handleFacultyApproveClass = async () => {
-    if (actionLock.current) return;
-    const pendingEvaluations = students.filter(
-      (item) => item.rawStatus.toLowerCase() === 'class_approved',
-    );
-
-    if (pendingEvaluations.length === 0) return;
+    if (actionLock.current || !result?.canSubmitToTrainingDepartment) return;
 
     actionLock.current = true;
-    setLoading(true);
+    setSubmitting(true);
     setErrorMessage('');
     try {
       await API_Admin.submitFacultyToTrainingDepartment(facultyId, { classId });
-      await loadClassDetail();
-    } catch (err: any) {
-      setErrorMessage(getUserFriendlyError(err, 'Không gửi được phiếu của lớp lên Phòng Đào tạo.'));
-      setLoading(false);
-    } finally { actionLock.current = false; setLoading(false); }
+      setRefresh((value) => value + 1);
+    } catch (error) {
+      setErrorMessage(getUserFriendlyError(error, 'Không gửi được phiếu của lớp lên Phòng Đào tạo.'));
+    } finally {
+      actionLock.current = false;
+      setSubmitting(false);
+    }
   };
 
   if (!facultyId) {
@@ -304,7 +230,7 @@ export function FacultyClassDetailView({ classId }: Props) {
     );
   }
 
-  if (!loading && !classInfo) {
+  if (!classLoading && !classInfo) {
     return (
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center gap-6 p-6">
         <div className="text-center">
@@ -312,7 +238,7 @@ export function FacultyClassDetailView({ classId }: Props) {
           <p className="text-sm text-gray-500 mb-6">
             Lớp với mã <strong>{classId}</strong> không có trong dữ liệu API của khoa đang đăng nhập.
           </p>
-          {errorMessage && <p className="text-sm font-medium text-rose-600 mb-4">{errorMessage}</p>}
+          {classError && <p className="text-sm font-medium text-rose-600 mb-4">{classError}</p>}
           <button onClick={() => router.push('/faculty')} className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700">
             <ArrowLeft size={16} /> Quay lại danh sách lớp
           </button>
@@ -339,14 +265,14 @@ export function FacultyClassDetailView({ classId }: Props) {
               <Building2 size={16} />
               {managedFacultyName}
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Chi tiết lớp {classInfo?.className || classId}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Chi tiết lớp {classInfo?.name || classId}</h1>
             <p className="text-sm text-gray-500 mt-1">
-              Lớp trưởng: <span className="font-semibold text-gray-700">{classInfo?.leader || '—'}</span>
-              {' · '}Số phiếu: <span className="font-semibold text-gray-700">{totalCount}</span>
+              Lớp trưởng: <span className="font-semibold text-gray-700">{leader || '—'}</span>
+              {' · '}Đã nộp: <span className="font-semibold text-gray-700">{result?.submittedCount ?? 0}/{totalStudents} sinh viên</span>
             </p>
           </div>
 
-          {classStatus === 'PENDING_FACULTY' && (
+          {result?.canSubmitToTrainingDepartment && (
             <button
               type="button"
               disabled={loading}
@@ -357,7 +283,7 @@ export function FacultyClassDetailView({ classId }: Props) {
               Gửi PĐT
             </button>
           )}
-          {classStatus === 'FACULTY_APPROVED' && (
+          {approved && (
             <span className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-sm font-semibold shrink-0">
               <Check size={15} />
               Đã gửi PĐT
@@ -381,7 +307,10 @@ export function FacultyClassDetailView({ classId }: Props) {
                 type="text"
                 placeholder="Tìm theo tên hoặc mã SV..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </div>
@@ -390,10 +319,13 @@ export function FacultyClassDetailView({ classId }: Props) {
               <Filter size={16} className="text-gray-400 shrink-0" />
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
               >
-                <option value="ALL">Tất cả trạng thái</option>
+                <option value="">Tất cả trạng thái</option>
                 <option value="submitted">Chờ Lớp trưởng duyệt</option>
                 <option value="class_leader_approved">Chờ CVHT duyệt</option>
                 <option value="class_approved">Chờ Khoa duyệt</option>
@@ -407,18 +339,20 @@ export function FacultyClassDetailView({ classId }: Props) {
 
           <div className="self-end sm:self-auto">
             <PrintButton
-              title={`DANH SÁCH PHIẾU LỚP ${classInfo?.className || classId}`}
+              title={`DANH SÁCH PHIẾU LỚP ${classInfo?.name || classId}`}
               subtitle={`${managedFacultyName} | Dữ liệu API`}
               label="In danh sách"
               signatures={{ leftLabel: 'Cố vấn học tập (CVHT)', rightLabel: 'Trưởng Khoa' }}
-              data={filteredStudents}
+              data={students}
+              loadData={loadPrintData}
+              disabled={loading || !result}
               columns={[
                 { header: 'Mã SV', accessorKey: 'code' },
                 { header: 'Họ và tên', accessorKey: 'name' },
-                { header: 'Điểm', accessorKey: 'score', align: 'center', render: (s) => (s.score > 0 ? s.score : '-') },
-                { header: 'Xếp loại', accessorKey: 'rank', align: 'center' },
-                { header: 'Trạng thái', align: 'left', render: (s) => getRawStatusLabel(s.rawStatus, s.status) },
-                { header: 'Ngày nộp', accessorKey: 'date' },
+                { header: 'Điểm', accessorKey: 'score', align: 'center', render: (s) => (s.score ?? '-') },
+                { header: 'Xếp loại', align: 'center', render: (s) => s.rank ?? '-' },
+                { header: 'Trạng thái', align: 'left', render: (s) => getRawStatusLabel(s.status) },
+                { header: 'Ngày nộp', render: (s) => formatSubmissionDate(s.submittedAt) },
               ]}
             />
           </div>
@@ -434,28 +368,73 @@ export function FacultyClassDetailView({ classId }: Props) {
                 <th className="py-3.5 px-4 text-center">Xếp loại</th>
                 <th className="py-3.5 px-4">Trạng thái</th>
                 <th className="py-3.5 px-4">Ngày nộp</th>
+                <th className="py-3.5 px-4 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">Đang tải dữ liệu...</td></tr>
-              ) : filteredStudents.length === 0 ? (
-                <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">Không có dữ liệu sinh viên từ API.</td></tr>
-              ) : filteredStudents.map((st) => (
-                <tr key={st.evaluationId} className="transition-colors hover:bg-brand-secondary/5">
+                <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Đang tải dữ liệu...</td></tr>
+              ) : students.length === 0 ? (
+                <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Không có dữ liệu sinh viên từ API.</td></tr>
+              ) : students.map((st) => (
+                <tr key={st.id} className="transition-colors hover:bg-brand-secondary/5">
                   <td className="py-3.5 px-4 font-mono font-semibold text-gray-700">{st.code}</td>
                   <td className="py-3.5 px-4 font-medium text-gray-900">{st.name}</td>
-                  <td className="py-3.5 px-4 text-center font-bold text-brand-secondary">{st.score > 0 ? st.score : '-'}</td>
+                  <td className="py-3.5 px-4 text-center font-bold text-brand-secondary">{st.score ?? '-'}</td>
                   <td className="py-3.5 px-4 text-center">
-                    {st.rank !== '-' ? <span className="inline-block px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-md">{st.rank}</span> : <span className="text-gray-400">-</span>}
+                    {st.rank ? <span className="inline-block px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-md">{st.rank}</span> : <span className="text-gray-400">-</span>}
                   </td>
-                  <td className="py-3.5 px-4">{renderStatusBadge(st.rawStatus, st.status)}</td>
-                  <td className="py-3.5 px-4 text-gray-500 text-xs">{st.date}</td>
+                  <td className="py-3.5 px-4">{renderStatusBadge(st.status)}</td>
+                  <td className="py-3.5 px-4 text-gray-500 text-xs">{formatSubmissionDate(st.submittedAt)}</td>
+                  <td className="py-3.5 px-4 text-center">
+                    <button
+                      type="button"
+                      disabled={st.status === 'not_submitted' && !st.evaluationId}
+                      onClick={() => {
+                        const targetId = st.evaluationId || st.id;
+                        router.push(`/faculty/${classId}/${targetId}`);
+                      }}
+                      className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Eye size={13} />
+                      {st.status === 'not_submitted' && !st.evaluationId ? 'Chưa nộp' : 'Chấm điểm'}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {!loading && students.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/50 px-4 py-3 text-sm text-gray-600">
+            <p aria-live="polite">
+              Hiển thị {firstStudentIndex + 1}–{firstStudentIndex + students.length} / {total} sinh viên
+            </p>
+            {totalPages > 1 && (
+              <nav aria-label="Phân trang danh sách sinh viên" className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Trang trước"
+                  disabled={currentPage === 1}
+                  onClick={() => setPage(currentPage - 1)}
+                  className="rounded-lg border border-gray-200 bg-white p-2 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  <ChevronLeft size={16} aria-hidden="true" />
+                </button>
+                <span>Trang {currentPage} / {totalPages}</span>
+                <button
+                  type="button"
+                  aria-label="Trang sau"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setPage(currentPage + 1)}
+                  className="rounded-lg border border-gray-200 bg-white p-2 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              </nav>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

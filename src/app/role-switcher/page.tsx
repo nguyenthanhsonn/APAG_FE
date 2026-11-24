@@ -52,7 +52,7 @@ const ROLES: RoleCard[] = [
   },
   {
     role: 'faculty',
-    label: 'Ban/Khoa (Faculty)',
+    label: 'Khoa (Faculty)',
     description: 'Xem báo cáo, xét duyệt và quản lý rèn luyện sinh viên theo Khoa.',
     href: '/login',
     icon: ShieldCheck,

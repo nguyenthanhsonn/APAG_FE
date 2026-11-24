@@ -73,11 +73,30 @@ function getStudentName(item: any): string {
 }
 
 function getScore(item: any): number {
-  return Number(item.finalScore ?? item.classScore ?? item.totalScore ?? item.studentScore ?? 0);
+  return Number(
+    item.finalScore ??
+    item.facultyScore ??
+    item.advisorScore ??
+    item.classScore ??
+    item.classLeaderScore ??
+    item.studentScore ??
+    item.selfScore ??
+    item.totalScore ??
+    0
+  );
 }
 
 function getRank(item: any): string {
-  return item.classification || item.rankLabel || item.rank || '-';
+  if (item.classification || item.rankLabel || item.rank) {
+    return item.classification || item.rankLabel || item.rank;
+  }
+  const score = getScore(item);
+  if (score >= 90) return 'Xuất sắc';
+  if (score >= 80) return 'Tốt';
+  if (score >= 65) return 'Khá';
+  if (score >= 50) return 'Trung bình';
+  if (score > 0) return 'Yếu';
+  return '-';
 }
 
 function getDate(item: any): string {

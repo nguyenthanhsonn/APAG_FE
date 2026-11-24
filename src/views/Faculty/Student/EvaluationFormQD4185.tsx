@@ -1028,6 +1028,20 @@ export const EvaluationFormQD4185 = () => {
         const data = await API_Student.getSemesters();
         const items = Array.isArray(data) ? data : [];
         setAvailableSemesters(items);
+
+        // Tự động chọn học kỳ đang active nếu chưa có kỳ nào được chọn trong URL/state
+        const searchSem = searchParams.get('semester');
+        const searchYr = searchParams.get('year');
+        if (!searchSem && !searchYr) {
+          const activeSem = items.find((item: any) => item.isActive) || items[0];
+          if (activeSem) {
+            const yr = getAcademicYearValue(activeSem);
+            const semCode = normalizeSemesterCode(activeSem.semester || activeSem.code);
+            setAcademicYear(yr);
+            setSemester(semCode);
+            setSelectedSemesterId(activeSem.id);
+          }
+        }
       } catch (err) {
         console.error('Failed to load available semesters:', err);
         toast.error(getUserFriendlyError(err, 'Không thể tải danh sách học kỳ. Vui lòng thử lại sau.'));
@@ -1072,6 +1086,14 @@ export const EvaluationFormQD4185 = () => {
 
   function getAcademicYearValue(item: any) {
     return item?.academicYear || (typeof item?.year === 'number' ? `${item.year}-${item.year + 1}` : '');
+  }
+
+  function isSameAcademicYear(yearA?: string, yearB?: string): boolean {
+    if (!yearA || !yearB) return false;
+    if (yearA === yearB) return true;
+    const startA = yearA.split('-')[0].trim();
+    const startB = yearB.split('-')[0].trim();
+    return startA === startB;
   }
 
   const semesterOptions = useMemo(() => {
@@ -1247,6 +1269,7 @@ export const EvaluationFormQD4185 = () => {
     const idParam = searchParams.get('id');
     const semParam = searchParams.get('semester');
     const yearParam = searchParams.get('year');
+    const autoStartParam = searchParams.get('autoStart');
 
     if (idParam) {
       if (evaluationId === idParam && step === 2) return;
@@ -1265,27 +1288,74 @@ export const EvaluationFormQD4185 = () => {
       return;
     }
 
-    const semesterFromUrl = availableSemesters.find((item: any) => {
+    if (availableSemesters.length === 0) return;
+
+    let semesterFromUrl = availableSemesters.find((item: any) => {
       const itemYear = getAcademicYearValue(item);
-      return normalizeSemesterCode(item.semester || item.code) === semParam && itemYear === yearParam;
+      const isYearMatch = yearParam ? (isSameAcademicYear(itemYear, yearParam) || String(item.year) === yearParam) : true;
+      const isSemMatch = semParam ? normalizeSemesterCode(item.semester || item.code) === semParam : true;
+      return isSemMatch && isYearMatch;
     });
 
-    if (semParam && yearParam && semesterFromUrl) {
-      if (semester !== semParam || academicYear !== yearParam) {
-        setSelectedSemesterId(semesterFromUrl.id);
-        setSemester(normalizeSemesterCode(semesterFromUrl.semester || semesterFromUrl.code));
-        setAcademicYear(yearParam);
-      }
-      if (step !== 1) {
-        setStep(1);
-      }
-    } else if (!semParam || !yearParam) {
-      if (step !== 1) {
-        setStep(1);
+    if (!semesterFromUrl && (semParam || yearParam)) {
+      semesterFromUrl = availableSemesters.find((item: any) => item.isActive) || availableSemesters[0];
+    }
+
+    if (semesterFromUrl && (semParam || yearParam || autoStartParam)) {
+      const resolvedYear = getAcademicYearValue(semesterFromUrl);
+      const resolvedSem = normalizeSemesterCode(semesterFromUrl.semester || semesterFromUrl.code);
+
+      setSelectedSemesterId(semesterFromUrl.id);
+      setSemester(resolvedSem);
+      setAcademicYear(resolvedYear);
+
+      if (autoStartParam === 'true' && step === 1) {
+        handleCheckAndProceed(resolvedSem, resolvedYear, semesterFromUrl.id);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, evaluationsList, step, semester, academicYear, availableSemesters]);
+  }, [searchParams, evaluationsList, step, availableSemesters]);
+
+  // Listener for instant notification click when user is already on /student/evaluation
+  useEffect(() => {
+    const handleNotificationNav = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { semester: targetSem, year: targetYear, autoStart } = customEvent.detail || {};
+
+      let targetSemConfig = availableSemesters.find((item: any) => {
+        const itemYear = getAcademicYearValue(item);
+        const isYearMatch = targetYear
+          ? isSameAcademicYear(itemYear, targetYear) || String(item.year) === targetYear
+          : true;
+        const isSemMatch = targetSem
+          ? normalizeSemesterCode(item.semester || item.code) === targetSem
+          : true;
+        return isYearMatch && isSemMatch;
+      });
+
+      if (!targetSemConfig) {
+        targetSemConfig = availableSemesters.find((item: any) => item.isActive) || availableSemesters[0];
+      }
+
+      if (targetSemConfig) {
+        const yr = getAcademicYearValue(targetSemConfig);
+        const semCode = normalizeSemesterCode(targetSemConfig.semester || targetSemConfig.code);
+        setSelectedSemesterId(targetSemConfig.id);
+        setSemester(semCode);
+        setAcademicYear(yr);
+
+        if (autoStart) {
+          handleCheckAndProceed(semCode, yr, targetSemConfig.id);
+        }
+      }
+    };
+
+    window.addEventListener('notification_go_to_evaluation', handleNotificationNav);
+    return () => {
+      window.removeEventListener('notification_go_to_evaluation', handleNotificationNav);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableSemesters, evaluationsList]);
 
   const handleStartEvaluation = () => {
     const selected = findSemesterConfig(semester, academicYear, selectedSemesterId);
@@ -1368,7 +1438,8 @@ export const EvaluationFormQD4185 = () => {
         await API_Student.submitEvaluation(pendingSubmission.current);
         pendingSubmission.current = null;
         toast.success('Gửi phiếu đánh giá thành công.');
-        router.replace('/student/history');
+        const isClassLeader = pathname?.startsWith('/class_leader');
+        router.replace(isClassLeader ? '/class_leader' : '/student/history');
         return;
       }
       let currentId = evaluationId;
@@ -1456,7 +1527,8 @@ export const EvaluationFormQD4185 = () => {
       setFieldErrors({});
       localStorage.removeItem('evaluation_draft_qd4185');
       toast.success('Gửi phiếu đánh giá thành công.');
-      router.replace('/student/history');
+      const isClassLeader = pathname?.startsWith('/class_leader');
+      router.replace(isClassLeader ? '/class_leader' : '/student/history');
     } catch (err: any) {
       setIsSubmitting(false);
       if (err.statusCode && err.statusCode >= 400 && err.statusCode < 500) pendingSubmission.current = null;

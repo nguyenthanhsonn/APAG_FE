@@ -28,6 +28,8 @@ export interface SharedEvaluationQueryParams {
   facultyId?: string;
   classId?: string;
   semesterId?: string;
+  semester?: string;
+  academicYear?: string;
   status?: string;
   search?: string;
 }
@@ -157,8 +159,18 @@ export function createSharedApi(
       return get<{
         classId: string;
         className: string;
+        semester: { id: string; code: 'HK1' | 'HK2' | 'SUMMER'; academicYear: string };
         totalStudents: number;
-        items: any[];
+        items: Array<{
+          stt: number;
+          studentCode: string;
+          fullName: string;
+          dateOfBirth: string;
+          classScore: number | null;
+          facultyScore: number | null;
+          classification: string;
+          note: string;
+        }>;
       }>(`/faculties/${facultyId}/classes/${classId}/council-review`, {
         params: buildQueryParams({ semesterId }),
       });
@@ -264,6 +276,7 @@ export function createSharedApi(
     confirmReview: (
       evaluationId: string,
       payload?: {
+        classLeaderReviewData?: Record<string, unknown>;
         scores?: Array<{
           criteriaCode: string;
           classScore: number;
@@ -271,21 +284,17 @@ export function createSharedApi(
         }>;
       },
     ) => {
-      if (!payload?.scores?.length) {
-        return post<AdminEvaluationItem>(
-          `/training-evaluations/${evaluationId}/confirm-review`,
-          {},
-        );
-      }
-
       return post<AdminEvaluationItem>(
         `/training-evaluations/${evaluationId}/confirm-review`,
         {
-          scores: payload.scores.map((item) => ({
-            criteriaCode: item.criteriaCode,
-            classScore: item.classScore,
-            ...(item.reviewerNote ? { reviewerNote: item.reviewerNote } : {}),
-          })),
+          ...(payload?.classLeaderReviewData && { classLeaderReviewData: payload.classLeaderReviewData }),
+          ...(payload?.scores?.length && {
+            scores: payload.scores.map((item) => ({
+              criteriaCode: item.criteriaCode,
+              classScore: item.classScore,
+              ...(item.reviewerNote ? { reviewerNote: item.reviewerNote } : {}),
+            })),
+          }),
         },
       );
     },

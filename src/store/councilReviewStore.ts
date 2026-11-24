@@ -24,10 +24,28 @@ export interface ScoreResult {
 // ---------------------------------------------------------------------------
 // State shape
 // ---------------------------------------------------------------------------
+export const REVIEW_SECTIONS = { TC1: 20, TC2: 25, TC3: 20, TC4: 25, TC5: 10 } as const;
+export type ReviewSectionCode = keyof typeof REVIEW_SECTIONS;
+export type ReviewSectionScores = Partial<Record<ReviewSectionCode, number | null>>;
+
+const CLASS_LEADER_SECTION_FIELDS = {
+  TC1: ['classStudyAttitude', 'classNckh', 'classOlympic', 'classCreative', 'classAcademicRank', 'isClassViolationSec1'],
+  TC2: ['classNoViolationScore', 'classDeductions', 'isClassViolationSec2'],
+  TC3: ['classActivity1', 'classActivity2', 'classActivity3', 'classActivity4', 'classRewardPoints', 'isClassViolationSec3'],
+  TC4: ['classPolicy', 'classSolidarity', 'classLocality', 'isClassViolationSec4'],
+  TC5: ['classRoleType', 'classCadrePosition', 'classCadrePerformance', 'classManagementLevel', 'classClassParticipation', 'classSpecialAchievement', 'isClassViolationSec5'],
+} as const;
+type ClassLeaderReviewField = typeof CLASS_LEADER_SECTION_FIELDS[ReviewSectionCode][number];
+type ClassLeaderReviewData = Pick<CouncilReviewState, ClassLeaderReviewField>;
+const classLeaderReviewFields = Object.values(CLASS_LEADER_SECTION_FIELDS).flat();
+
 export interface CouncilReviewState {
   // UI context (same fields as evaluationFormStore for interface compatibility)
-  currentUserRole: 'student' | 'class_leader' | 'advisor';
+  currentUserRole: 'student' | 'class_leader' | 'advisor' | 'faculty' | 'training_department' | 'admin';
   isReadOnly: boolean;
+  classSectionScores: ReviewSectionScores;
+  classLeaderReviewBaseline: ClassLeaderReviewData | null;
+  classLeaderReviewRecord: Partial<ClassLeaderReviewData>;
 
   // --- Section 1: Study & Research (max 20) ---
   svStudyAttitude: string;
@@ -266,6 +284,63 @@ export function computeCouncilScores(s: CouncilReviewState, isSv: boolean): Scor
   return { sec1, sec2, sec3, sec4, sec5, total: clamp(sec1 + sec2 + sec3 + sec4 + sec5, 100) };
 }
 
+export function getClassLeaderReviewData(state: CouncilReviewState, savedData?: unknown): ClassLeaderReviewData {
+  const saved = savedData && typeof savedData === 'object'
+    ? savedData as Record<string, unknown>
+    : {};
+  return Object.fromEntries(classLeaderReviewFields.map((field) => {
+    const fallback = state[field];
+    const value = saved[field];
+    const isValid = Array.isArray(fallback)
+      ? Array.isArray(value) && value.length === fallback.length &&
+        value.every((entry) => Number.isInteger(entry) && entry >= 0)
+      : typeof value === typeof fallback;
+    return [field, isValid ? value : fallback];
+  })) as ClassLeaderReviewData;
+}
+
+export function getClassLeaderReviewedSections(state: CouncilReviewState) {
+  const calculated = computeCouncilScores(state, false);
+  const scores = [calculated.sec1, calculated.sec2, calculated.sec3, calculated.sec4, calculated.sec5];
+  return (Object.keys(REVIEW_SECTIONS) as ReviewSectionCode[]).map((criteriaCode, index) => {
+    const savedScore = state.classSectionScores[criteriaCode];
+    const classScore = !hasClassLeaderSectionChanged(state, criteriaCode) && savedScore != null
+      ? savedScore
+      : Math.min(REVIEW_SECTIONS[criteriaCode], Math.max(0, Math.round(scores[index])));
+    return { criteriaCode, classScore };
+  });
+}
+
+function hasClassLeaderSectionChanged(state: CouncilReviewState, code: ReviewSectionCode) {
+  const baseline = state.classLeaderReviewBaseline;
+  return baseline != null && CLASS_LEADER_SECTION_FIELDS[code].some(
+    (field) => JSON.stringify(baseline[field]) !== JSON.stringify(state[field]),
+  );
+}
+
+export function readClassLeaderReviewRecord(state: CouncilReviewState, value: unknown): Partial<ClassLeaderReviewData> {
+  if (value == null || typeof value !== 'object') return {};
+  const normalized = getClassLeaderReviewData(state, value);
+  return Object.fromEntries(classLeaderReviewFields
+    .filter((field) => Object.prototype.hasOwnProperty.call(value, field))
+    .map((field) => [field, normalized[field]]));
+}
+
+export function hasCompleteClassLeaderReviewRecord(record: Partial<ClassLeaderReviewData>) {
+  return classLeaderReviewFields.every((field) => record[field] !== undefined);
+}
+
+export function getClassLeaderReviewRecordForSave(state: CouncilReviewState): Partial<ClassLeaderReviewData> {
+  const fields = (Object.keys(REVIEW_SECTIONS) as ReviewSectionCode[]).flatMap((code) => {
+    const sectionFields = CLASS_LEADER_SECTION_FIELDS[code];
+    const recorded = sectionFields.every((field) => state.classLeaderReviewRecord[field] !== undefined);
+    return recorded || state.classSectionScores[code] == null || hasClassLeaderSectionChanged(state, code)
+      ? sectionFields
+      : [];
+  });
+  return Object.fromEntries(fields.map((field) => [field, state[field]]));
+}
+
 // ---------------------------------------------------------------------------
 // Default state values
 // ---------------------------------------------------------------------------
@@ -277,6 +352,9 @@ const DEFAULT_STATE: Omit<
 > = {
   currentUserRole: 'class_leader',
   isReadOnly: false,
+  classSectionScores: {},
+  classLeaderReviewBaseline: null,
+  classLeaderReviewRecord: {},
 
   svStudyAttitude: 'FROM_1_TO_UNDER_4',
   svNckh: false,
