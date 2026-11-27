@@ -2,7 +2,23 @@
   "rewrites": [
     {
       "source": "/api/v1/:path*",
-      "destination": "http://117.2.126.123:5050/api/v1/:path*"
+      "has": [
+        {
+          "type": "host",
+          "value": "apagfe\\.vercel\\.app"
+        }
+      ],
+      "destination": "https://apag-be-da4e.onrender.com/api/v1/:path*"
+    },
+    {
+      "source": "/api/v1/:path*",
+      "destination": "http://117.2.126.123:5050/api/v1/:path*",
+      "missing": [
+        {
+          "type": "host",
+          "value": "apagfe\\.vercel\\.app"
+        }
+      ]
     }
   ]
 }
